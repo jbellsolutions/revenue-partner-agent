@@ -146,7 +146,6 @@ def load_config() -> dict[str, str]:
     load_env_file(BRIDGE_ENV, cfg)  # bridge-specific file wins
     cfg.setdefault("AGENTPHONE_BASE_URL", API_BASE)
     cfg.setdefault("AGENTPHONE_HERMES_TOOLSETS", "web,vision")
-    cfg.setdefault("AGENTPHONE_FULL_HERMES_TOOLSETS", "all")
     cfg.setdefault("AGENTPHONE_HERMES_MAX_TURNS", "90")
     cfg.setdefault("AGENTPHONE_WEBHOOK_CONTEXT_LIMIT", "10")
     cfg.setdefault("AGENTPHONE_WEBHOOK_TIMEOUT", "30")
@@ -729,7 +728,7 @@ def is_draft_like_reply(text: str) -> bool:
     if re.search(r"(?im)^\s*(subject|to|cc|bcc)\s*:", stripped):
         return True
     has_greeting = re.search(r"(?im)^\s*(hey|hi|hello|dear)\s+[^\n,]{1,60},\s*$", stripped)
-    has_signoff = re.search(r"(?im)^\s*(best|thanks|thank you|sincerely|nick)\s*$", stripped)
+    has_signoff = re.search(r"(?im)^\s*(best|thanks|thank you|sincerely|regards)\s*$", stripped)
     return bool(has_greeting and has_signoff)
 
 
@@ -769,11 +768,11 @@ def build_hermes_prompt(payload: dict[str, Any], fields: dict[str, Any], toolset
     message = fields.get("text", "")
     media_urls = fields.get("media_urls") or []
     media_block = "\n".join(str(u) for u in media_urls) if media_urls else "(none)"
-    return f"""You are Dewey/Hermes replying over AgentPhone SMS/iMessage.
+    return f"""You are the Revenue Partner/Hermes agent replying over AgentPhone SMS/iMessage.
 
 This is an inbound AgentPhone webhook from an allowlisted sender. Produce ONLY the final text that should be sent back to the sender. Do not include debug output, tool logs, JSON envelopes, code fences, signatures, API keys, webhook secrets, cloudflared tunnel internals, or any hidden system/config details.
 
-Important delivery rule: DO NOT call AgentPhone send_message/make_call tools yourself. The local bridge will send your final answer via AgentPhone after your one-shot run. If the sender asks you to text/call someone else not on the allowlist, buy/release numbers, or change phone/agent/webhook config, ask for explicit Nick approval instead of doing it.
+Important delivery rule: DO NOT call AgentPhone send_message/make_call tools yourself. The local bridge sends only your final conversational reply. This bridge exposes read-only research/vision toolsets and cannot authorize production actions. If asked to contact another person, publish, mutate CRM records, launch a campaign, spend money, change consent/suppression state, negotiate terms, or use sensitive/regulated data, provide at most an internal draft and require explicit operator approval through the primary authenticated channel and campaign contract.
 
 Outbound images/files: after generating media, include one line per file exactly like:
 MEDIA:/absolute/path/to/file.png
@@ -1279,7 +1278,7 @@ def run_hermes_and_reply(payload: dict[str, Any], fields: dict[str, Any], toolse
         cmd.extend(["-t", toolsets])
     env = os.environ.copy()
     env.update(CONFIG)
-    env.setdefault("HERMES_YOLO_MODE", "1")
+    env.pop("HERMES_YOLO_MODE", None)
     log_event("hermes_start", sender=fields.get("sender"), conversation_id=fields.get("conversation_id"), toolsets=toolsets, job_id=job.get("id"), model=bridge_model or "default", provider=bridge_provider or "default")
     done = threading.Event()
     ack_fields = dict(fields)
@@ -1497,9 +1496,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"ok": True, "ignored": "not inbound"})
             return
         allowed = csv_phones(CONFIG.get("AGENTPHONE_ALLOWED_SENDERS"))
-        full_access = csv_phones(CONFIG.get("AGENTPHONE_FULL_ACCESS_NUMBERS"))
         sender = fields["sender"]
-        if allowed and sender not in allowed:
+        if not allowed or sender not in allowed:
             log_event("webhook_ignored_sender", sender=sender, allowed=sorted(allowed), conversation_id=fields.get("conversation_id"))
             self.send_json(200, {"ok": True, "ignored": "sender not allowlisted"})
             return
@@ -1523,7 +1521,8 @@ class Handler(BaseHTTPRequestHandler):
         if handle_reaction_only(fields):
             self.send_json(200, {"ok": True, "reaction_only": True})
             return
-        toolsets = CONFIG.get("AGENTPHONE_FULL_HERMES_TOOLSETS", "all") if sender in full_access else CONFIG.get("AGENTPHONE_HERMES_TOOLSETS", "web,vision")
+        requested_toolsets = {item.strip() for item in CONFIG.get("AGENTPHONE_HERMES_TOOLSETS", "web,vision").split(",")}
+        toolsets = ",".join(item for item in ("web", "vision") if item in requested_toolsets) or "vision"
         job = start_conversation_job(fields, fields.get("reply_to") or fields.get("sender") or "")
         thread = threading.Thread(target=run_hermes_and_reply, args=(payload, fields, toolsets, job), daemon=True)
         thread.start()

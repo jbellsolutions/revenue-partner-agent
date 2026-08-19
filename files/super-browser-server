@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT=/root/.hermes/local-packages/super-browser
+export PYTHONPATH="${ROOT}/src:${PYTHONPATH:-}"
+export SUPER_BROWSER_REPO_ROOT="${SUPER_BROWSER_REPO_ROOT:-$ROOT}"
+export SUPER_BROWSER_STATE_DIR="${SUPER_BROWSER_STATE_DIR:-/root/.super-browser}"
+exec /usr/local/lib/hermes-agent/venv/bin/python -m super_browser.mcp_server

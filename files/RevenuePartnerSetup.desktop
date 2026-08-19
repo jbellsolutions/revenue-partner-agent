@@ -1,7 +1,7 @@
 [Desktop Entry]
-Name=Nick's Stack Setup
+Name=Revenue Partner Setup
 Comment=Connect Nous, Telegram, and your integrations
-Exec=/usr/local/bin/nicks-stack-onboard-launch.sh
+Exec=/usr/local/bin/revenue-partner-onboard-launch.sh
 Icon=preferences-system
 Terminal=false
 Type=Application

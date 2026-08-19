@@ -1,3 +1,9 @@
 nicks-stack.resolved.json
+revenue-partner-agent.resolved.json
+revenue-partner-agent.launch.json
+.artifacts/
 __pycache__/
 *.pyc
+*.egg-info/
+.pytest_cache/
+.coverage

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Super Browser — your browser & agent expert</title>
+<meta name="description" content="An AI agent you talk to that's an expert at anything browser-heavy — and can command a fleet of agents to get it done. Runs on open-source models.">
+<style>
+  :root{
+    --gold:#ffd23f; --gold-lt:#fff7c2; --orange:#ff7b1c; --blue:#3aa1ff; --teal:#5bd0c0;
+    --void:#070312; --void2:#0c0820; --panel:#120b26; --panel2:#160d2e;
+    --ink:#e9e3ff; --mut:#9b8fc4; --line:#2a1a55;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;color:var(--ink);
+       background:radial-gradient(120% 80% at 50% 0%, #1a0f3a 0%, var(--void2) 45%, var(--void) 100%) fixed;
+       font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+  a{color:var(--gold);text-decoration:none}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+  .hero{padding:48px 0 24px;text-align:center}
+  .hero svg{width:100%;max-width:1000px;height:auto;filter:drop-shadow(0 0 44px rgba(255,210,63,.13))}
+  .tag{font-size:21px;color:var(--gold-lt);max-width:780px;margin:24px auto 6px;font-weight:600}
+  .sub{color:var(--mut);max-width:680px;margin:0 auto 18px}
+  .badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:16px 0 22px}
+  .badge{font:600 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.4px;padding:8px 13px;border-radius:999px;
+         background:#0a0418;border:1px solid var(--line);color:var(--gold)}
+  .badge.b{color:var(--blue);border-color:#1f3d6b}
+  .badge.g{color:#7bff9b;border-color:#1f5b33}
+  .cta{display:inline-block;margin:8px 6px;padding:13px 24px;border-radius:12px;font-weight:700;font-size:15px;transition:transform .12s ease}
+  .cta:hover{transform:translateY(-2px)}
+  .cta.p{background:linear-gradient(180deg,var(--gold),var(--orange));color:#1a0f00;box-shadow:0 8px 32px rgba(255,123,28,.32)}
+  .cta.s{border:1px solid var(--line);color:var(--ink);background:#0e0a20}
+  section{padding:44px 0;border-top:1px solid rgba(122,107,160,.16)}
+  h2{font-size:27px;margin:0 0 8px}
+  h2 .gr{background:linear-gradient(90deg,var(--gold-lt),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{color:var(--mut);margin:0 0 22px;max-width:760px}
+  .grid{display:grid;gap:16px}
+  .g4{grid-template-columns:repeat(4,1fr)} .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:780px){.g4,.g3{grid-template-columns:1fr}}
+  .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:18px;transition:border-color .15s ease}
+  .card:hover{border-color:var(--gold)}
+  .card h3{margin:0 0 6px;font-size:16px;color:var(--gold)}
+  .card p{margin:0;color:var(--mut);font-size:14px}
+  .num{font:800 12px/1 ui-monospace,monospace;color:var(--blue);letter-spacing:1px;margin-bottom:8px}
+  pre{background:#0a0418;border:1px solid var(--line);border-radius:10px;padding:11px 13px;overflow:auto;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#ffe28a;margin:0 0 10px}
+  .ask{width:100%;border-collapse:collapse;margin-top:4px}
+  .ask td{padding:13px 14px;border-bottom:1px solid rgba(122,107,160,.14);vertical-align:top;font-size:14.5px}
+  .ask td:first-child{color:var(--gold-lt);font-style:italic;width:48%}
+  .ask td:last-child{color:var(--mut)}
+  .frame{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#05030c}
+  .frame svg{display:block;width:100%;height:auto}
+  .flow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;margin-top:6px}
+  .node{padding:11px 16px;border-radius:12px;background:#160d2e;border:1px solid var(--gold);color:var(--gold-lt);font-weight:600;font-size:14px}
+  .node.u{background:#0a1228;border-color:var(--blue);color:#cbeaff}
+  .node.core{background:#1f1206;border-color:var(--gold);color:var(--gold);font-weight:800}
+  .node.o{background:#1f0f1c;border-color:var(--orange);color:#ffd9bd}
+  .arr{color:var(--mut);font-size:18px}
+  footer{padding:42px 0 64px;text-align:center;color:var(--mut)}
+  footer b{color:var(--gold);letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" role="img" aria-label="Super Browser">
+      <defs>
+        <radialGradient id="sbVoid" cx="50%" cy="48%" r="85%"><stop offset="0%" stop-color="#1a0f3a"/><stop offset="52%" stop-color="#0c0820"/><stop offset="100%" stop-color="#050208"/></radialGradient>
+        <radialGradient id="sbAura" cx="50%" cy="52%" r="46%"><stop offset="0%" stop-color="#fff7c2" stop-opacity=".95"/><stop offset="34%" stop-color="#ffd23f" stop-opacity=".5"/><stop offset="72%" stop-color="#ff7b1c" stop-opacity=".16"/><stop offset="100%" stop-color="#ff7b1c" stop-opacity="0"/></radialGradient>
+        <linearGradient id="sbTitle" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fffacd"/><stop offset="50%" stop-color="#ffd23f"/><stop offset="100%" stop-color="#ff8c1c"/></linearGradient>
+        <linearGradient id="sbSub" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#ffe28a"/><stop offset="100%" stop-color="#ffb066"/></linearGradient>
+        <filter id="sbGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="sbAuraBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
+        <symbol id="sbBolt" viewBox="0 0 24 32"><path d="M14 0 L0 18 L9 18 L7 32 L24 12 L14 12 Z" fill="url(#sbTitle)" stroke="#fff7c2" stroke-width=".5" stroke-linejoin="round"/></symbol>
+      </defs>
+      <rect width="1200" height="400" fill="url(#sbVoid)"/>
+      <g stroke="#2a1a55" stroke-width=".5" opacity=".4"><path d="M0 80 H1200 M0 160 H1200 M0 240 H1200 M0 320 H1200"/><path d="M150 0 V400 M300 0 V400 M450 0 V400 M600 0 V400 M750 0 V400 M900 0 V400 M1050 0 V400"/></g>
+      <g filter="url(#sbAuraBlur)"><ellipse cx="600" cy="198" rx="400" ry="172" fill="url(#sbAura)"/></g>
+      <g opacity=".6"><rect x="356" y="92" width="488" height="214" rx="14" fill="none" stroke="#ffd23f" stroke-width="1.4" opacity=".5"/><line x1="356" y1="124" x2="844" y2="124" stroke="#ffd23f" stroke-width="1.1" opacity=".45"/><circle cx="376" cy="108" r="3.6" fill="#ff7b6b"/><circle cx="392" cy="108" r="3.6" fill="#ffd23f"/><circle cx="408" cy="108" r="3.6" fill="#7bff9b"/></g>
+      <g fill="#ffd23f" opacity=".85"><circle cx="360" cy="322" r="2.5"/><circle cx="432" cy="288" r="1.8"/><circle cx="512" cy="338" r="2.2"/><circle cx="690" cy="332" r="2.4"/><circle cx="770" cy="292" r="1.8"/><circle cx="842" cy="344" r="2.2"/></g>
+      <use href="#sbBolt" x="298" y="150" width="30" height="40" filter="url(#sbGlow)" opacity=".85"/>
+      <use href="#sbBolt" x="872" y="150" width="30" height="40" filter="url(#sbGlow)" opacity=".85"/>
+      <g filter="url(#sbGlow)"><text x="600" y="206" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-weight="900" font-size="90" letter-spacing="2" fill="url(#sbTitle)">SUPER BROWSER</text></g>
+      <text x="600" y="250" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="21" letter-spacing="1.1" fill="url(#sbSub)">Your browser, computer-use &amp; agent expert — talks, decides, commands a fleet.</text>
+      <g transform="translate(600 296)"><rect x="-292" y="0" width="584" height="44" rx="22" fill="#0a0418" stroke="#ffd23f" stroke-width="1.5" opacity=".92"/><text x="0" y="29" text-anchor="middle" font-family="Menlo,Consolas,monospace" font-size="15" fill="#ffd23f" letter-spacing="2">UNDERSTAND → INFRASTRUCTURE → PREP → EXECUTE</text></g>
+    </svg>
+    <p class="tag">An AI agent you talk to that's an expert at anything browser-heavy — and can command a fleet of agents to get it done.</p>
+    <p class="sub">Runs entirely on open-source models. Cheap to think with. Honest about what works.</p>
+    <div class="badges">
+      <span class="badge">runs on open source · GLM 5.2</span>
+      <span class="badge">11 tools</span>
+      <span class="badge b">3-model council</span>
+      <span class="badge g">● alive</span>
+    </div>
+    <a class="cta p" href="#start">Talk to it →</a>
+    <a class="cta s" href="https://github.com/jbellsolutions/super-browser">View on GitHub</a>
+  </div>
+
+  <section>
+    <h2><span class="gr">🧠 What it is</span></h2>
+    <p class="lead">A senior engineer who's shipped on every browser-automation stack, never bluffs, and can put a team of agents to work. Every project runs through four phases — and it never skips ahead.</p>
+    <div class="grid g4">
+      <div class="card"><div class="num">PHASE 1</div><h3>Understand</h3><p>Jams with you, asks sharp questions until the goal fits in one sentence.</p></div>
+      <div class="card"><div class="num">PHASE 2</div><h3>Infrastructure</h3><p>Designs the stack: browser · compute · data · agents — and how they fit.</p></div>
+      <div class="card"><div class="num">PHASE 3</div><h3>Prep</h3><p>Keys, tools, project skeleton — builds whatever's missing.</p></div>
+      <div class="card"><div class="num">PHASE 4</div><h3>Execute</h3><p>Scrapes, sources, spins up fleets, delivers and verifies.</p></div>
+    </div>
+  </section>
+
+  <section id="start">
+    <h2><span class="gr">⚡ Three ways to talk to it</span></h2>
+    <div class="grid g3">
+      <div class="card"><h3>① Jam with it</h3><pre>python scripts/talk_super_browser.py</pre><p>A real conversation. It asks, plans, then does it.</p></div>
+      <div class="card"><h3>② One-shot</h3><pre>... --prompt "best provider
+for a Cloudflare site?"</pre><p>Quick asks, or call it from a script.</p></div>
+      <div class="card"><h3>③ As a service</h3><pre>python scripts/super_browser_server.py
+# POST → :8088/ask</pre><p>So Claude Code or any agent can call it.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="gr">🎯 What you can ask it</span></h2>
+    <table class="ask">
+      <tr><td>"Research the best residential proxy providers in 2026."</td><td>spins up a fleet of research agents, one per angle, in parallel</td></tr>
+      <tr><td>"Get me every plumber in Tampa — name, phone, website."</td><td>scrapes the directory → a clean spreadsheet</td></tr>
+      <tr><td>"Now do Tampa, Orlando, and Miami."</td><td>a parallel fleet, deduped into one list</td></tr>
+      <tr><td>"Steel or Bright Data for this job?"</td><td>convenes the 3-model council → verdict + dissent</td></tr>
+      <tr><td>"Hand those off to the SDR fleet."</td><td>delegates to any downstream fleet of agents</td></tr>
+    </table>
+    <p class="sub" style="margin:16px 0 0">It's general — swap "plumbers" for research papers, competitor pricing pages, or grant listings.</p>
+  </section>
+
+  <section>
+    <h2><span class="gr">🔺 The power ladder</span></h2>
+    <p class="lead">It starts at the lowest power level that can do the job — and only powers up when the task demands it.</p>
+    <div class="frame">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-label="Provider power ladder">
+        <defs>
+          <radialGradient id="plVoid" cx="50%" cy="40%" r="90%"><stop offset="0%" stop-color="#120a2c"/><stop offset="100%" stop-color="#05030c"/></radialGradient>
+          <filter id="plGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="9"/></filter>
+        </defs>
+        <rect width="1200" height="420" fill="url(#plVoid)"/>
+        <text x="60" y="50" font-family="Menlo,Consolas,monospace" font-size="15" fill="#ffd23f" letter-spacing="3">POWER LADDER</text>
+        <text x="60" y="74" font-family="Helvetica,Arial,sans-serif" font-size="15" fill="#9b8fc4">Starts at the lowest level that works — only powers up when the task demands it.</text>
+        <line x1="60" y1="350" x2="1140" y2="350" stroke="#2a1a55" stroke-width="1"/>
+        <line x1="80" y1="338" x2="1120" y2="150" stroke="#ffd23f" stroke-width="1" stroke-dasharray="3 5" opacity=".45"/>
+        <text x="1095" y="138" text-anchor="end" font-family="Menlo,Consolas,monospace" font-size="11" fill="#ffb066" letter-spacing="1" opacity=".8">more power · more cost</text>
+        <g><rect x="100" y="280" width="120" height="70" rx="8" fill="#0a1530" stroke="#3aa1ff" stroke-width="1.3"/><circle cx="160" cy="280" r="22" fill="#3aa1ff" opacity=".25" filter="url(#plGlow)"/><circle cx="160" cy="280" r="13" fill="#9ad7ff"/><text x="160" y="312" text-anchor="middle" font-family="Menlo,monospace" font-size="11" fill="#7fb6d6" letter-spacing="2">LV 1</text><text x="160" y="334" text-anchor="middle" font-family="Helvetica,sans-serif" font-weight="700" font-size="14" fill="#cbeaff">Playwright</text><text x="160" y="372" text-anchor="middle" font-family="Helvetica,sans-serif" font-size="12" fill="#7c87a8">local · free</text></g>
+        <g><rect x="320" y="250" width="120" height="100" rx="8" fill="#0e1430" stroke="#5bd0c0" stroke-width="1.3"/><circle cx="380" cy="250" r="24" fill="#5bd0c0" opacity=".25" filter="url(#plGlow)"/><circle cx="380" cy="250" r="14" fill="#b9f5ec"/><text x="380" y="284" text-anchor="middle" font-family="Menlo,monospace" font-size="11" fill="#7fd6c6" letter-spacing="2">LV 2</text><text x="380" y="306" text-anchor="middle" font-family="Helvetica,sans-serif" font-weight="700" font-size="14" fill="#d6fff7">Bright Data · Decodo</text><text x="380" y="372" text-anchor="middle" font-family="Helvetica,sans-serif" font-size="12" fill="#7c87a8">data APIs · proxies</text></g>
+        <g><rect x="540" y="215" width="120" height="135" rx="8" fill="#16122a" stroke="#ffd23f" stroke-width="1.3"/><circle cx="600" cy="215" r="26" fill="#ffd23f" opacity=".28" filter="url(#plGlow)"/><circle cx="600" cy="215" r="15" fill="#fff2b0"/><text x="600" y="250" text-anchor="middle" font-family="Menlo,monospace" font-size="11" fill="#ffd23f" letter-spacing="2">LV 3</text><text x="600" y="272" text-anchor="middle" font-family="Helvetica,sans-serif" font-weight="700" font-size="14" fill="#ffe28a">Hyperbrowser · Airtop</text><text x="600" y="372" text-anchor="middle" font-family="Helvetica,sans-serif" font-size="12" fill="#7c87a8">cloud scrape</text></g>
+        <g><rect x="760" y="180" width="120" height="170" rx="8" fill="#1a1024" stroke="#ff9f3f" stroke-width="1.3"/><circle cx="820" cy="180" r="28" fill="#ff9f3f" opacity=".3" filter="url(#plGlow)"/><circle cx="820" cy="180" r="16" fill="#ffd9a8"/><text x="820" y="216" text-anchor="middle" font-family="Menlo,monospace" font-size="11" fill="#ff9f3f" letter-spacing="2">LV 4</text><text x="820" y="238" text-anchor="middle" font-family="Helvetica,sans-serif" font-weight="700" font-size="14" fill="#ffe0bd">Steel · Browser Use</text><text x="820" y="372" text-anchor="middle" font-family="Helvetica,sans-serif" font-size="12" fill="#7c87a8">interactive · auth</text></g>
+        <g><rect x="980" y="140" width="120" height="210" rx="8" fill="#1f0f1c" stroke="#ff7b1c" stroke-width="1.4"/><circle cx="1040" cy="140" r="31" fill="#ff7b1c" opacity=".34" filter="url(#plGlow)"/><circle cx="1040" cy="140" r="18" fill="#ffcf9e"/><text x="1040" y="178" text-anchor="middle" font-family="Menlo,monospace" font-size="11" fill="#ff7b1c" letter-spacing="2">LV 5</text><text x="1040" y="200" text-anchor="middle" font-family="Helvetica,sans-serif" font-weight="700" font-size="14" fill="#ffd9bd">Orgo</text><text x="1040" y="372" text-anchor="middle" font-family="Helvetica,sans-serif" font-size="12" fill="#7c87a8">full desktop</text></g>
+      </svg>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="gr">🏗️ How it's wired</span></h2>
+    <p class="lead">Bidirectional: you and other agents call <em>in</em>; it calls <em>out</em> to fleets.</p>
+    <div class="flow">
+      <span class="node u">💬 you / agents</span><span class="arr">→</span>
+      <span class="node core">🐉 SUPER BROWSER</span><span class="arr">→</span>
+      <span class="node">🛠️ engine · 11 providers</span>
+    </div>
+    <div class="flow" style="margin-top:10px">
+      <span class="node">📚 knowledge + self-learning</span>
+      <span class="node">⚖️ 3-model council</span>
+      <span class="node o">🚀 spins up fleets of any agents</span>
+      <span class="node o">📞 calls out → SDR · research · any fleet</span>
+    </div>
+  </section>
+
+</div>
+<footer>
+  Runs on your open-source models &nbsp;·&nbsp; Logs to your Obsidian vault &nbsp;·&nbsp; A doer <b>and</b> a tool
+  <br><br>🐉 &nbsp;<b>SUPER BROWSER</b>
+</footer>
+</body>
+</html>

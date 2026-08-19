@@ -4,7 +4,7 @@ description: >
   Same-box Orgo Desktop API tools (loopback :8080). Prefer these over cloud
   Orgo MCP GUI when Hermes runs inside the VM. Auth: VNC_PASSWORD / ORGO_DESKTOP_API_TOKEN.
   Includes drag, click_path, and visual noop/verify fingerprints.
-author: Nick Vasilescu
+author: Revenue Partner template
 provides_tools:
   - orgo_desktop_doctor
   - orgo_desktop_screenshot

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==========================================================================
-# Nick's Stack — Telegram managed-bot QR pairing (the signature onboarding)
+# Revenue Partner — Telegram managed-bot QR pairing (the signature onboarding)
 # ==========================================================================
 # Reproduces the exact flow the source VM used: mint a Nous managed-bot pairing,
 # render its deep link as a QR PNG, show it on the desktop in Chrome, poll until
@@ -74,7 +74,7 @@ def main():
 
     deadline = time.time() + 15 * 60          # try up to 15 min of fresh QRs
     while time.time() < deadline:
-        pairing = create_pairing(bot_name="Nick's Stack")
+        pairing = create_pairing(bot_name="Revenue Partner")
         log("Pairing created. Deep link:")
         print("    " + pairing.deep_link, flush=True)
         if render_qr_png(pairing.qr_payload, QR_PATH):

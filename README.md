@@ -1,21 +1,62 @@
 <div align="center">
 
-<img src="docs/assets/hero.jpg" alt="Nick's Stack — a Hermes agent on Orgo" width="800"/>
+<img src="docs/assets/hero.jpg" alt="Revenue Partner Agent" width="800"/>
 
-# Nick's Stack 🚀
+# Revenue Partner Agent 🚀
 
-**Your own always-on AI agent, on its own cloud computer — with its own phone, email, payment card, and password vault.**
+**A source-grounded GTM operator that runs one Money Desk across reactivation, targeted outbound, affiliates, stages/sponsors, and coordinated content.**
 
-[![Template](https://img.shields.io/badge/orgo_template-nicks--stack%400.2.2-2ea44f?logo=googlecloud&logoColor=white)](https://orgo.ai)
+[![Template](https://img.shields.io/badge/orgo_template-revenue--partner--agent%401.0.0-2ea44f?logo=googlecloud&logoColor=white)](https://orgo.ai)
 [![Hermes](https://img.shields.io/badge/agent-Hermes_v0.18-1f2937?logo=openai&logoColor=white)](https://github.com/NousResearch/hermes-agent)
-[![MCP](https://img.shields.io/badge/MCP_servers-13-6366f1)](#-whats-in-the-box)
+[![MCP](https://img.shields.io/badge/MCP_servers-14-6366f1)](#-whats-in-the-box)
+[![Browser](https://img.shields.io/badge/Super_Browser-8_providers-0ea5e9)](https://github.com/jbellsolutions/super-browser)
 [![Secrets](https://img.shields.io/badge/baked_secrets-0-e11d48?logo=1password&logoColor=white)](#-your-keys-stay-yours)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-*Wired **exactly like Nick's live production agent** ("Dewey") — rebuilt byte-for-byte from a full audit of that VM.*
-*Scan one QR and you're texting your agent in ~2 minutes.*
+*Built on the supplied always-on Hermes/Orgo stack.*
+*Grounded in the Revenue Partner landing page and all three supplied implementation videos.*
 
 </div>
+
+---
+
+## Revenue Partner operating model
+
+The template does not just rename the base agent. It adds a GTM execution contract derived from the supplied landing page and three implementation videos:
+
+- **Two demand engines:** owned-demand recovery and new-demand acquisition.
+- **Four coordinated channels:** affiliates/partners, direct outbound, reactivation, and social/content.
+- **Four readiness pillars:** architecture, data, infrastructure, and execution.
+- **Phased execution:** fit/map → architecture/story → infrastructure/data → launch → run/report/optimize.
+- **Money Desk reporting:** booked, attended, qualified, opportunity, pipeline, and closed revenue stay separate.
+- **SpeakerAgent Riley:** discovers/scores podcasts, stages, conferences, seminars, and sponsor opportunities; a human owns relationships and closing.
+- **Human approval policy:** SOUL.md and the Revenue Partner skill require an approved campaign contract covering audience, source, sender, claims, volume, schedule, spend, suppression, CRM, pause, and stop bounds. Hard runtime gating is implemented in Super Browser and the AgentPhone bridge; other integrations remain governed by operator/tool permissions rather than a claimed universal campaign-record gate.
+- **Source integrity:** the `2–4 booked meetings/day` statement is represented as a target, never a guarantee or typical result.
+- **Persistent context:** a seeded `/root/agent-knowledge` vault holds fit, offer, ICP, approved claims, Money Desk mapping, campaigns, and reports.
+- **Super Browser:** one provider-neutral MCP front door with eight adapters and build-time Playwright verification.
+
+Canonical files:
+
+- `files/SOUL.md`
+- `files/skills/go-to-market/revenue-partner/SKILL.md`
+- `files/skills/go-to-market/revenue-partner/references/source-ledger.md`
+- `files/skills/go-to-market/revenue-partner/references/campaign-contract.md`
+- `files/agent-knowledge/INDEX.md`
+
+Build and test:
+
+```bash
+python3.11 -m unittest discover -s tests -v
+uv run --no-project --with jsonschema --with certifi python build_template.py
+```
+
+Publish/build/launch with runtime credentials loaded outside the repository:
+
+```bash
+python build_template.py --remote-validate
+python build_template.py --build
+python build_template.py --launch <workspace-id>
+```
 
 ---
 
@@ -29,7 +70,7 @@ You launch a cloud desktop. A setup window signs you into the model, you scan a 
 - 🔌 **uses your apps** — Gmail, Slack, Calendar, Notion, +1000 (Composio)
 - 🖥️ **drives its own desktop** and other Orgo computers (11 built-in desktop tools + the Orgo MCP)
 - 📝 **keeps notes** in an Obsidian vault you can open right on its desktop
-- 🔭 **is fully observable** — every model + tool call traced to Latitude
+- 🔭 **supports full observability when configured** — Latitude can trace model and tool calls after credentials are connected
 - 🔐 **fetches its own keys** from a 1Password vault you control
 
 <div align="center">
@@ -85,7 +126,7 @@ Every integration ships **key-less**: an unset key just parks that server (it re
 
 1. **Make an Orgo account** → [orgo.ai](https://orgo.ai).
 2. **Launch the template** (see *Run your own copy* below, or the gallery entry if you're on the curated catalog).
-3. The **Nick's Stack Setup** window walks you through:
+3. The **Revenue Partner Setup** window walks you through:
    - **Connect Nous** — a quick device-code sign-in so `gpt-5.5` can think (it test-fires a 1-token call, so a zero-credit account fails loudly, not silently).
    - **Scan the QR** → tap **Create Bot** in Telegram → your personal bot is live. 🎉
    - **Optional: paste a 1Password service-account token** — one token, every key, forever.
@@ -116,35 +157,35 @@ Every integration ships **key-less**: an unset key just parks that server (it re
 
 | | |
 |---|---|
-| **Agent** | Hermes v0.18 (Nous) · `gpt-5.5` — a ChatGPT/codex flip is two documented lines |
-| **Chat** | Telegram, scan-a-QR onboarding (no BotFather) |
-| **Secrets** | 1Password secret plane — `op` CLI baked, 19-key map, token isolated in `~/.hermes/.op.env` |
-| **MCP (13)** | AgentMail · AgentCard · AgentPhone · Composio · Latitude · Orgo · x-docs · X API ×2 · Linear · ideabrowser · vidiq · Obsidian vault |
-| **Phone** | AgentPhone **webhook bridge** — supervised service, self-provisions a cloudflared tunnel, wakes itself when keyed |
-| **Tracing** | Latitude OTLP telemetry plugin *and* a chat-side MCP |
-| **Desktop control** | custom `orgo-desktop-local` plugin — 11 tools, zero keys (rides the VM's own auth) |
-| **Skills** | the 21-unit library from the live agent — a setup runbook for every integration above |
-| **Persona** | the production SOUL.md — rigor contract, coding-agent routing, desktop control plane |
-| **Notes** | Obsidian 1.12 + a `HermesVault` the agent reads & writes |
+| **Agent** | Hermes Agent, installed during the deterministic image build; model setup remains operator-controlled |
+| **Chat** | Optional Telegram onboarding when configured by the operator |
+| **Secrets** | Runtime-only environment/secret-manager inputs; no credential values are embedded in the template |
+| **Browser** | Pinned Super Browser bundle with eight adapters; each provider is usable only when its own readiness checks pass |
+| **Phone** | Optional AgentPhone inbound bridge, deny-all until allowlisted and restricted to read-only research/vision toolsets |
+| **Tracing** | Optional Latitude telemetry when configured and verified |
+| **Desktop control** | Orgo-local desktop plugin, subject to live runtime verification |
+| **Skills** | Curated Revenue Partner operating skill and its source, campaign, acceptance, and Money Desk references |
+| **Persona** | Revenue Partner SOUL.md with fit gates, claim discipline, and approval boundaries |
+| **Knowledge** | Operator-controlled company, ICP, claims, permissions, campaign, and reporting vault |
 
 ---
 
 ## 🔐 Your keys stay yours
 
-This repo and the published template contain **zero secrets** — verified by scan on every release. Keys live only on *your* running computer (`~/.hermes/.env` / `~/.hermes/.op.env`) or in *your* 1Password vault. Hand a key to the agent in chat and it installs it itself.
+The template declares no credential values. Keys belong only in the operator's runtime environment (`~/.hermes/.env` / `~/.hermes/.op.env`) or configured secret manager. Release verification includes an exact staged-tree credential scan; never commit generated launch files or dotenv files.
 
 ---
 
 ## 🛠️ Run your own copy
 
-Publishing + building a template on Orgo needs a **Scale plan** (launching is any-paid-plan). Then it's one command each:
+Publishing and building require an Orgo account with template-build access. Use the isolated dependency invocation so local validation cannot silently disappear:
 
 ```bash
 export ORGO_API_KEY=sk_live_...                  # orgo.ai → API keys
 
-python3 build_template.py                        # assemble + validate locally
-python3 build_template.py --build                # publish + build the golden image (streams to "ready")
-python3 build_template.py --launch <WORKSPACE_ID># spin up a VM from it
+uv run --no-project --with jsonschema --with certifi python build_template.py
+uv run --no-project --with jsonschema --with certifi python build_template.py --build
+uv run --no-project --with jsonschema --with certifi python build_template.py --launch <WORKSPACE_ID>
 ```
 
 <details>
@@ -198,6 +239,6 @@ Yes — edit <code>SOUL.md</code> / <code>config.yaml</code> and rebuild (or jus
 
 MIT licensed · Hermes Agent by [Nous Research](https://github.com/NousResearch/hermes-agent) · cloud computers by [Orgo](https://orgo.ai)
 
-*Built from a live, working agent — not a demo.*
+*Built from reusable agent infrastructure; Revenue Partner deployment and runtime evidence are verified separately for each published version.*
 
 </div>

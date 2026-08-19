@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================================================
-# Nick's Stack — first-boot onboarding (runs on the desktop, once)
+# Revenue Partner — first-boot onboarding (runs on the desktop, once)
 # ==========================================================================
 # Walks a new user through the steps that need a human:
 #   1. Nous model auth   (device-code — required for the agent to think)
@@ -21,14 +21,14 @@ export PATH=/usr/local/bin:/root/.local/bin:/root/.hermes/bin:/usr/bin:/bin:$PAT
 VENV_PY=/usr/local/lib/hermes-agent/venv/bin/python
 ENV_FILE="$HERMES_HOME/.env"
 OP_ENV="$HERMES_HOME/.op.env"
-STAMP=/var/lib/orgo/nicks-stack-onboarded
+STAMP=/var/lib/orgo/revenue-partner-onboarded
 mkdir -p /var/lib/orgo "$HERMES_HOME"
 
 hr() { printf '\n\033[1;36m%s\033[0m\n' "────────────────────────────────────────────────────────"; }
 say() { printf '\033[1;32m%s\033[0m\n' "$*"; }
 
 clear 2>/dev/null
-say "  Welcome to Nick's Stack — Hermes agent setup"
+say "  Welcome to Revenue Partner — Hermes agent setup"
 hr
 
 # --- 1. Nous model auth ----------------------------------------------------
@@ -44,8 +44,8 @@ if [ ! -s "$HERMES_HOME/auth.json" ]; then
     # 1-token sanity call: a zero-credit Nous account 404s on every model
     # call while everything looks green — fail loudly here, not silently.
     echo "Verifying the model can think (1-token test call)…"
-    if hermes -z "Reply with exactly: ok" >/tmp/nicks-stack-modelcheck 2>&1 \
-       && grep -qi "ok" /tmp/nicks-stack-modelcheck; then
+    if hermes -z "Reply with exactly: ok" >/tmp/revenue-partner-modelcheck 2>&1 \
+       && grep -qi "ok" /tmp/revenue-partner-modelcheck; then
       say "Model check passed ✓"
     else
       printf '\033[1;31m%s\033[0m\n' "Model test call FAILED — most often a Nous account with zero credits."
@@ -64,7 +64,7 @@ if ! grep -q '^TELEGRAM_BOT_TOKEN=..' "$ENV_FILE" 2>/dev/null; then
   echo "A QR code opens in Chrome. Scan it with your phone, then tap"
   echo "'Create Bot' in Telegram. Your bot + allowlist are set automatically."
   echo
-  "$VENV_PY" /usr/local/bin/nicks-stack-telegram-pair.py
+  "$VENV_PY" /usr/local/bin/revenue-partner-telegram-pair.py
   if grep -q '^TELEGRAM_BOT_TOKEN=..' "$ENV_FILE" 2>/dev/null; then
     say "Telegram connected — restarting the gateway to enable it…"
     supervisorctl restart hermes-gateway 2>/dev/null || \
@@ -94,7 +94,7 @@ OPINTRO
     umask 077
     printf 'OP_SERVICE_ACCOUNT_TOKEN=%s\n' "$OPTOK" > "$OP_ENV"
     unset OPTOK
-    python3 /usr/local/bin/nicks-stack-op-enable || true
+    python3 /usr/local/bin/revenue-partner-op-enable || true
     echo "Checking…"
     hermes secrets onepassword status || true
     supervisorctl restart hermes-gateway 2>/dev/null || true
@@ -104,19 +104,19 @@ OPINTRO
   fi
 fi
 
-# --- 4. The rest of the stack (agent-assisted) ------------------------------
+# --- 4. Optional integrations -----------------------------------------------
 hr
 say "Step 4/4 — The rest of your stack"
 cat <<'NEXT'
-  Everything below can also be done by just TELLING YOUR AGENT in chat —
-  it has skills for each of these and installs its own keys.
+  Optional integrations require operator setup and provider documentation.
+  Adding a credential enables connectivity; it does not approve campaigns,
+  external messages, spending, CRM mutations, or consent changes.
 
   • AgentMail (the agent's email): put AGENTMAIL_API_KEY (am_…) in 1Password
       or ~/.hermes/.env, then ask the agent to create its inbox and save it
       as AGENTMAIL_INBOX. Console: console.agentmail.to
-  • AgentCard (the agent's payment card): needs AgentMail first (magic codes
-      land in the inbox). Ask the agent to run its `agentcard-hermes-setup`
-      skill — it completes the OAuth itself (hermes mcp login agent-cards).
+  • AgentCard: needs AgentMail first for login codes; authenticate explicitly
+      with `hermes mcp login agent-cards` if this capability is needed.
   • Composio (1000+ apps): COMPOSIO_CONSUMER_KEY (ck_…) from app.composio.dev.
   • AgentPhone (SMS/iMessage): set AGENTPHONE_API_KEY + AGENTPHONE_AGENT_ID
       (+ AGENTPHONE_NUMBER_ID); the webhook bridge starts on the next resume
@@ -124,9 +124,9 @@ cat <<'NEXT'
   • Latitude (tracing + MCP): LATITUDE_API_KEY + LATITUDE_PROJECT.
   • Orgo (self-operation): ORGO_API_KEY + this VM's ORGO_DEFAULT_COMPUTER_ID
       (find it in the orgo.ai dashboard URL of this computer).
-  • Linear: ask the agent to run  hermes mcp login linear
+  • Linear: authenticate explicitly with `hermes mcp login linear`.
   • X / Twitter: X_APP_ONLY_BEARER_TOKEN enables the app-only MCP; for the
-      full user-context xapi server see the x-mcp-integration skill.
+      full user-context xapi server, complete its explicit OAuth setup.
   • honcho memory: HONCHO_API_KEY, then set memory.provider: honcho in
       ~/.hermes/config.yaml and restart the gateway.
 
@@ -140,7 +140,7 @@ if [ -s "$HERMES_HOME/auth.json" ] && grep -q '^TELEGRAM_BOT_TOKEN=..' "$ENV_FIL
   date -Iseconds > "$STAMP"
   say "Setup complete. This window won't reappear. Talk to your agent on Telegram!"
 else
-  say "Setup paused — re-open 'Nick's Stack Setup' from the desktop to finish."
+  say "Setup paused — re-open 'Revenue Partner Setup' from the desktop to finish."
 fi
 echo
 read -r -p "Press Enter to close…" _

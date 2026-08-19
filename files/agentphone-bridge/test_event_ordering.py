@@ -69,6 +69,7 @@ class EventOrderingTests(unittest.TestCase):
             original = {
                 "CONFIG": bridge.CONFIG,
                 "WEBHOOK_SECRET": bridge.WEBHOOK_SECRET,
+                "BRIDGE_DIR": bridge.BRIDGE_DIR,
                 "SEEN_PATH": bridge.SEEN_PATH,
                 "EVENTS_LOG": bridge.EVENTS_LOG,
                 "mark": bridge.mark_conversation_event_if_fresh,
@@ -79,9 +80,9 @@ class EventOrderingTests(unittest.TestCase):
             watermark_path = tmp_path / "watermarks.json"
             bridge.CONFIG = {
                 "AGENTPHONE_ALLOWED_SENDERS": "+15555550123",
-                "AGENTPHONE_FULL_ACCESS_NUMBERS": "+15555550123",
             }
             bridge.WEBHOOK_SECRET = secret
+            setattr(bridge, "BRIDGE_DIR", tmp_path)
             bridge.SEEN_PATH = tmp_path / "seen.json"
             bridge.EVENTS_LOG = tmp_path / "events.log"
             bridge.mark_conversation_event_if_fresh = (
@@ -151,6 +152,7 @@ class EventOrderingTests(unittest.TestCase):
                 thread.join(timeout=2)
                 bridge.CONFIG = original["CONFIG"]
                 bridge.WEBHOOK_SECRET = original["WEBHOOK_SECRET"]
+                setattr(bridge, "BRIDGE_DIR", original["BRIDGE_DIR"])
                 bridge.SEEN_PATH = original["SEEN_PATH"]
                 bridge.EVENTS_LOG = original["EVENTS_LOG"]
                 bridge.mark_conversation_event_if_fresh = original["mark"]

@@ -1,0 +1,3 @@
+# Preserve intentional upstream whitespace in the vendored Super Browser tree.
+# LOCAL_PATCHES.md documents the reviewed first-party policy hardening delta.
+files/local-packages/super-browser/** whitespace=-trailing-space,-blank-at-eof
