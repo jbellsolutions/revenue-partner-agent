@@ -9,9 +9,13 @@ import time
 from typing import Any
 
 _SECRET_PATTERNS = [
+    re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{8,}"),
     re.compile(r"(?i)(api[_-]?key|authorization|bearer|token|secret|password|cvv|pan|ssn)\s*[:=]\s*[^\s,}]+"),
     re.compile(r"\b(sk-[A-Za-z0-9_-]{16,}|lat_[A-Za-z0-9_-]{16,}|ghp_[A-Za-z0-9_]{16,}|xox[baprs]-[A-Za-z0-9-]{16,})\b"),
 ]
+_SENSITIVE_KEY = re.compile(
+    r"(?i)(?:api[_-]?key|authorization|bearer|token|secret|password|passwd|cookie|session|cvv|pan|ssn|private[_-]?key)"
+)
 
 
 def _now_ms() -> int:
@@ -44,6 +48,24 @@ def _redact_text(value: Any, max_len: int = 2000) -> str:
     if len(text) > max_len:
         return text[:max_len] + f"...[truncated {len(text) - max_len} chars]"
     return text
+
+
+def _redact_value(value: Any, *, depth: int = 0) -> Any:
+    """Recursively remove sensitive fields and token-like strings before OTLP encoding."""
+    if depth > 20:
+        return "[REDACTED:DEPTH]"
+    if isinstance(value, dict):
+        return {
+            str(key): "[REDACTED]" if _SENSITIVE_KEY.search(str(key)) else _redact_value(item, depth=depth + 1)
+            for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return [_redact_value(item, depth=depth + 1) for item in value]
+    if isinstance(value, str):
+        return _redact_text(value, max_len=200000)
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    return _redact_text(value, max_len=200000)
 
 
 def _stable_hash(value: Any) -> str:

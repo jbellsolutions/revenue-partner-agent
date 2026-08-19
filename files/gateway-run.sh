@@ -7,7 +7,7 @@
 # 0700), so its config-wait gate could never pass and the supervised gateway
 # never actually started. Here we run as root with HOME=/root and load only
 # allowlisted environment values without evaluating dotenv content as shell, so
-# the gateway is genuinely supervised, reboot-safe, and sees every key.
+# the gateway is genuinely supervised, reboot-safe, and sees only allowlisted values.
 set +e
 export HOME=/root
 export HERMES_HOME=/root/.hermes

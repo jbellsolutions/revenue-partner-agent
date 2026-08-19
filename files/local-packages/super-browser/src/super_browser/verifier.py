@@ -128,7 +128,7 @@ def verify_run_payload(run: dict[str, Any]) -> dict[str, Any]:
     if _pending_approval(run):
         checks.append("approval is pending and execution is stopped")
     if _pending_retry_approval(run):
-        checks.append("external write retry is blocked pending fresh approval")
+        checks.append("external write retry is non-executable; the pending approval record is audit evidence only")
     if _approval_denied(run):
         checks.append("approval denial is recorded")
     approval_integrity = _approval_integrity(run)
@@ -504,20 +504,18 @@ def _write_retry_guard(run: dict[str, Any]) -> dict[str, Any]:
         and item.get("required_before") == "provider_retry"
     ]
     last_attempt_at = attempts[-1].get("at") if attempts else None
-    retry_approval_after_last_attempt = _approved_retry_after(run, last_attempt_at)
-    fresh_retry_approval_required = bool(
+    approval_record_after_last_attempt = _approved_retry_after(run, last_attempt_at)
+    external_write_retry_non_executable = bool(
         _external_write_for_task(task)
         and attempts
         and run.get("status") in {"failed", "blocked", "approved", "planned"}
-        and not pending_retry
-        and not retry_approval_after_last_attempt
     )
     return {
         "external_write_attempt_count": len(attempts),
         "retry_block_count": len(retry_blocks),
-        "pending_retry_approval": bool(pending_retry),
-        "fresh_retry_approval_required": fresh_retry_approval_required,
-        "retry_approval_after_last_attempt": retry_approval_after_last_attempt,
+        "pending_retry_approval_record": bool(pending_retry),
+        "external_write_retry_non_executable": external_write_retry_non_executable,
+        "approval_record_after_last_attempt": approval_record_after_last_attempt,
         "last_action_fingerprint": attempts[-1].get("action_fingerprint") if attempts else None,
     }
 

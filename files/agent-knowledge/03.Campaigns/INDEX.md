@@ -19,7 +19,7 @@ Contains draft, approved, paused, completed, and stopped campaign contracts plus
 
 ## Rules
 
-- No external action without an approved `contract.md`.
+- Contracts and approvals are audit evidence only; no external action can execute in this image.
 - Preserve approval identity/timestamp and exact bounds.
 - Record provenance, deduplication, coverage, exact counts, and failures.
 - Pause on deviations; do not silently expand scope.

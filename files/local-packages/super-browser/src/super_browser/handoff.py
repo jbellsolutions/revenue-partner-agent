@@ -169,11 +169,14 @@ def _approval_state(run: dict[str, Any], plan: dict[str, Any], verification: dic
 def _approval_next_action(run: dict[str, Any], pending: list[dict[str, Any]], denied: list[dict[str, Any]]) -> str:
     if pending:
         request = pending[-1]
-        return f"Review approval request {request.get('approval_id')} before provider execution."
+        return (
+            f"Approval request {request.get('approval_id')} is retained as audit evidence. "
+            "Production execution is disabled; this image cannot approve or resume it."
+        )
     if denied:
-        return "Approval was denied; do not execute this run unless a new run is created."
+        return "Approval was denied. The run remains non-executable; new runs, retries, resumes, credentials, and restarts cannot activate production execution in this image."
     if run.get("status") == "approved":
-        return "Approval is recorded; resume or approve with execute only if the exact action is still intended."
+        return "Legacy approved state cannot enable execution; production remains disabled in this image."
     return "No approval action is pending."
 
 
@@ -193,7 +196,7 @@ def _resume_state(run: dict[str, Any], approval: dict[str, Any], verification: d
     base = {
         "safe_to_resume": False,
         "will_execute_provider": False,
-        "fresh_retry_approval_required": bool(write_retry_guard.get("fresh_retry_approval_required")),
+        "external_write_retry_non_executable": bool(write_retry_guard.get("external_write_retry_non_executable")),
     }
     if plan_integrity.get("status") in {"mismatch", "missing"}:
         return {**base, "reason": "run report plan integrity does not match the current run plan"}
@@ -205,20 +208,17 @@ def _resume_state(run: dict[str, Any], approval: dict[str, Any], verification: d
         return {**base, "reason": "run-report or artifact evidence is missing or inconsistent"}
     if approval_integrity.get("status") in UNTRUSTED_APPROVAL_INTEGRITY_STATUSES:
         return {**base, "reason": "approval integrity does not match the current plan"}
-    if approval_expiry.get("status") == "expired":
+    if policy_guard.get("approval_required") or status in {"approved", "awaiting_approval"} or approval.get("pending"):
         return {
             **base,
-            "safe_to_resume": True,
-            "reason": "resume will create a fresh approval because the previous approval expired",
+            "reason": "approval-required work cannot resume or execute in this image; approval records are audit evidence only and activation requires a separately reviewed external integration plus rebuilt release",
         }
+    if approval_expiry.get("status") == "expired":
+        return {**base, "reason": "expired approval evidence cannot authorize execution in this image"}
     if policy_guard.get("non_resumable_safety_stop"):
         return {**base, "reason": "blocked run is a target-scope or DNS safety stop; create a new run or replan before provider execution"}
-    if write_retry_guard.get("fresh_retry_approval_required"):
-        return {
-            **base,
-            "safe_to_resume": True,
-            "reason": "resume will create a fresh retry approval before another external-write provider attempt",
-        }
+    if write_retry_guard.get("external_write_retry_non_executable"):
+        return {**base, "reason": "external-write retries cannot resume or execute in this image"}
     if status == "awaiting_approval":
         return {**base, "reason": "approval is still pending"}
     if status in {"denied", "complete"}:
@@ -257,8 +257,17 @@ def _verification_summary(verification: dict[str, Any]) -> dict[str, Any]:
 
 def _next_steps(run: dict[str, Any], plan: dict[str, Any], approval: dict[str, Any], verification: dict[str, Any]) -> list[str]:
     steps = []
+    policy_guard = verification.get("policy_guard") or {}
+    status = run.get("status")
+    if policy_guard.get("approval_required") or status in {"approved", "awaiting_approval"} or approval.get("pending"):
+        steps.append(
+            "Approval-required work cannot resume or execute in this image; approval records are audit evidence only. Activation requires a separately reviewed external integration plus rebuilt release."
+        )
+        if verification.get("failures"):
+            steps.append("Fix verifier failures before trusting output.")
+        return steps
     if plan.get("missing_env"):
-        steps.append("Configure missing env vars before using every planned provider: " + ", ".join(plan.get("missing_env", [])))
+        steps.append("No credential setup path is available in this image; use an enforceable local lane or stop.")
     if (verification.get("plan_integrity") or {}).get("status") in {"mismatch", "missing"}:
         steps.append("Do not resume this run as a provider retry; create a new run because run-report evidence no longer matches the current plan.")
     if _has_failure_type(verification, RUN_REPORT_STATUS_FAILURE_TYPES):
@@ -270,20 +279,15 @@ def _next_steps(run: dict[str, Any], plan: dict[str, Any], approval: dict[str, A
     if (verification.get("approval_integrity") or {}).get("status") in UNTRUSTED_APPROVAL_INTEGRITY_STATUSES:
         steps.append("Do not resume this run; create a new run because approval evidence no longer matches the current plan.")
     if (verification.get("approval_expiry") or {}).get("status") == "expired":
-        steps.append("Resume will create a fresh approval before provider execution because the previous approval expired.")
+        steps.append("Expired approval evidence cannot authorize execution in this image.")
     if ((verification.get("policy_guard") or {}).get("non_resumable_safety_stop")):
         steps.append("Do not resume this run; create a new run or replan because the block was a target-scope or DNS safety stop.")
-    if (verification.get("write_retry_guard") or {}).get("fresh_retry_approval_required"):
-        steps.append("Resume will create a fresh retry approval before another external-write provider attempt.")
-    if approval.get("pending"):
-        steps.append("Resolve the pending approval before execution.")
+    if (verification.get("write_retry_guard") or {}).get("external_write_retry_non_executable"):
+        steps.append("External-write retries cannot resume or execute in this image.")
     if verification.get("failures"):
         steps.append("Fix verifier failures before trusting output.")
-    status = run.get("status")
     if status == "planned":
         steps.append("Resume the run when ready to execute.")
-    elif status == "approved":
-        steps.append("Resume the approved run when ready to execute.")
     elif status == "complete":
         steps.append("Inspect verifier confidence, artifacts, and run-report before final user-facing claims.")
     elif status == "failed":
@@ -307,14 +311,14 @@ def _first_failure(verification: dict[str, Any], failure_types: set[str]) -> dic
 
 
 def _approved_retry_transition(status: str, write_retry_guard: dict[str, Any]) -> bool:
-    return bool(status == "approved" and write_retry_guard.get("retry_approval_after_last_attempt"))
+    del status, write_retry_guard
+    return False
 
 
 def _evidence_failure_allows_state_transition(run: dict[str, Any], write_retry_guard: dict[str, Any], failure: dict) -> bool:
+    del write_retry_guard
     if failure.get("type") != "missing_run_report":
         return False
-    if write_retry_guard.get("fresh_retry_approval_required"):
-        return True
     return any(event.get("type") == "stale_execution_recovered" for event in run.get("events", []))
 
 
@@ -325,7 +329,6 @@ def _commands(run_id: str | None) -> dict[str, str]:
         "handoff": f"super-browser handoff {run}",
         "resume": f"super-browser resume {run}",
         "verify": f"super-browser verify {run}",
-        "approve": f"super-browser approve {run} --by <actor> --reason <reason>",
         "deny": f"super-browser deny {run} --by <actor> --reason <reason>",
         "doctor": "super-browser doctor",
     }
@@ -338,7 +341,6 @@ def _mcp_commands(run_id: str | None) -> dict[str, dict[str, Any]]:
         "handoff_browser_run": {"run_id": run},
         "resume_browser_run": {"run_id": run},
         "verify_browser_run": {"run_id": run},
-        "approve_browser_run": {"run_id": run, "by": "<actor>", "reason": "<reason>", "execute": False},
         "deny_browser_run": {"run_id": run, "by": "<actor>", "reason": "<reason>"},
         "browser_doctor": {},
     }

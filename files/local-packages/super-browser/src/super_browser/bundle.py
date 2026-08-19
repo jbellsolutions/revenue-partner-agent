@@ -26,7 +26,7 @@ REQUIRED_BUNDLE_PATHS = [
     "references/routing-playbook.md",
     "references/cost-model.md",
     "references/security-and-approval-policy.md",
-    "references/live-test-matrix.md",
+
     "src/super_browser/cli.py",
     "src/super_browser/mcp_server.py",
     "src/super_browser/providers.py",
@@ -47,7 +47,6 @@ MCP_TOOL_NAMES = [
     "handoff_browser_run",
     "list_browser_runs",
     "verify_browser_run",
-    "approve_browser_run",
     "deny_browser_run",
     "list_browser_providers",
     "browser_doctor",
@@ -56,12 +55,8 @@ MCP_TOOL_NAMES = [
     "env_checklist",
     "setup_walkthrough",
     "run_browser_live_tests",
-    "install_super_browser_skill",
-    "init_super_browser_mcp",
     "list_browser_profiles",
     "get_browser_profile",
-    "create_browser_profile",
-    "delete_browser_profile",
 ]
 
 RESOURCE_URIS = [
@@ -71,7 +66,9 @@ RESOURCE_URIS = [
     "super-browser://references/routing-playbook",
     "super-browser://references/cost-model",
     "super-browser://references/security-and-approval-policy",
-    "super-browser://references/live-test-matrix",
+    "super-browser://references/combo-playbook",
+    "super-browser://references/providers/README",
+    "super-browser://references/providers/browserbase-capability-audit",
     "super-browser://docs/setup-walkthrough",
     "super-browser://docs/agent-quickstart",
 ]

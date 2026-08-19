@@ -30,14 +30,14 @@
 
 - [ ] Campaign contract records audience, exclusions, source, sender, claims, variants, volume, schedule, budget, geography, suppression, metrics, pause/stop rules, CRM mapping, and approval.
 - [ ] Read-only research/drafts can run without send authority.
-- [ ] External actions remain inside the approved contract.
-- [ ] A scope deviation pauses and requests fresh approval.
-- [ ] New spend, commitments, permissions, destructive writes, and sensitive disclosure require approval.
+- [ ] Approval records are audit evidence only and cannot activate external actions in this image.
+- [ ] A scope deviation stops; it cannot be resumed by adding an approval record.
+- [ ] New spend, commitments, permissions, destructive writes, and sensitive disclosure remain non-executable; future activation requires a separately reviewed integration and rebuilt release.
 
 ## Channel behavior
 
-- [ ] Reactivation dedupes and checks suppression/consent before drafts or execution.
-- [ ] Outbound is targeted/personal and passes deliverability/capacity gates.
+- [ ] Reactivation dedupes and checks suppression/consent before local drafts; execution is unavailable in this image.
+- [ ] Outbound drafts are targeted/personal and pass deliverability/capacity gates; sending remains unavailable.
 - [ ] Affiliate work includes recruit, onboard, enable, manage, and track—not only a signup page.
 - [ ] Riley records sources and explainable audience-fit/reachability scores.
 - [ ] Riley drafts but does not own relationships, negotiation, or closing.
@@ -55,7 +55,7 @@
 - [ ] Tool actions, specialist identity, approvals, errors, and outcomes are traceable.
 - [ ] Simulated connector/auth failure stops the affected workflow and alerts the operator.
 - [ ] One specialist failure does not stop unrelated workflows.
-- [ ] A claimed external write has a durable ID or read-back evidence.
+- [ ] No external write is claimed; a future integration must require a durable ID and read-back evidence.
 
 ## Template smoke
 

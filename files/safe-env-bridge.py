@@ -25,63 +25,88 @@ MANAGED_KEYS = (
     "BROWSER_INACTIVITY_TIMEOUT",
     "OBSIDIAN_VAULT_PATH",
     "WIKI_PATH",
-    "LATITUDE_BASE_URL",
-    "LATITUDE_INGEST_URL",
+
     "LATITUDE_SERVICE_NAME",
     "LATITUDE_HERMES_NO_CONTENT",
     "LATITUDE_HERMES_TELEMETRY_ENABLED",
-    "AGENTPHONE_BASE_URL",
+
     # Runtime credentials and identifiers.
-    "COMPOSIO_CONSUMER_KEY",
     "ORGO_API_KEY",
-    "ORGO_DEFAULT_COMPUTER_ID",
-    "NOTION_API_KEY",
-    "EXA_API_KEY",
-    "FIRECRAWL_API_KEY",
-    "BROWSER_USE_API_KEY",
-    "AIRTOP_API_KEY",
-    "DECODO_PROXY",
-    "HYPERBROWSER_API_KEY",
-    "STEEL_API_KEY",
-    "BROWSERBASE_API_KEY",
-    "VIDIQ_API_KEY",
-    "VIDIQ_MCP_API_KEY",
-    "SLACK_BOT_TOKEN",
-    "SLACK_APP_TOKEN",
-    "SLACK_SIGNING_SECRET",
-    "AGENTPHONE_API_KEY",
-    "AGENTPHONE_AGENT_ID",
-    "AGENTPHONE_PHONE_NUMBER",
-    "AGENTPHONE_NUMBER",
-    "AGENTPHONE_NUMBER_ID",
-    "AGENTMAIL_API_KEY",
-    "AGENTMAIL_INBOX_ID",
-    "AGENTMAIL_INBOX",
+    "REVENUE_PARTNER_REVIEW_ATTESTATIONS",
+    "REVENUE_PARTNER_OPERATION_INTENT_DIRECTORY",
+    "REVENUE_PARTNER_NONCE_LEDGER",
     "ONEPASSWORD_SERVICE_ACCOUNT_TOKEN",
     "OP_SERVICE_ACCOUNT_TOKEN",
-    "OBSIDIAN_API_KEY",
     "LATITUDE_API_KEY",
     "LATITUDE_PROJECT_ID",
     "LATITUDE_PROJECT",
-    "LANGFUSE_PUBLIC_KEY",
-    "LANGFUSE_SECRET_KEY",
     "OPENAI_API_KEY",
     "OPENROUTER_API_KEY",
     "XAI_API_KEY",
-    "HONCHO_API_KEY",
     "AI_GATEWAY_API_KEY",
     "MODEL_API_KEY",
-    "X_APP_ONLY_BEARER_TOKEN",
-    "IDEABROWSER_KEY",
-    "HERMES_SPOTIFY_CLIENT_ID",
-    "DISCORD_BOT_TOKEN",
     "TELEGRAM_BOT_TOKEN",
     "TELEGRAM_ALLOWED_USERS",
     "TELEGRAM_HOME_CHANNEL",
     "TELEGRAM_BOT_USERNAME",
-    "GITHUB_TOKEN",
-    "GH_TOKEN",
-    "OWNER_EMAIL",
+)
+
+# The gateway may receive only capabilities executable in this immutable image.
+# ORGO_API_KEY, REVENUE_PARTNER_REVIEW_ATTESTATIONS, and REVENUE_PARTNER_OPERATION_INTENT_DIRECTORY are selectable only via
+# an explicit operator-authored ``--only`` release command; absent-connector
+# credentials are not accepted by either the default or explicit path.
+RUNTIME_MANAGED_KEYS = (
+    "AGENT_BROWSER_EXECUTABLE_PATH",
+    "TERMINAL_TIMEOUT",
+    "TERMINAL_LIFETIME_SECONDS",
+    "BROWSER_SESSION_TIMEOUT",
+    "BROWSER_INACTIVITY_TIMEOUT",
+    "OBSIDIAN_VAULT_PATH",
+    "WIKI_PATH",
+    "LATITUDE_SERVICE_NAME",
+    "LATITUDE_HERMES_NO_CONTENT",
+    "LATITUDE_HERMES_TELEMETRY_ENABLED",
+    "LATITUDE_API_KEY",
+    "LATITUDE_PROJECT_ID",
+    "LATITUDE_PROJECT",
+    "OPENAI_API_KEY",
+    "OPENROUTER_API_KEY",
+    "XAI_API_KEY",
+    "AI_GATEWAY_API_KEY",
+    "MODEL_API_KEY",
+    "TELEGRAM_BOT_TOKEN",
+    "TELEGRAM_ALLOWED_USERS",
+    "TELEGRAM_HOME_CHANNEL",
+    "TELEGRAM_BOT_USERNAME",
+)
+
+# Process context required for a normal child process. All other inherited
+# variables are dropped; in particular, credentials and Hermes policy flags
+# must arrive through MANAGED_KEYS and the parsed target file.
+SAFE_INHERITED_KEYS = (
+    "PATH",
+    "HOME",
+    "HERMES_HOME",
+    "USER",
+    "LOGNAME",
+    "SHELL",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "TZ",
+    "TMPDIR",
+    "TERM",
+    "COLORTERM",
+    "DISPLAY",
+    "XAUTHORITY",
+    "DBUS_SESSION_BUS_ADDRESS",
+    "XDG_CACHE_HOME",
+    "XDG_CONFIG_HOME",
+    "SSL_CERT_FILE",
+    "SSL_CERT_DIR",
+    "REQUESTS_CA_BUNDLE",
+    "CURL_CA_BUNDLE",
+    "NO_COLOR",
 )
 
 _ASSIGNMENT = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$")
@@ -118,7 +143,7 @@ def read_allowlisted(path: Path, allowed: Set[str]) -> dict[str, str]:
 def collect_values(
     sources: Sequence[Path],
     environ: Mapping[str, str] | None = None,
-    managed_keys: Sequence[str] = MANAGED_KEYS,
+    managed_keys: Sequence[str] = RUNTIME_MANAGED_KEYS,
 ) -> dict[str, str]:
     allowed = set(managed_keys)
     values: dict[str, str] = {}
@@ -138,19 +163,14 @@ def update_env(
     target: Path,
     sources: Sequence[Path],
     environ: Mapping[str, str] | None = None,
-    managed_keys: Sequence[str] = MANAGED_KEYS,
+    managed_keys: Sequence[str] = RUNTIME_MANAGED_KEYS,
 ) -> int:
-    allowed = set(managed_keys)
     values = collect_values(sources, environ, managed_keys)
 
-    preserved: list[str] = []
-    if target.is_file():
-        for line in target.read_text(encoding="utf-8", errors="replace").splitlines():
-            match = _ASSIGNMENT.match(line)
-            if not match or match.group(1) not in allowed:
-                preserved.append(line)
-
-    rendered = preserved[:]
+    # Rewrite the target as an allowlist-only file. Preserving unmanaged
+    # assignments would let the child application reload policy flags or secrets
+    # from dotenv even when they were stripped from the inherited environment.
+    rendered: list[str] = []
     for key in managed_keys:
         if key in values:
             rendered.append(f"{key}={shlex.quote(values[key])}")
@@ -172,6 +192,16 @@ def update_env(
     return len(values)
 
 
+def child_environment(
+    environ: Mapping[str, str],
+    managed_values: Mapping[str, str],
+) -> dict[str, str]:
+    """Build a minimal exec environment from safe context plus managed values."""
+    child = {key: environ[key] for key in SAFE_INHERITED_KEYS if key in environ}
+    child.update(managed_values)
+    return child
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--target", type=Path, default=Path("/root/.hermes/.env"))
@@ -181,13 +211,13 @@ def main() -> int:
     args = parser.parse_args()
 
     sources = args.source or [Path("/root/.env"), args.target]
-    managed_keys = tuple(args.only) if args.only else MANAGED_KEYS
+    managed_keys = tuple(args.only) if args.only else RUNTIME_MANAGED_KEYS
     count = update_env(args.target, sources, managed_keys=managed_keys)
     print(f"bridged {count} allowlisted environment values", flush=True)
 
     if args.exec_command:
-        child_env = os.environ.copy()
-        child_env.update(collect_values([args.target], child_env, managed_keys))
+        managed_values = collect_values([args.target], {}, managed_keys)
+        child_env = child_environment(os.environ, managed_values)
         os.execvpe(args.exec_command[0], args.exec_command, child_env)
     return 0
 

@@ -20,7 +20,7 @@ Canonical human-readable context for the Revenue Partner. Read this file first e
 2. Read `01.Agent Operating System/03.Current Priorities.md`.
 3. Read `02.GTM System/01.Company and Offer.md` and `02.GTM System/02.ICP and Fit.md`.
 4. Read `02.GTM System/03.Approved Claims.md` before drafting external copy.
-5. Read the active contract under `03.Campaigns/` before any external action.
+5. Read the active contract under `03.Campaigns/` before drafting external-facing material. External action is non-executable in this image regardless of contract status.
 
 ## Rules
 

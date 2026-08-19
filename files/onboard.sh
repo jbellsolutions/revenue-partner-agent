@@ -5,10 +5,8 @@
 # Walks a new user through the steps that need a human:
 #   1. Nous model auth   (device-code — required for the agent to think)
 #   2. Telegram bot      (scan a QR — the signature onboarding)
-#   3. 1Password vault   (optional — one service-account token unlocks the
-#                         whole key map in config.yaml's secrets block)
-#   4. next-steps for AgentMail / AgentCard / Composio / AgentPhone /
-#      Latitude / Orgo / X / honcho
+#   3. 1Password vault   (optional narrow model/Telegram/telemetry map)
+#   4. immutable connector status and future-release requirements
 #
 # Launched by an XFCE autostart entry inside a terminal. Idempotent: each
 # step is skipped once satisfied, so re-running only does what's left.
@@ -81,12 +79,12 @@ if [ -s "$OP_ENV" ]; then
 else
   say "Step 3/4 — Connect 1Password (optional, recommended)"
   cat <<'OPINTRO'
-  One service-account token unlocks every key this stack knows about:
-  config.yaml maps 17 env vars to op://Hermes/Hermes Agent Secrets/<FIELD>.
+  One service-account token resolves only the allowlisted model, Telegram,
+  and optional telemetry values in config.yaml. It does not expose or activate
+  disabled connector credentials.
   Setup (once, on 1password.com): create vault "Hermes" -> a Secure Note
-  named "Hermes Agent Secrets" -> add fields named exactly like the env
-  vars (see ~/.hermes/.env key contract) -> create a service account that
-  can read vault "Hermes".
+  named "Hermes Agent Secrets" -> add only the allowlisted fields you use ->
+  create a service account that can read vault "Hermes".
 OPINTRO
   printf '  Paste your service-account token (ops_…) or press Enter to skip: '
   read -r OPTOK
@@ -108,30 +106,16 @@ fi
 hr
 say "Step 4/4 — The rest of your stack"
 cat <<'NEXT'
-  Optional integrations require operator setup and provider documentation.
-  Adding a credential enables connectivity; it does not approve campaigns,
-  external messages, spending, CRM mutations, or consent changes.
+  The named production connectors below are non-executable in this immutable
+  image. Do not add provider keys or run connector login commands
+  expecting AgentMail, AgentCard, Composio, AgentPhone, Orgo, Linear, X, or
+  external memory to activate. Credentials and restarts cannot enable them.
 
-  • AgentMail (the agent's email): put AGENTMAIL_API_KEY (am_…) in 1Password
-      or ~/.hermes/.env, then ask the agent to create its inbox and save it
-      as AGENTMAIL_INBOX. Console: console.agentmail.to
-  • AgentCard: needs AgentMail first for login codes; authenticate explicitly
-      with `hermes mcp login agent-cards` if this capability is needed.
-  • Composio (1000+ apps): COMPOSIO_CONSUMER_KEY (ck_…) from app.composio.dev.
-  • AgentPhone (SMS/iMessage): set AGENTPHONE_API_KEY + AGENTPHONE_AGENT_ID
-      (+ AGENTPHONE_NUMBER_ID); the webhook bridge starts on the next resume
-      — no cron. Health: curl -s localhost:8787/health
-  • Latitude (tracing + MCP): LATITUDE_API_KEY + LATITUDE_PROJECT.
-  • Orgo (self-operation): ORGO_API_KEY + this VM's ORGO_DEFAULT_COMPUTER_ID
-      (find it in the orgo.ai dashboard URL of this computer).
-  • Linear: authenticate explicitly with `hermes mcp login linear`.
-  • X / Twitter: X_APP_ONLY_BEARER_TOKEN enables the app-only MCP; for the
-      full user-context xapi server, complete its explicit OAuth setup.
-  • honcho memory: HONCHO_API_KEY, then set memory.provider: honcho in
-      ~/.hermes/config.yaml and restart the gateway.
-
-  Keys land automatically: parked MCP servers revive within 5 minutes of a
-  key appearing (or instantly via the /mcp command in chat).
+  Enabling any such integration requires operator-controlled source and
+  configuration changes, complete verification, a fresh exact-tree review,
+  a rebuilt image, and a new release. Latitude tracing is the only optional
+  credentialed observability path described here; it captures no content by
+  default and must be configured and verified separately by the operator.
 NEXT
 hr
 

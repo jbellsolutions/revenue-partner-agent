@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 from .builder import _Builder
@@ -11,6 +12,8 @@ from .config import _config, _debug
 from .transport import _ship
 
 _BUILDER = _Builder()
+_REGISTRATION_LOCK = threading.Lock()
+_REGISTERED_CONTEXT_IDS: set[int] = set()
 
 
 def on_pre_llm_request(**kwargs: Any) -> None:
@@ -56,9 +59,16 @@ def register(ctx: Any) -> None:
     versions: pre/post_api_request fire per API call (preferred);
     pre/post_llm_call fire once per turn.
     """
-    ctx.register_hook("pre_api_request", on_pre_llm_request)
-    ctx.register_hook("post_api_request", on_post_llm_call)
-    ctx.register_hook("pre_llm_call", on_pre_llm_request)
-    ctx.register_hook("post_llm_call", on_post_llm_call)
-    ctx.register_hook("pre_tool_call", on_pre_tool_call)
-    ctx.register_hook("post_tool_call", on_post_tool_call)
+    context_id = id(ctx)
+    with _REGISTRATION_LOCK:
+        if context_id in _REGISTERED_CONTEXT_IDS:
+            return
+        # Mark before registration so a partial host failure cannot be retried
+        # into duplicate hook installation.
+        _REGISTERED_CONTEXT_IDS.add(context_id)
+        ctx.register_hook("pre_api_request", on_pre_llm_request)
+        ctx.register_hook("post_api_request", on_post_llm_call)
+        ctx.register_hook("pre_llm_call", on_pre_llm_request)
+        ctx.register_hook("post_llm_call", on_post_llm_call)
+        ctx.register_hook("pre_tool_call", on_pre_tool_call)
+        ctx.register_hook("post_tool_call", on_post_tool_call)

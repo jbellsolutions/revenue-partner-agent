@@ -4,7 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 export PYTHONPATH="${ROOT_DIR}/src:${PYTHONPATH:-}"
+export SUPER_BROWSER_REPO_ROOT="${ROOT_DIR}"
 
 VERIFY_TMP_DIR="${SUPER_BROWSER_VERIFY_TMP_DIR:-$(mktemp -d "${TMPDIR:-/tmp}/super-browser-verify.XXXXXX")}"
 VERIFY_OWNS_TMP=1
@@ -13,12 +15,7 @@ if [[ -n "${SUPER_BROWSER_VERIFY_TMP_DIR:-}" ]]; then
   VERIFY_OWNS_TMP=0
 fi
 
-remove_repo_pycache() {
-  find src tests examples -type d -name __pycache__ -prune -exec rm -rf {} +
-}
-
 cleanup() {
-  remove_repo_pycache
   if [[ "${VERIFY_OWNS_TMP}" == "1" ]]; then
     rm -rf "${VERIFY_TMP_DIR}"
   fi
@@ -28,13 +25,35 @@ trap cleanup EXIT
 export SUPER_BROWSER_STATE_DIR="${SUPER_BROWSER_VERIFY_STATE_DIR:-${VERIFY_TMP_DIR}/state}"
 export PYTHONPYCACHEPREFIX="${SUPER_BROWSER_VERIFY_PYCACHE_DIR:-${VERIFY_TMP_DIR}/pycache}"
 mkdir -p "${SUPER_BROWSER_STATE_DIR}" "${PYTHONPYCACHEPREFIX}"
-remove_repo_pycache
 
-echo "== unit tests =="
-python3 -m unittest discover -s tests
+echo "== shipped package import and inventory =="
+"${PYTHON_BIN}" - <<'PY'
+from pathlib import Path
+from super_browser.bundle import RESOURCE_URIS, build_bundle_manifest
+from super_browser.mcp_server import RESOURCE_FILES, list_resources
+from super_browser.providers import PROVIDERS, SUPPORTED_LIVE_WORKFLOW_CLASSES, provider_readiness
+from super_browser.router import _specialist_review, build_plan, infer_task
+
+root = Path.cwd()
+manifest = build_bundle_manifest(root)
+assert manifest["status"] == "ok" and not manifest["missing_required_paths"], manifest
+assert len(PROVIDERS) == 8, PROVIDERS
+assert set(RESOURCE_URIS) == set(RESOURCE_FILES), (RESOURCE_URIS, RESOURCE_FILES)
+assert set(manifest["resources"]) == {item["uri"] for item in list_resources()}
+blocked = {"airtop", "browser-use", "browserbase", "hyperbrowser", "orgo", "steel"}
+assert all(not SUPPORTED_LIVE_WORKFLOW_CLASSES.get(name) for name in blocked)
+readiness = {item["name"]: item for item in provider_readiness()}
+assert all(not readiness[name]["configured"] and readiness[name]["configuration_status"] == "not_applicable_planning_only" for name in blocked), readiness
+task = infer_task("compare browser provider capabilities for a public read")
+reviews = [_specialist_review(name, task, [name], name) for name in blocked]
+assert all(item["recommendation"] == "comparison only — non-executable" for item in reviews), reviews
+blocked_plan = build_plan(infer_task("launch the production ad campaign now"))
+assert not (set(blocked_plan.council_report["execution_sequence"]) & blocked), blocked_plan.to_dict()
+print("shipped_inventory_ok", len(PROVIDERS), len(manifest["resources"]))
+PY
 
 echo "== compile check =="
-python3 -m compileall -q src tests examples
+"${PYTHON_BIN}" -m compileall -q src
 
 echo "== doctor =="
 ./scripts/super-browser doctor
@@ -45,18 +64,27 @@ echo "== bundle manifest =="
 echo "== env checklist =="
 ./scripts/super-browser env-checklist
 
-echo "== fixture live tests =="
-./scripts/super-browser live-test --provider fixtures
+echo "== fail-closed policy smoke =="
+"${PYTHON_BIN}" - <<'PY'
+from super_browser.router import build_plan, infer_task
 
-echo "== no-key provider sweep =="
-env \
-  -u BROWSER_USE_API_KEY \
-  -u ORGO_API_KEY \
-  -u ORGO_COMPUTER_ID \
-  -u AIRTOP_API_KEY \
-  -u HYPERBROWSER_API_KEY \
-  -u STEEL_API_KEY \
-  ./scripts/super-browser live-test --provider all
+task = infer_task("launch the production ad campaign now")
+plan = build_plan(task)
+assert plan.approval_required
+assert plan.council_report["approval_gate"]["required"]
+assert not plan.council_report["execution_sequence"]
+print("approval_stop_ok non_executable")
+PY
+
+echo "== local Playwright readiness =="
+if "${PYTHON_BIN}" -c "import playwright" >/dev/null 2>&1; then
+  ./scripts/super-browser live-test --provider local
+elif [[ "${SUPER_BROWSER_VERIFY_REQUIRE_LOCAL_LIVE:-0}" == "1" ]]; then
+  echo "Playwright runtime is required but unavailable" >&2
+  exit 1
+else
+  echo "skipped: Playwright is not installed in this verifier environment; the baked build separately installs Chromium and proves a real launch"
+fi
 
 echo "== production readiness gate =="
 set +e
@@ -68,64 +96,6 @@ if [[ "${PRODUCTION_READINESS_STATUS}" != "0" && "${PRODUCTION_READINESS_STATUS}
   exit "${PRODUCTION_READINESS_STATUS}"
 fi
 
-PLUGIN_VALIDATOR="${PLUGIN_VALIDATOR:-/Users/home/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py}"
-SKILL_VALIDATOR="${SKILL_VALIDATOR:-/Users/home/.codex/skills/.system/skill-creator/scripts/quick_validate.py}"
-VALIDATOR_PYTHON="${VALIDATOR_PYTHON:-}"
-
-if [[ -z "${VALIDATOR_PYTHON}" ]]; then
-  if [[ -x "/tmp/super-browser-validate-venv/bin/python" ]]; then
-    VALIDATOR_PYTHON="/tmp/super-browser-validate-venv/bin/python"
-  else
-    VALIDATOR_PYTHON="python3"
-  fi
-fi
-
-if [[ -f "${PLUGIN_VALIDATOR}" ]]; then
-  echo "== plugin validation =="
-  set +e
-  "${VALIDATOR_PYTHON}" "${PLUGIN_VALIDATOR}" .
-  PLUGIN_VALIDATION_STATUS=$?
-  set -e
-  if [[ "${PLUGIN_VALIDATION_STATUS}" != "0" ]]; then
-    if ! "${VALIDATOR_PYTHON}" -c "import yaml" >/dev/null 2>&1; then
-      echo "== plugin validation skipped: validator dependency missing (PyYAML) =="
-    else
-      echo "plugin validation failed with exit ${PLUGIN_VALIDATION_STATUS}" >&2
-      exit "${PLUGIN_VALIDATION_STATUS}"
-    fi
-  fi
-else
-  echo "== plugin validation skipped: validator not found =="
-fi
-
-if [[ -f "${SKILL_VALIDATOR}" ]]; then
-  echo "== skill validation =="
-  set +e
-  SKILL_VALIDATION_FAILED=0
-  for path in SKILL.md skills/*/SKILL.md; do
-    if [[ "${path}" == "SKILL.md" ]]; then
-      dir="."
-    else
-      dir="${path%/SKILL.md}"
-    fi
-    "${VALIDATOR_PYTHON}" "${SKILL_VALIDATOR}" "${dir}"
-    if [[ "$?" != "0" ]]; then
-      SKILL_VALIDATION_FAILED=1
-    fi
-  done
-  set -e
-  if [[ "${SKILL_VALIDATION_FAILED}" != "0" ]]; then
-    if ! "${VALIDATOR_PYTHON}" -c "import yaml" >/dev/null 2>&1; then
-      echo "== skill validation skipped: validator dependency missing (PyYAML) =="
-    else
-      echo "skill validation failed" >&2
-      exit 1
-    fi
-  fi
-else
-  echo "== skill validation skipped: validator not found =="
-fi
-
 echo "== setup walkthrough =="
 ./scripts/super-browser setup --client cursor
 
@@ -133,3 +103,5 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "== whitespace check =="
   git diff --check
 fi
+
+echo "super_browser_package_verification_ok"

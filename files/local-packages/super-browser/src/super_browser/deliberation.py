@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import os
-import re
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from .costs import estimate_provider_cost
 from .live_evidence import load_live_test_evidence
 from .models import TaskSpec
-from .providers import PROVIDERS
+from .providers import PLANNING_ONLY_PROVIDERS, PROVIDERS
 
 PROVIDER_ESCALATION_RANK: dict[str, int] = {
     "playwright": 1,
@@ -68,12 +66,15 @@ def deliberate(
 
     target_loops = deliberation_rounds or (DEFAULT_LOOPS_COUNCIL if mode == "council" else DEFAULT_LOOPS_DIRECT)
     target_loops = max(3, min(5, target_loops))
-    primary = initial_ranked[0]
-    fallbacks = [name for name in initial_ranked[1:6] if name != primary]
+    planning_only = [name for name in initial_ranked if name in PLANNING_ONLY_PROVIDERS]
+    executable = [name for name in initial_ranked if name not in PLANNING_ONLY_PROVIDERS]
+    selected = executable or planning_only[:1]
+    primary = selected[0]
+    fallbacks = [name for name in selected[1:6] if name != primary]
     loops: list[dict[str, Any]] = []
     execution_pattern = "single"
     combo_steps: list[dict[str, Any]] = []
-    documented = _documented_provider_recommendations(task)
+    documented = _documented_provider_recommendations(task, planning_only)
 
     # Loop 1 — classification
     loops.append(
@@ -173,7 +174,7 @@ def _classification_findings(task: TaskSpec) -> list[str]:
     if task.needs_desktop:
         findings.append("Desktop/computer surface required.")
     if task.anti_bot_risk:
-        findings.append("Anti-bot risk flagged — prefer hardened cloud browsers.")
+        findings.append("Anti-bot risk flagged; hosted providers are comparison records only and cannot execute in this image.")
     if task.requires_auth:
         findings.append("Authenticated or profile-bearing session likely required.")
     if task.external_write:
@@ -197,8 +198,7 @@ def _required_capabilities(task: TaskSpec) -> list[str]:
         caps.append("supports_long_running")
     if task.profile:
         caps.append("supports_profiles")
-    if task.proxy:
-        caps.append("supports_proxy_injection")
+
     return caps
 
 
@@ -256,6 +256,10 @@ def _apply_readiness_adjustment(
     missing_env: Callable[[list[str]], list[str]],
 ) -> tuple[str, list[str], list[str]]:
     notes: list[str] = []
+    if primary in PLANNING_ONLY_PROVIDERS:
+        return primary, [], [
+            f"{primary} is a planning/provenance record only. Credentials, setup, approval records, and restarts cannot enable execution in this image."
+        ]
     sequence = [primary, *fallbacks]
     missing = missing_env(sequence)
     if missing and primary in sequence:
@@ -285,49 +289,12 @@ def _apply_shape_preference(
     primary: str,
     fallbacks: list[str],
 ) -> tuple[str, list[str], str, list[dict[str, Any]], list[str]]:
-    notes: list[str] = []
-    combo_steps: list[dict[str, Any]] = []
-    execution_pattern = "single"
-    text = task.goal.lower()
-
-    if _scrape_prefers_hyperbrowser(task) and "hyperbrowser" in [primary, *fallbacks]:
-        if primary != "hyperbrowser" and "hyperbrowser" in fallbacks:
-            notes.append("Scrape-shaped task — hyperbrowser is the preferred single provider when credentials exist.")
-            fallbacks = [name for name in fallbacks if name != "hyperbrowser"]
-            fallbacks.insert(0, primary)
-            primary = "hyperbrowser"
-        else:
-            notes.append("Scrape-shaped task — keeping hyperbrowser as primary.")
-
-    elif _cdp_prefers_steel(task) and "steel" in [primary, *fallbacks]:
-        if primary != "steel":
-            notes.append("CDP/automation-shaped task — steel is preferred over scrape APIs when credentials exist.")
-            if "steel" in fallbacks:
-                fallbacks = [name for name in fallbacks if name != "steel"]
-                fallbacks.insert(0, primary)
-                primary = "steel"
-
-    if re.search(r"\bsteel\b.*\b(browserbase|computer use|computer-use)\b", text) or re.search(
-        r"\b(browserbase|computer use|computer-use)\b.*\bsteel\b", text
-    ):
-        execution_pattern = "combo"
-        combo_steps = [
-            {
-                "order": 1,
-                "provider": "steel",
-                "purpose": "Host Chromium session (CDP or Selenium) for computer-use loop.",
-            },
-            {
-                "order": 2,
-                "provider": "documented",
-                "purpose": "Drive actions with external computer-use agent + BYOK LLM; see references/combo-playbook.md.",
-            },
-        ]
-        notes.append("Combo pattern documented — runtime executes single-provider unless multi-step adapter exists.")
-
-    if not notes:
-        notes.append("No task-shape override; keeping ranked primary.")
-    return primary, fallbacks, execution_pattern, combo_steps, notes
+    del task
+    if primary in PLANNING_ONLY_PROVIDERS:
+        notes = [f"{primary} remains comparison-only; task shape cannot promote it to execution."]
+    else:
+        notes = ["Task-shape review retained the policy-eligible local lane; hosted combo execution is unavailable."]
+    return primary, fallbacks, "single", [], notes
 
 
 def _apply_simplicity_challenge(
@@ -345,14 +312,8 @@ def _apply_simplicity_challenge(
         notes.append(f"Keeping free local provider {primary} — simplest tool that satisfies the task.")
         return primary, fallbacks, notes
 
-    if task.anti_bot_risk and primary != "browser-use" and "browser-use" in fallbacks:
-        if not os.environ.get("BROWSER_USE_API_KEY"):
-            notes.append("Anti-bot task but BROWSER_USE_API_KEY unset — cannot promote browser-use.")
-        else:
-            notes.append("Anti-bot task — browser-use is the simplest hardened default when credentialed.")
-            fallbacks = [name for name in fallbacks if name != "browser-use"]
-            fallbacks.insert(0, primary)
-            primary = "browser-use"
+    if task.anti_bot_risk and "browser-use" in {primary, *fallbacks}:
+        notes.append("Browser Use remains a planning-only comparison record; credentials cannot promote it to execution.")
 
     # Prefer single cloud provider: trim extra rank-2 fallbacks when primary already cloud-capable
     if primary in CLOUD_SCALE_PROVIDERS | CDP_SESSION_PROVIDERS | {"browser-use"}:
@@ -370,23 +331,20 @@ def _apply_simplicity_challenge(
     return primary, fallbacks, notes
 
 
-def _documented_provider_recommendations(task: TaskSpec) -> list[dict[str, Any]]:
+def _documented_provider_recommendations(task: TaskSpec, candidates: list[str] | None = None) -> list[dict[str, Any]]:
     text = task.goal.lower()
-    if not any(term in text for term in BROWSERBASE_TERMS):
-        return []
-    provider = PROVIDERS.get("browserbase")
-    if not provider or provider.stability != "docs-only":
-        return []
+    names = list(candidates or [])
+    if any(term in text for term in BROWSERBASE_TERMS) and "browserbase" not in names:
+        names.append("browserbase")
     return [
         {
-            "provider": "browserbase",
-            "status": "docs-only",
-            "reason": "Task mentions Browserbase/Stagehand/hosted-agent surfaces; adapter not wired — see references/providers/browserbase.md.",
-            "required_env": ["BROWSERBASE_API_KEY"],
-            "missing_env": [] if os.environ.get("BROWSERBASE_API_KEY") else ["BROWSERBASE_API_KEY"],
-            "docs_url": provider.docs_url,
-            "signup_url": "https://www.browserbase.com/",
+            "provider": name,
+            "status": "planning_only_non_executable",
+            "reason": "Capability/provenance comparison only. No credential, setup, profile, client, adapter, or network action can enable this provider in the immutable image.",
+            "docs_url": PROVIDERS[name].docs_url,
         }
+        for name in names
+        if name in PLANNING_ONLY_PROVIDERS
     ]
 
 

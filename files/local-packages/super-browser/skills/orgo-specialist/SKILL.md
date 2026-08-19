@@ -1,51 +1,18 @@
 ---
 name: orgo-specialist
-description: "Escalation rank 4 (desktop/advanced): Use Orgo for full desktop/computer automation" when browser-only tools are not enough. Use for OS apps, multi-window workflows, files plus browser, terminal work, screenshots, or computer-use fallback.
+description: "Planning-only Orgo desktop reference; execution is hard-blocked in this Revenue Partner release."
 ---
 
-# Orgo Specialist
+# Orgo Specialist — planning only
 
-## Use For
+Orgo remains in the provider catalog for capability comparison and future operator-controlled desktop integration. **It cannot execute through Super Browser in this image.**
 
-- Full desktop tasks.
-- Browser plus files plus terminal workflows.
-- Installing or running desktop apps.
-- Computer-use fallback when browser automation cannot solve the job.
+The computer-use agent can click, type, submit, move files, run applications, and alter external state. Prompt text is not an independently enforced read-only action barrier. Computer discovery can also start or create infrastructure. `execute_plan()` therefore blocks every plan containing `orgo` before adapter construction, even when a request is nominally read-only and credentials are present.
 
-## Do Not Use For
+For current work, replan to a technically read-only extraction lane. If desktop/computer use is essential, stop and report that a separately reviewed operator-controlled integration, rebuilt image, and new release are required.
 
-- Simple page extraction.
-- Raw HTTP.
-- High-volume cheap scraping.
-- Tasks that can run in local Playwright or a cloud browser provider.
+Do not claim an Orgo workspace, computer, session, endpoint, or live smoke test unless it was independently launched and read back outside this blocked adapter path.
 
-## Required Env
-
-- `ORGO_API_KEY`
-- Optional: `ORGO_COMPUTER_ID` (pin a specific computer; otherwise auto-discovery runs)
-- Optional: `ORGO_API_BASE`
-- Optional: `ORGO_MODEL`
-
-## Super Browser Adapter
-
-The runtime uses Orgo's computer-use API:
-
-- `POST /api/v1/chat/completions` or `POST /v1/chat/completions` with `computer_id`, `model`, and task messages
-- `GET /computers/{id}/screenshot`
-
-Computer resolution order:
-
-1. If `ORGO_COMPUTER_ID` is set, that computer is used as-is.
-2. Otherwise the adapter looks for the `super-browser` workspace (creating it if absent), reuses a running computer in it (preferring `super-browser-agent`), starts an existing stopped computer if one exists, or creates `super-browser-agent` with `auto_stop_minutes: 30` so idle computers suspend instead of billing forever.
-
-Provider request failures and screenshot failures must be returned as structured failed attempts with saved output evidence when available. Treat missing screenshot evidence as a verification failure, not as a successful desktop run.
-
-If `ORGO_API_BASE` is set, Super Browser validates it before sending `ORGO_API_KEY`. Loopback HTTP is allowed for local testing, but private-network/link-local endpoints and insecure remote HTTP require explicit override env vars.
-
-## Verification
-
-Require desktop screenshots, provider output logs, uploaded/downloaded file checks, and cleanup confirmation. The local contract tests cover successful chat+screenshot capture, failed computer-use requests, and failed screenshot requests.
-
-Docs:
+Reference docs:
 - https://docs.orgo.ai/quickstart
 - https://docs.orgo.ai/api-reference/introduction

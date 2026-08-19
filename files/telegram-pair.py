@@ -31,18 +31,8 @@ def render_qr_png(payload: str, path: str) -> bool:
     try:
         import qrcode
     except ImportError:
-        log("qrcode not in venv; installing via uv…")
-        # The Hermes venv is uv-managed and ships no pip — install with uv.
-        for cmd in (["uv", "pip", "install", "--python", sys.executable, "qrcode[pil]"],
-                    ["/root/.hermes/bin/uv", "pip", "install", "--python", sys.executable, "qrcode[pil]"],
-                    [sys.executable, "-m", "pip", "install", "qrcode[pil]"]):
-            if subprocess.run(cmd, check=False).returncode == 0:
-                break
-        try:
-            import qrcode
-        except ImportError:
-            log("qrcode still unavailable — falling back to terminal ASCII QR")
-            return False
+        log("qrcode missing from the hash-locked Hermes runtime; refusing a mutable install")
+        return False
     img = qrcode.make(payload)          # box_size=10, border=4, ECC-L defaults
     img.save(path)
     return True

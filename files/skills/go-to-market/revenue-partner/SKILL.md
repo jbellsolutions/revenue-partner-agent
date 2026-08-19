@@ -15,7 +15,7 @@ metadata:
 
 ## Purpose
 
-Run the complete front end as one coordinated Money Desk, not as disconnected channel tasks. Use one approved story, one outcome dashboard, and bounded specialists for execution.
+Design and operate the complete front end as one coordinated Money Desk, not as disconnected channel tasks. Use one approved story, one outcome dashboard, and bounded specialists for research, analysis, and local drafting. External execution is unavailable in this image.
 
 ## Trigger Conditions
 
@@ -38,7 +38,7 @@ Every engagement moves through:
 
 `FIT_ASSESSMENT -> MAPPING -> ARCHITECTURE -> INFRASTRUCTURE_READY -> LAUNCH -> OPERATE_AND_OPTIMIZE`
 
-Do not skip a gate. Read `references/operating-system.md` before launching a channel.
+Do not skip a gate. Read `references/operating-system.md` before designing a channel plan. Channel launch is non-executable in this image.
 
 ### Fit assessment
 
@@ -79,17 +79,17 @@ For every proposed channel, score:
 1. Architecture.
 2. Data.
 3. Infrastructure.
-4. Execution.
+4. Execution design and local drafts; external execution remains unavailable in this image.
 
 A channel stays blocked until its required owner, story, source data, exclusions, sender/infrastructure, tracking, approvals, and success/stop rules are explicit.
 
-## Default Execution Order
+## Default Planning and Drafting Order
 
 1. Inspect owned demand/reactivation first.
-2. Add targeted outbound when deliverability, data, and sales capacity pass.
-3. Recruit and manage affiliates/partners as an active operation, not a passive signup page.
+2. Prepare targeted outbound plans and drafts when deliverability, data, and sales capacity pass.
+3. Design affiliate/partner recruiting and management as an active operating plan, not a passive signup page.
 4. Use **SpeakerAgent Riley** to discover and score podcast, stage, conference, seminar, and sponsor opportunities.
-5. Coordinate newsletter/social content so every channel tells the same approved story.
+5. Coordinate newsletter/social drafts so every channel tells the same approved story.
 
 Phased rollout is supported. Permanent isolated-channel operation is not the Revenue Partner model.
 
@@ -105,7 +105,7 @@ Autonomous by default when logged:
 - Analysis and recommendations.
 - Internal drafts and reports.
 
-After campaign approval, execute only within its explicit bounds. Fresh approval is mandatory for material scope changes, new spend, new permissions, commitments, destructive writes, sensitive-data sharing, or publication outside the contract.
+Campaign approval is audit evidence only in this immutable image; it cannot activate sends, writes, scheduling, spend, authenticated actions, consent actions, or sensitive-data actions. Keep approved work as local drafts and plans. Production execution requires a separately reviewed implementation, rebuilt image, and new release.
 
 ## Super Browser and Production-Scale Data
 
@@ -130,7 +130,7 @@ Riley is a bounded opportunity-research and drafting specialist:
 - Draft pitches and preparation in the approved voice.
 - Track source, status, owner, and next action.
 
-A human owns the relationship and closing. Riley must not autonomously negotiate terms, promise attendance, accept sponsorship commitments, or impersonate the operator outside an approved campaign.
+A human owns the relationship and closing. Riley must not autonomously negotiate terms, promise attendance, accept sponsorship commitments, or impersonate the operator. A campaign approval does not enable those actions in this image.
 
 ## Target and Claim Guardrail
 

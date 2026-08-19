@@ -1,16 +1,14 @@
-# Provider capability SSOT
+# Provider references
 
-Per-platform capability documents for planner deliberation and weekly intelligence sync.
+These files describe the locked-image contract. Provider records support planning and provenance; they do not imply execution readiness.
 
-| Provider | File | Adapter status |
-| --- | --- | --- |
-| Browserbase | [browserbase.md](browserbase.md) | docs-only ([audit](browserbase-capability-audit.md)) |
-| Hyperbrowser | [hyperbrowser.md](hyperbrowser.md) | evaluating |
-| Steel | [steel.md](steel.md) | evaluating |
-| Playwright | [playwright.md](playwright.md) | stable |
-| Browser Use | [browser-use.md](browser-use.md) | stable |
-| Airtop | [airtop.md](airtop.md) | evaluating |
-| Orgo | [orgo.md](orgo.md) | stable |
-| Decodo HTTP | [decodo-http.md](decodo-http.md) | stable |
+Executable lanes:
 
-Cross-cutting combo rules: [../combo-playbook.md](../combo-playbook.md).
+- local Playwright under IPv4 pinning, no-proxy, same-host, and request-guard constraints;
+- raw HTTP for public IP-literal starts and redirects.
+
+Planning-only records:
+
+- Airtop, Browser Use, Browserbase, Hyperbrowser, Orgo, and Steel.
+
+Credentials, profiles, live-test history, cost estimates, or request fields never override a `non_executable_in_image` status.

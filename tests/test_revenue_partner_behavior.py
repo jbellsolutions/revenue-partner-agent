@@ -46,7 +46,7 @@ class RevenuePartnerBehaviorContractTests(unittest.TestCase):
             "Fresh approval",
         ):
             self.assertIn(phrase, body)
-        self.assertRegex(body, r"(?i)(may operate|execute).{0,100}(approved|bounds)")
+        self.assertRegex(body, r"(?i)approval.{0,160}(cannot|does not).{0,100}(activate|authority)")
 
     def test_riley_keeps_relationships_human_owned(self):
         combined = text(SKILL_ROOT / "SKILL.md") + text(SKILL_ROOT / "references/operating-system.md")
@@ -108,8 +108,6 @@ class RevenuePartnerBehaviorContractTests(unittest.TestCase):
 
     def test_repo_files_do_not_contain_supplied_key(self):
         needle = os.environ.get("ORGO_API_KEY", "")
-        if not needle:
-            self.skipTest("ORGO_API_KEY not exported; external exact-value scan covers this gate")
         excluded = {".git", ".artifacts", ".ai-worktrees", "__pycache__"}
         for path in ROOT.rglob("*"):
             if not path.is_file() or any(part in excluded for part in path.parts):
@@ -118,7 +116,13 @@ class RevenuePartnerBehaviorContractTests(unittest.TestCase):
                 body = path.read_text(errors="ignore")
             except OSError:
                 continue
-            self.assertNotIn(needle, body, str(path))
+            if needle:
+                self.assertNotIn(needle, body, str(path))
+            self.assertNotRegex(
+                body,
+                r"(?i)ORGO_API_KEY\s*[:=]\s*['\"]?[A-Za-z0-9_-]{20,}",
+                str(path),
+            )
 
 
 if __name__ == "__main__":

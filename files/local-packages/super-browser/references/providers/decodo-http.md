@@ -1,13 +1,12 @@
-# Decodo Raw HTTP
+# Direct raw HTTP provider
 
-**Status:** `stable` | **Docs:** https://decodo.com/
+Conditionally executable for read-classified public IP-literal HTTP(S) targets only.
 
-## Use alone when
+- the starting URL must use a public IP literal;
+- every redirect must use a public IP literal;
+- loopback, private, link-local, reserved, multicast, and unspecified addresses are blocked;
+- hostname targets and hostname redirects are non-executable;
+- caller-supplied and operator/environment proxy routes are non-executable;
+- no provider credential is consumed.
 
-Concrete `http://`/`https://` endpoint, JSON/API fetch, optional `DECODO_PROXY` residential routing.
-
-## Do not use when
-
-Browser rendering or headless fingerprinting is the blocker.
-
-Separate lane — never in browser fallback sequences.
+Exact loopback fixture URLs require explicit process-level test mode and an exact URL JSON allowlist.

@@ -8,11 +8,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from .fleet import create_fleet_runs
+
 from .live_evidence import record_live_test_evidence
-from .profiles import ProfileStore
 from .providers import PROVIDERS
-from .runtime import approve_run, create_run, resume_run
+from .runtime import create_run, resume_run
 
 
 DEFAULT_WORKFLOW_CLASS = "default"
@@ -22,11 +21,17 @@ WORKFLOW_CLASSES = (
     "local_browser_fixture",
     "general_read",
     "authenticated_read",
-    "authenticated_write_profile",
-    "fleet_read",
+
     "desktop_read",
     "external_write_gate",
 )
+
+
+def _restore_env(name: str, value: str | None) -> None:
+    if value is None:
+        os.environ.pop(name, None)
+    else:
+        os.environ[name] = value
 
 
 class _FixtureHandler(BaseHTTPRequestHandler):
@@ -86,10 +91,7 @@ def run_live_tests(provider: str = "local", workflow_class: str = DEFAULT_WORKFL
         return _unsupported_workflow_report(provider, workflow_class)
     if workflow_class == "external_write_gate":
         return _external_write_gate_report(provider)
-    if workflow_class == "authenticated_write_profile":
-        return _authenticated_write_profile_report(provider)
-    if workflow_class == "fleet_read":
-        return _fleet_read_report(provider)
+
     results = []
     if provider in ("local", "decodo-http", "all") and _provider_supports_workflow("decodo-http", workflow_class):
         results.append(_run_raw_http_fixture())
@@ -134,128 +136,6 @@ def _unsupported_workflow_report(provider: str, workflow_class: str) -> dict[str
         "evidence": {"recorded": False, "reason": "unsupported_workflow_class"},
     }
 
-
-def _authenticated_write_profile_report(provider: str) -> dict[str, Any]:
-    provider_names = _profile_capable_providers(provider)
-    if not provider_names:
-        return _unsupported_workflow_report(provider, "authenticated_write_profile")
-    results = [_run_authenticated_write_profile_fixture(provider_name) for provider_name in provider_names]
-    status = "passed" if all(item["status"] == "passed" for item in results) else "partial"
-    report = {"status": status, "results": results}
-    report["evidence"] = record_live_test_evidence(report, provider, set(PROVIDERS))
-    return report
-
-
-def _fleet_read_report(provider: str) -> dict[str, Any]:
-    provider_names = _profile_capable_providers(provider)
-    if not provider_names:
-        return _unsupported_workflow_report(provider, "fleet_read")
-    results = [_run_fleet_read_fixture(provider_name) for provider_name in provider_names]
-    status = "passed" if all(item["status"] == "passed" for item in results) else "partial"
-    report = {"status": status, "results": results}
-    report["evidence"] = record_live_test_evidence(report, provider, set(PROVIDERS))
-    return report
-
-
-def _profile_capable_providers(provider: str) -> list[str]:
-    capable = [name for name, spec in PROVIDERS.items() if spec.supports_profiles]
-    if provider == "local":
-        return []
-    if provider == "all":
-        return capable
-    if provider in capable:
-        return [provider]
-    return []
-
-
-def _run_authenticated_write_profile_fixture(provider_name: str) -> dict[str, Any]:
-    old_state = os.environ.get("SUPER_BROWSER_STATE_DIR")
-    with tempfile.TemporaryDirectory() as tmp:
-        try:
-            os.environ["SUPER_BROWSER_STATE_DIR"] = tmp
-            profile_name = f"live-test-{provider_name}"
-            ProfileStore().create(profile_name, description="authenticated write profile live test")
-            run = create_run(
-                "Post this Super Browser profile live-test comment",
-                url="https://example.com",
-                providers_allowed=[provider_name],
-                profile=profile_name,
-            )
-            pending_approvals = [item for item in run.approvals if item.get("status") == "pending"]
-            provider_attempt_started = any(event.get("type") == "execution_started" for event in run.events)
-            passed = (
-                run.status == "awaiting_approval"
-                and run.plan.get("task", {}).get("profile") == profile_name
-                and bool(pending_approvals)
-                and not provider_attempt_started
-            )
-            return {
-                "provider": provider_name,
-                "status": "passed" if passed else "failed",
-                "workflow_class": "authenticated_write_profile",
-                "run_id": run.run_id,
-                "profile": profile_name,
-                "selected_provider": run.plan.get("primary_provider"),
-                "verification": {
-                    "confidence": "high" if passed else "low",
-                    "checks": [
-                        "profile-bound external write created awaiting_approval run",
-                        "pending approval request recorded",
-                        "provider execution did not start",
-                    ],
-                },
-            }
-        finally:
-            if old_state is not None:
-                os.environ["SUPER_BROWSER_STATE_DIR"] = old_state
-            else:
-                os.environ.pop("SUPER_BROWSER_STATE_DIR", None)
-
-
-def _run_fleet_read_fixture(provider_name: str) -> dict[str, Any]:
-    old_state = os.environ.get("SUPER_BROWSER_STATE_DIR")
-    with tempfile.TemporaryDirectory() as tmp:
-        try:
-            os.environ["SUPER_BROWSER_STATE_DIR"] = tmp
-            profile_base = f"fleet-{provider_name}"
-            ProfileStore().create(profile_base, description="fleet read live test base profile")
-            payload = create_fleet_runs(
-                "Read the page title from this URL",
-                fleet_size=2,
-                url="https://example.com",
-                providers_allowed=[provider_name],
-                profile=profile_base,
-                proxy="decodo",
-                execute=False,
-            )
-            runs = payload.get("runs", [])
-            profiles = [run.get("plan", {}).get("task", {}).get("profile") for run in runs]
-            passed = (
-                payload.get("fleet_size") == 2
-                and len(runs) == 2
-                and profiles == [f"{profile_base}-1", f"{profile_base}-2"]
-                and all(run.get("status") == "planned" for run in runs)
-            )
-            return {
-                "provider": provider_name,
-                "status": "passed" if passed else "failed",
-                "workflow_class": "fleet_read",
-                "fleet_size": payload.get("fleet_size"),
-                "profiles": profiles,
-                "verification": {
-                    "confidence": "high" if passed else "low",
-                    "checks": [
-                        "fleet created two plan-only runs",
-                        "per-member profile suffixes assigned",
-                        "proxy hint preserved on fleet payload",
-                    ],
-                },
-            }
-        finally:
-            if old_state is not None:
-                os.environ["SUPER_BROWSER_STATE_DIR"] = old_state
-            else:
-                os.environ.pop("SUPER_BROWSER_STATE_DIR", None)
 
 
 def _external_write_gate_report(provider: str) -> dict[str, Any]:
@@ -308,11 +188,15 @@ def _run_raw_http_fixture() -> dict[str, Any]:
     thread.start()
     old_proxy = os.environ.pop("DECODO_PROXY", None)
     old_state = os.environ.get("SUPER_BROWSER_STATE_DIR")
+    old_test_mode = os.environ.get("SUPER_BROWSER_TEST_MODE")
+    old_test_allowlist = os.environ.get("SUPER_BROWSER_TEST_TARGET_ALLOWLIST_JSON")
+    url = f"http://127.0.0.1:{server.server_port}/data.json"
     try:
         with tempfile.TemporaryDirectory() as tmp:
             os.environ["SUPER_BROWSER_STATE_DIR"] = tmp
-            url = f"http://127.0.0.1:{server.server_port}/data.json"
-            run = create_run("Fetch this JSON endpoint through raw HTTP", url=url)
+            os.environ["SUPER_BROWSER_TEST_MODE"] = "1"
+            os.environ["SUPER_BROWSER_TEST_TARGET_ALLOWLIST_JSON"] = json.dumps([url])
+            run = create_run("Summarize this public JSON endpoint through raw HTTP", url=url)
             return {
                 "provider": "decodo-http",
                 "status": "passed" if run.status == "complete" else run.status,
@@ -328,37 +212,50 @@ def _run_raw_http_fixture() -> dict[str, Any]:
             os.environ["SUPER_BROWSER_STATE_DIR"] = old_state
         else:
             os.environ.pop("SUPER_BROWSER_STATE_DIR", None)
+        _restore_env("SUPER_BROWSER_TEST_MODE", old_test_mode)
+        _restore_env("SUPER_BROWSER_TEST_TARGET_ALLOWLIST_JSON", old_test_allowlist)
         server.shutdown()
         server.server_close()
 
 
 def _run_playwright_fixture() -> dict[str, Any]:
-    with tempfile.TemporaryDirectory() as tmp:
-        old_state = os.environ.get("SUPER_BROWSER_STATE_DIR")
-        os.environ["SUPER_BROWSER_STATE_DIR"] = str(Path(tmp) / "state")
-        fixture_path = Path(tmp) / "fixture.html"
-        fixture_path.write_text(
-            "<html><head><title>Super Browser Fixture</title></head><body><h1>Fixture Ready</h1></body></html>",
-            encoding="utf-8",
-        )
-        try:
-            run = create_run("Extract the title from this local test page", url=fixture_path.resolve().as_uri())
-            if run.status == "awaiting_approval":
-                run = approve_run(run.run_id, approver="verify-super-browser", reason="approved local temporary fixture file", execute=True)
-            return {
-                "provider": "playwright",
-                "status": "passed" if run.status == "complete" else run.status,
-                "workflow_class": "local_browser_fixture",
-                "run_id": run.run_id,
-                "verification": run.verification,
-                "artifacts": run.artifacts,
-                "events": run.events,
-            }
-        finally:
-            if old_state is not None:
-                os.environ["SUPER_BROWSER_STATE_DIR"] = old_state
-            else:
-                os.environ.pop("SUPER_BROWSER_STATE_DIR", None)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _FixtureHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    fixture_url = f"http://127.0.0.1:{server.server_port}/playwright-fixture"
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            old_state = os.environ.get("SUPER_BROWSER_STATE_DIR")
+            old_test_mode = os.environ.get("SUPER_BROWSER_TEST_MODE")
+            old_test_allowlist = os.environ.get("SUPER_BROWSER_TEST_TARGET_ALLOWLIST_JSON")
+            os.environ["SUPER_BROWSER_STATE_DIR"] = str(Path(tmp) / "state")
+            try:
+                os.environ["SUPER_BROWSER_TEST_MODE"] = "1"
+                os.environ["SUPER_BROWSER_TEST_TARGET_ALLOWLIST_JSON"] = json.dumps([fixture_url])
+                run = create_run(
+                    "Extract the title from this exact local HTTP test page",
+                    url=fixture_url,
+                    providers_allowed=["playwright"],
+                )
+                return {
+                    "provider": "playwright",
+                    "status": "passed" if run.status == "complete" else run.status,
+                    "workflow_class": "local_browser_fixture",
+                    "run_id": run.run_id,
+                    "verification": run.verification,
+                    "artifacts": run.artifacts,
+                    "events": run.events,
+                }
+            finally:
+                if old_state is not None:
+                    os.environ["SUPER_BROWSER_STATE_DIR"] = old_state
+                else:
+                    os.environ.pop("SUPER_BROWSER_STATE_DIR", None)
+                _restore_env("SUPER_BROWSER_TEST_MODE", old_test_mode)
+                _restore_env("SUPER_BROWSER_TEST_TARGET_ALLOWLIST_JSON", old_test_allowlist)
+    finally:
+        server.shutdown()
+        server.server_close()
 
 
 def _run_fixture_matrix() -> list[dict[str, Any]]:
@@ -371,11 +268,15 @@ def _run_fixture_matrix() -> list[dict[str, Any]]:
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     results = []
+    old_test_mode = os.environ.get("SUPER_BROWSER_TEST_MODE")
+    old_test_allowlist = os.environ.get("SUPER_BROWSER_TEST_TARGET_ALLOWLIST_JSON")
     with tempfile.TemporaryDirectory() as tmp:
         artifact_dir = Path(tmp) / "fixture-artifacts"
         artifact_dir.mkdir(parents=True, exist_ok=True)
         base_url = f"http://127.0.0.1:{server.server_port}"
         try:
+            os.environ["SUPER_BROWSER_TEST_MODE"] = "1"
+            os.environ["SUPER_BROWSER_TEST_TARGET_ALLOWLIST_JSON"] = json.dumps([f"{base_url}/data.json"])
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch(headless=True)
                 context = browser.new_context()
@@ -394,6 +295,8 @@ def _run_fixture_matrix() -> list[dict[str, Any]]:
         except Exception as exc:
             results.append({"provider": "fixture-matrix", "scenario": "matrix_runtime", "status": "failed", "error": str(exc)})
         finally:
+            _restore_env("SUPER_BROWSER_TEST_MODE", old_test_mode)
+            _restore_env("SUPER_BROWSER_TEST_TARGET_ALLOWLIST_JSON", old_test_allowlist)
             server.shutdown()
             server.server_close()
     return results
@@ -514,7 +417,7 @@ def _run_resume_fixture(base_url: str) -> dict[str, Any]:
     with tempfile.TemporaryDirectory() as tmp:
         try:
             os.environ["SUPER_BROWSER_STATE_DIR"] = tmp
-            run = create_run("Fetch this JSON endpoint through raw HTTP", url=f"{base_url}/data.json", execute=False)
+            run = create_run("Summarize this public JSON endpoint through raw HTTP", url=f"{base_url}/data.json", execute=False)
             resumed = resume_run(run.run_id)
             return {
                 "provider": "fixture-matrix",
@@ -543,7 +446,7 @@ def _run_stale_resume_fixture(base_url: str) -> dict[str, Any]:
     with tempfile.TemporaryDirectory() as tmp:
         try:
             os.environ["SUPER_BROWSER_STATE_DIR"] = tmp
-            run = create_run("Fetch this JSON endpoint through raw HTTP", url=f"{base_url}/data.json", execute=False)
+            run = create_run("Summarize this public JSON endpoint through raw HTTP", url=f"{base_url}/data.json", execute=False)
             store = RunStore()
             store.claim_execution(
                 run.run_id,
@@ -589,46 +492,15 @@ def _fixture_result(scenario: str, passed: bool, artifact_dir: Path, **metadata)
 
 
 def _run_provider_fixture(provider_name: str) -> dict[str, Any]:
-    missing = [env_name for env_name in PROVIDERS[provider_name].env_vars if not os.environ.get(env_name)]
-    if missing:
-        return {
-            "provider": provider_name,
-            "status": "skipped",
-            "workflow_class": _workflow_class_for_provider(provider_name),
-            "missing_env": missing,
-            "reason": "live provider credentials are not configured",
-        }
-
-    goal, url = _fixture_task_for(provider_name)
-    old_state = os.environ.get("SUPER_BROWSER_STATE_DIR")
-    with tempfile.TemporaryDirectory() as tmp:
-        try:
-            os.environ["SUPER_BROWSER_STATE_DIR"] = tmp
-            run = create_run(goal, url=url, execute=False, providers_allowed=[provider_name])
-            if run.status == "awaiting_approval":
-                run = approve_run(
-                    run.run_id,
-                    approver="super-browser-live-test",
-                    reason=f"approved read-only provider live test for {provider_name}",
-                    execute=True,
-                )
-            else:
-                run = resume_run(run.run_id)
-        finally:
-            if old_state is not None:
-                os.environ["SUPER_BROWSER_STATE_DIR"] = old_state
-            else:
-                os.environ.pop("SUPER_BROWSER_STATE_DIR", None)
     return {
         "provider": provider_name,
-        "status": "passed" if run.status == "complete" else run.status,
+        "status": "failed",
         "workflow_class": _workflow_class_for_provider(provider_name),
-        "run_id": run.run_id,
-        "verification": run.verification,
-        "artifacts": run.artifacts,
-        "events": run.events,
-        "approvals": run.approvals,
-        "selected_provider": run.verification.get("selected_provider"),
+        "reason": "hosted-provider live execution is unavailable in this image; this provider is a planning record only",
+        "verification": {
+            "confidence": "high",
+            "checks": ["provider credentials were not read", "provider construction was not reached"],
+        },
     }
 
 
@@ -663,8 +535,6 @@ def _supported_workflow_classes_for(provider_name: str) -> list[str]:
         return ["desktop_read", "external_write_gate"]
     if provider_name in PROVIDERS:
         classes = ["general_read", "external_write_gate"]
-        if PROVIDERS[provider_name].supports_profiles:
-            classes.extend(["authenticated_write_profile", "fleet_read"])
         return classes
     return []
 

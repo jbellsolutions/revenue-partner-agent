@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 from .config import PKG_VERSION, SCOPE_NAME
 from .model import _Run
-from .util import _ms_to_ns, _safe_json
+from .util import _ms_to_ns, _redact_value, _safe_json
 
 
 def _otlp_value(value: Any) -> Dict[str, Any]:
@@ -30,6 +30,7 @@ def _encode_attrs(attrs: Dict[str, Any], allow_content: bool) -> List[Dict[str, 
         if gated and not allow_content:
             continue
         key = raw_key[:-6] if gated else raw_key
+        value = _redact_value(value)
         if (
             key == "gen_ai.response.finish_reasons"
             and isinstance(value, list)

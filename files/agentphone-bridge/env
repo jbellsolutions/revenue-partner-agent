@@ -2,18 +2,30 @@
 # Revenue Partner — AgentPhone webhook bridge tuning (NON-SECRET defaults)
 # ==========================================================================
 # Derived from the proven bridge defaults, with identity fields blanked.
-# The bridge itself reads secrets (AGENTPHONE_API_KEY, AGENTPHONE_AGENT_ID,
-# AGENTPHONE_NUMBER_ID) from ~/.hermes/.env — never from this file.
+# A future separately reviewed bridge would read AgentPhone secrets from an
+# external environment file. The current hard-stopped entrypoints do not load
+# credentials, create a tunnel, register a webhook, invoke Hermes, or send.
 #
-# AGENTPHONE_PUBLIC_URL is deliberately UNSET: without it the bridge spawns
-# its own cloudflared *quick tunnel* and self-registers the webhook each
-# boot. Set it only if you run your own named tunnel.
+# Network execution, tunnel construction, webhook registration, model jobs,
+# and replies are immutable hard stops in this release. Credentials and a
+# public URL cannot activate them; this file retains only non-secret future-
+# integration defaults for separately reviewed source work.
 
 # --- who may text the agent (comma-separated E.164; empty = deny-all) -----
 AGENTPHONE_ALLOWED_SENDERS=
 # --- Hermes read-only toolsets --------------------------------------------
 AGENTPHONE_HERMES_TOOLSETS=web,vision
 AGENTPHONE_HERMES_MAX_TURNS=90
+
+# --- inbound webhook boundary ----------------------------------------------
+# Reject declared request bodies above this size before buffering or HMAC work.
+AGENTPHONE_MAX_WEBHOOK_BODY_BYTES=1048576
+
+# --- outbound media boundary -----------------------------------------------
+# Only real, non-symlink files under this operator-owned root may be attached.
+AGENTPHONE_MEDIA_GENERATED_ROOT=/root/.hermes_agentphone_bridge/generated_media
+AGENTPHONE_MEDIA_MAX_BYTES=12582912
+AGENTPHONE_MEDIA_TTL_SECONDS=3600
 
 # --- conversational polish -------------------------------------------------
 AGENTPHONE_ACK_ENABLED=1

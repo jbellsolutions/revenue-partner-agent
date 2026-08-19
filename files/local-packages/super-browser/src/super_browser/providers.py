@@ -19,9 +19,9 @@ def _has_module(name: str) -> bool:
 SUPPORTED_LIVE_WORKFLOW_CLASSES = {
     "decodo-http": ["raw_http_direct"],
     "playwright": ["local_browser_fixture", "external_write_gate"],
-    "orgo": ["desktop_read", "external_write_gate"],
 }
-DEFAULT_REMOTE_LIVE_WORKFLOW_CLASSES = ["general_read", "external_write_gate"]
+PLANNING_ONLY_PROVIDERS = frozenset({"airtop", "browser-use", "browserbase", "hyperbrowser", "orgo", "steel"})
+DEFAULT_REMOTE_LIVE_WORKFLOW_CLASSES: list[str] = []
 
 PROVIDERS: dict[str, ProviderCapability] = {
     "playwright": ProviderCapability(
@@ -31,17 +31,16 @@ PROVIDERS: dict[str, ProviderCapability] = {
         cost_band="free",
         env_vars=[],
         docs_url="https://playwright.dev/python/",
-        best_for=["deterministic local browser control", "testing", "simple extraction", "known selectors"],
-        avoid_when=["advanced anti-bot is present", "a logged-in personal Chrome session is required"],
+        best_for=["exact allowlisted local fixtures", "deterministic fixture verification", "bounded fixture text and screenshots"],
+        avoid_when=["any public-web navigation is requested", "advanced anti-bot is present", "a logged-in personal Chrome session is required"],
         supports_long_running=True,
-        supports_proxy_injection=True,
     ),
     "browser-use": ProviderCapability(
         name="browser-use",
         display_name="Browser Use Cloud",
         stability="stable",
         cost_band="variable",
-        env_vars=["BROWSER_USE_API_KEY"],
+        env_vars=[],
         docs_url="https://docs.browser-use.com/cloud/guides/mcp-server",
         best_for=["anti-bot sites", "complex cloud browser tasks", "recordings", "profiles"],
         avoid_when=["a free local deterministic test is enough", "the job is raw HTTP only"],
@@ -56,7 +55,7 @@ PROVIDERS: dict[str, ProviderCapability] = {
         display_name="Orgo Computer",
         stability="stable",
         cost_band="medium",
-        env_vars=["ORGO_API_KEY"],
+        env_vars=[],
         docs_url="https://docs.orgo.ai/api-reference/introduction",
         best_for=["full desktop workflows", "multi-window work", "files plus browser", "computer-use fallback"],
         avoid_when=["a browser-only API can complete the task cheaply"],
@@ -68,7 +67,7 @@ PROVIDERS: dict[str, ProviderCapability] = {
         display_name="Airtop",
         stability="evaluating",
         cost_band="medium",
-        env_vars=["AIRTOP_API_KEY"],
+        env_vars=[],
         docs_url="https://docs.airtop.ai/api-reference/airtop-api/sessions/create",
         best_for=["cloud sessions", "page-query extraction", "business-user GTM agents", "webhook-driven automations"],
         avoid_when=["you need a local open-source runtime", "the task must be MCP-native without a wrapper", "a free local browser is enough"],
@@ -78,12 +77,12 @@ PROVIDERS: dict[str, ProviderCapability] = {
     ),
     "decodo-http": ProviderCapability(
         name="decodo-http",
-        display_name="Decodo Raw HTTP",
+        display_name="Direct Raw HTTP",
         stability="stable",
         cost_band="low",
-        env_vars=["DECODO_PROXY"],
-        docs_url="https://decodo.com/",
-        best_for=["raw HTTP", "API endpoints", "cheap residential proxy fetches", "bulk data where browser rendering is unnecessary"],
+        env_vars=[],
+        docs_url="",
+        best_for=["direct raw HTTP", "public IP-literal API endpoints", "bulk data where browser rendering is unnecessary"],
         avoid_when=["the site requires real browser rendering", "headless browser fingerprinting is the blocker"],
         supports_raw_http=True,
     ),
@@ -92,66 +91,59 @@ PROVIDERS: dict[str, ProviderCapability] = {
         display_name="Hyperbrowser",
         stability="evaluating",
         cost_band="variable",
-        env_vars=["HYPERBROWSER_API_KEY"],
+        env_vars=[],
         docs_url="https://www.hyperbrowser.ai/docs/home",
         best_for=[
-            "REST scrape jobs with markdown/html/links output",
-            "geo-targeted proxy scrape experiments",
-            "scale-oriented browser workflows after live tests",
+            "upstream capability provenance: REST scrape jobs with markdown/html/links output",
+            "planning comparison for scale-oriented browser workflows",
         ],
-        avoid_when=["the workflow has not passed live tests yet", "Playwright CDP control is required"],
+        avoid_when=["execution is requested in this immutable image", "Playwright CDP control is required"],
         supports_auth=True,
         supports_anti_bot=True,
         supports_long_running=True,
         supports_captcha=True,
         supports_profiles=True,
-        supports_proxy_injection=True,
-        supports_fleet=True,
     ),
     "steel": ProviderCapability(
         name="steel",
         display_name="Steel",
         stability="evaluating",
         cost_band="variable",
-        env_vars=["STEEL_API_KEY"],
+        env_vars=[],
         docs_url="https://docs.steel.dev/",
         best_for=[
-            "Playwright CDP sessions against hosted Chromium",
-            "Selenium-backed cloud browsers",
-            "computer-use loops that need a real browser surface",
+            "upstream capability provenance: Playwright CDP sessions against hosted Chromium",
+            "planning comparison for Selenium-backed cloud browsers",
+            "planning comparison for computer-use loops",
         ],
-        avoid_when=["the workflow has not passed live tests yet", "a REST scrape job is enough"],
+        avoid_when=["execution is requested in this immutable image", "a REST scrape job is enough"],
         supports_auth=True,
         supports_anti_bot=True,
         supports_long_running=True,
         supports_captcha=True,
         supports_profiles=True,
-        supports_proxy_injection=True,
-        supports_fleet=True,
     ),
     "browserbase": ProviderCapability(
         name="browserbase",
         display_name="Browserbase",
         stability="docs-only",
         cost_band="variable",
-        env_vars=["BROWSERBASE_API_KEY"],
+        env_vars=[],
         docs_url="https://docs.browserbase.com/",
         best_for=[
-            "Stagehand-native hosted web agents",
-            "stealth browser sessions with BYOK LLM via Model Gateway",
-            "session persistence and observability for agent workflows",
+            "upstream capability provenance: Stagehand-native hosted web agents",
+            "planning comparison for hosted browser sessions",
+            "planning comparison for session persistence and observability",
         ],
         avoid_when=[
-            "Hyperbrowser scrape or Steel CDP already satisfies the task",
-            "no BROWSERBASE_API_KEY and no adapter is wired yet",
+            "execution is requested in this immutable image",
+            "a policy-eligible local lane satisfies the task",
         ],
         supports_auth=True,
         supports_anti_bot=True,
         supports_long_running=True,
         supports_captcha=True,
         supports_profiles=True,
-        supports_proxy_injection=True,
-        supports_fleet=True,
     ),
 }
 
@@ -170,6 +162,7 @@ def list_providers() -> list[dict]:
 def provider_readiness() -> list[dict]:
     rows = []
     for provider in PROVIDERS.values():
+        planning_only = provider.name in PLANNING_ONLY_PROVIDERS
         missing = [name for name in provider.env_vars if not os.environ.get(name)]
         cli = None
         if provider.name == "playwright":
@@ -183,16 +176,15 @@ def provider_readiness() -> list[dict]:
             package = True
         elif provider.name == "steel":
             package = _has_module("playwright.sync_api")
+        if planning_only:
+            package = None
         browser_runtime_available = None
         browser_runtime_error = None
         if provider.name == "playwright" and package:
             browser_runtime_available, browser_runtime_error = _playwright_runtime_available()
         required_missing = list(missing)
         optional_missing: list[str] = []
-        if provider.name == "decodo-http":
-            # Direct raw HTTP works without Decodo. DECODO_PROXY only gates residential proxy routing.
-            optional_missing = missing
-            required_missing = []
+
         supported_live_workflow_classes = _supported_live_workflow_classes(provider.name)
         latest_live_test = load_live_test_evidence(provider.name)
         certified_workflow_classes = _certified_workflow_classes(latest_live_test, supported_live_workflow_classes, provider.name)
@@ -248,7 +240,8 @@ def provider_readiness() -> list[dict]:
                 "missing_env": missing,
                 "missing_required_env": required_missing,
                 "missing_optional_env": optional_missing,
-                "configured": not required_missing and (package is not False) and (browser_runtime_available is not False),
+                "configured": False if planning_only else not required_missing and (package is not False) and (browser_runtime_available is not False),
+                "configuration_status": "not_applicable_planning_only" if planning_only else "runtime_checked",
                 "usable_now": usable_now,
                 "production_ready": production_ready,
                 "production_ready_scope": production_ready_scope,
@@ -263,6 +256,7 @@ def provider_readiness() -> list[dict]:
                     and not required_missing
                     and package is not False
                     and provider.name != "playwright"
+                    and provider.name not in {"airtop", "browser-use", "browserbase", "hyperbrowser", "orgo", "steel"}
                     and supported_live_workflow_classes
                 ),
                 "requires_live_test_before_broader_production": bool(production_ready and uncertified_workflow_classes),
@@ -315,6 +309,8 @@ def _readiness_status(
     certified_workflow_classes: list[str],
     stale_certified_workflow_classes: list[str],
 ) -> str:
+    if provider_name in {"airtop", "browser-use", "browserbase", "hyperbrowser", "orgo", "steel"}:
+        return "non_executable_in_image"
     if stability == "docs-only":
         return "documented_only"
     if missing_required_env:
@@ -470,14 +466,15 @@ def _production_blockers(
     ignored_provider_mismatch_evidence_workflow_classes: list[str],
 ) -> list[str]:
     blockers: list[str] = []
+    if readiness_status == "non_executable_in_image":
+        blockers.append("autonomous provider execution is hard-blocked before adapter construction in this image")
     if missing_required_env:
         blockers.append("missing required env vars: " + ", ".join(missing_required_env))
     if readiness_status == "package_missing":
         blockers.append("provider package or CLI is missing")
     if readiness_status == "runtime_missing":
-        blockers.append("Playwright browser runtime is missing; run `playwright install chromium`.")
-    if provider_name == "decodo-http" and missing_optional_env:
-        blockers.append("missing optional residential proxy env vars: " + ", ".join(missing_optional_env))
+        blockers.append("Playwright browser runtime is missing; update committed locks and rebuild the image.")
+
     if readiness_status == "live_test_stale":
         blockers.append("live-test evidence is stale")
     if readiness_status != "ready_local" and ignored_unsupported_evidence_workflow_classes:
@@ -508,6 +505,8 @@ def _production_ready_scope(readiness_status: str, certified_workflow_classes: l
 
 
 def _production_gate(provider_name: str, readiness_status: str, certified_workflow_classes: list[str]) -> str:
+    if readiness_status == "non_executable_in_image":
+        return "Planning/reference only; credentials and live evidence cannot authorize provider construction in this image."
     if readiness_status == "ready_local":
         return "Local provider is covered by verify-super-browser and fixture live tests."
     if readiness_status == "live_test_passed":
@@ -516,30 +515,30 @@ def _production_gate(provider_name: str, readiness_status: str, certified_workfl
     if readiness_status == "live_test_stale":
         return f"Previous provider live-test evidence is stale. Rerun `super-browser live-test --provider {provider_name}`."
     if readiness_status == "runtime_missing":
-        return "Run `playwright install chromium`, then rerun `super-browser doctor` and `super-browser live-test --provider local`."
+        return "Update committed locks, rebuild the image, run complete release verification, and publish a new release."
     if readiness_status == "usable_direct_http_no_proxy":
-        return "Direct raw HTTP is usable; configure DECODO_PROXY and run a live test before claiming residential-proxy readiness."
+        return "Direct raw HTTP is usable for policy-eligible public IP-literal targets without a proxy."
     if readiness_status == "configured_live_test_required":
         return f"Run `super-browser live-test --provider {provider_name}` and inspect artifacts before production use."
     if readiness_status == "configured_live_test_recommended":
         return f"Run `super-browser live-test --provider {provider_name}` before production use or customer-facing workflows."
     if readiness_status == "package_missing":
-        return "Install the provider package or CLI, then rerun `super-browser doctor`."
-    return "Configure missing env vars, then rerun `super-browser doctor` and the provider live test."
+        return "Update committed locks, rebuild the image, run complete release verification, and publish a new release."
+    return "No credential setup path is available in this image; use an enforceable local lane or stop."
 
 
 def _next_action(provider_name: str, readiness_status: str, missing_required_env: list[str], missing_optional_env: list[str], certified_workflow_classes: list[str]) -> str:
+    if readiness_status == "non_executable_in_image":
+        return "Replan to a technically read-only extraction provider or stop and report the blocker."
     if readiness_status == "missing_env":
-        return "Set env vars: " + ", ".join(missing_required_env)
+        return "No credential setup path is available in this image; use an enforceable local lane or stop."
     if readiness_status == "package_missing":
-        return "Install the provider package or CLI required by this adapter."
+        return "Update committed locks, rebuild the image, run complete release verification, and publish a new release."
     if readiness_status == "runtime_missing":
-        return "Run `playwright install chromium`, then rerun `super-browser doctor`."
+        return "Update committed locks, rebuild the image, run complete release verification, and publish a new release."
     if readiness_status == "usable_direct_http_no_proxy":
-        return "Set DECODO_PROXY for residential proxy routing, or use direct raw HTTP without proxy."
+        return "Use direct raw HTTP without a proxy for a policy-eligible public IP-literal target."
     if readiness_status == "live_test_passed":
-        if provider_name == "decodo-http" and missing_optional_env:
-            return "Ready for verified direct raw HTTP; set DECODO_PROXY for residential proxy routing."
         classes = ", ".join(certified_workflow_classes) if certified_workflow_classes else "latest workflow"
         return f"Ready for verified workflow class: {classes}."
     if readiness_status == "live_test_stale":

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import json
+import os
 
 from .models import RiskLevel, TaskSpec
 
@@ -12,6 +14,26 @@ EXTERNAL_WRITE_KEYWORDS = (
     "commenting",
     "send",
     "sending",
+    "transmit",
+    "transmits",
+    "transmitted",
+    "transmitting",
+    "convey",
+    "conveys",
+    "conveyed",
+    "conveying",
+    "dispatch",
+    "dispatching",
+    "deliver",
+    "delivering",
+    "forward",
+    "forwarding",
+    "notify",
+    "notifying",
+    "invite",
+    "inviting",
+    "broadcast",
+    "broadcasting",
     "message",
     "messaging",
     "dm",
@@ -472,6 +494,7 @@ EXTERNAL_WRITE_PATTERNS = (
     r"\b(?:pin|unpin) .{0,80}(?:message|thread|conversation|channel|comment)\b",
     r"\b(?:generate|create(?!\s+local notes about)|rotate|regenerate|revoke|disable|enable) .{0,80}(?:api key|access token|bearer token|client secret|private key|secret key|service account key)\b",
     r"\b(?:create(?!\s+local notes about)|add|update|change|remove|disable|enable) .{0,80}webhook\b",
+    r"\b(?:push|ship|release|promote|roll\s+out|deploy|publish)\b(?=[^.!?;\n]{0,160}\b(?:production|prod|live)\b)(?=[^.!?;\n]{0,160}\b(?:ui|dashboard|dash|site|website|app|application)\b)[^.!?;\n]{0,160}",
     r"\b(?:create(?!\s+local notes about)|trigger|start|promote|rollback|roll back|redeploy) .{0,80}(?:deployment|deploy)\b",
     r"\bdeploy .{0,80}(?:to|in) .{0,40}(?:production|prod|staging)\b",
     r"\b(?:create(?!\s+local notes about)|add|update|change|remove) .{0,80}(?:dns record|domain record|mx record|a record|aaaa record|cname record|txt record|spf record|dkim record|dmarc record|nameservers?|name servers?)\b",
@@ -521,6 +544,13 @@ EMAIL_EXTERNAL_WRITE_PATTERNS = (
     r"(?:^|[.;,]\s*|\b(?:and|then|also|please|to)\s+)email (?:this|that|these|those|the|a|an|my|our|all|each|every|selected|qualified|warm|lead|leads|prospect|prospects|customer|customers|client|clients|contact|contacts|candidate|candidates|person|people|user|users|vendor|vendors|owner|owners|admin|admins|team|teams|company|companies|recipient|recipients|them|him|her)\b",
     r"(?:^|[.;,]\s*|\b(?:and|then|also|please|to)\s+)email [a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b",
 )
+COMMUNICATION_SURFACE_PATTERNS = (
+    r"\b(?:email|e\s+mail|mail|gmail)\b",
+    r"\b(?:contact|inquiry|support|request|message)\s+form\b",
+)
+PUBLIC_COMMUNICATION_REFERENCE_PATTERNS = (
+    r"^\s*(?:what is|what are|explain|define|research|compare|find public|show examples of)\b[^.!?;\n]{0,160}\b(?:email|e\s+mail|mail|gmail|contact form)\b\s*[?.]?\s*$",
+)
 UI_WRITE_ACTIONS = (
     "accept",
     "activate",
@@ -547,6 +577,9 @@ UI_WRITE_ACTIONS = (
     "like",
     "message",
     "mute",
+    "paper airplane",
+    "paper plane",
+    "airplane",
     "pin",
     "post",
     "publish",
@@ -586,7 +619,8 @@ READ_ONLY_CONTENT_LOOKUP_PATTERNS = (
     r"^\s*(?:browse|collect|extract|find|inspect|list|monitor|read|review|scan|scrape|search|summarize|summarise|analyze|analyse)\b.*\b(?:post|posts|comment|comments|message|messages|reply|replies|dm|dms)\b",
 )
 READ_ONLY_REFERENCE_PATTERNS = (
-    r"^\s*(?:browse|collect|extract|find|inspect|list|read|review|scan|scrape|search|summarize|summarise|analyze|analyse)\b.*\b(?:public|docs?|documentation|help|guide|policy|best practices|examples|article|blog|page)\b",
+    r"^\s*(?:browse|collect|extract|find|inspect|list|read|review|scan|scrape|search|summarize|summarise|analyze|analyse|navigate)\b.*\b(?:public|docs?|documentation|help|guide|policy|best practices|examples|article|blog|page|site|website|table|pricing)\b",
+    r"^\s*(?:what is|what are|explain|describe|define)\b[^.!?;\n]{1,200}[?.]?\s*$",
     r"\b(?:create|write|save) local notes about\b",
 )
 NON_EXTERNAL_CONTENT_PLANNING_PATTERNS = (
@@ -626,7 +660,7 @@ UNSAFE_FORM_SUBMISSION_CONTEXT_PATTERNS = (
     r"\bform .{0,60}(?:lead|contact|application|checkout|signup|sign-up|registration|payment|order|purchase|quote|demo|pricing|consultation|message|comment|reply|review|poll|booking|appointment|reservation|subscribe|unsubscribe|upload|file)\b",
 )
 EXPLICIT_WRITE_ACTION_SEGMENT_PATTERNS = (
-    r"(?:^|[.;,]\s*|\b(?:and|then|also|please|to)\s+)(?:post|comment|reply|respond|message|dm|send|publish)\b",
+    r"(?:^|[.;,]\s*|\b(?:and|then|also|please|to)\s+)(?:post|comment|reply|respond|message|dm|send|dispatch|deliver|forward|mail|contact|notify|invite|broadcast|publish)\b",
 )
 LOCAL_DELIVERY_REQUEST_PATTERNS = (
     r"^\s*send (?:me|us) (?:a |an |the )?(?:summary|report|result|results|list|notes|analysis|answer|findings)\b",
@@ -634,8 +668,12 @@ LOCAL_DELIVERY_REQUEST_PATTERNS = (
 NON_DRAFTABLE_WRITE_PATTERNS = EXTERNAL_WRITE_PATTERNS
 
 
+def _normalize_policy_text(value: str) -> str:
+    return re.sub(r"[\u002d\u058a\u05be\u1400\u1806\u2010-\u2015\u2e17\u2e1a\u2e3a-\u2e3b\u2e40\u301c\u3030\u30a0\ufe31-\ufe32\ufe58\ufe63\uff0d]+", " ", value.lower())
+
+
 def infer_risk(goal: str) -> RiskLevel:
-    text = goal.lower()
+    text = _normalize_policy_text(goal)
     if _contains_destructive_action(text):
         return "destructive"
     if _is_draft_only_text_workflow(text):
@@ -644,15 +682,20 @@ def infer_risk(goal: str) -> RiskLevel:
         return "external_write"
     if _contains_credentials(text):
         return "credential"
+    if _is_explicit_ad_campaign_read_only(text) or _is_safe_public_search_submission(text):
+        return "read"
     if _is_read_only_reference_request(text) or _is_read_only_content_lookup(text):
         return "read"
-    if any(word in text for word in ("fill", "click", "type", "edit", "change")):
+    if any(word in text for word in ("fill", "click", "type", "edit", "change", "replace", "choose", "confirm")):
         return "mutating"
-    return "read"
+    # Only the narrow read-only recognizers above may dispatch without a gate.
+    # Unknown browser intent fails closed because semantic mutation detection
+    # cannot safely enumerate every UI verb, icon label, or prompt-injection form.
+    return "mutating"
 
 
 def enrich_policy_flags(task: TaskSpec) -> TaskSpec:
-    text = task.goal.lower()
+    text = _normalize_policy_text(task.goal)
     risk = infer_risk(task.goal)
     task.draft_only = draft_only_for_goal(task.goal)
     if _contains_external_write(text) and not task.draft_only:
@@ -668,19 +711,39 @@ def enrich_policy_flags(task: TaskSpec) -> TaskSpec:
 
 def approval_required(task: TaskSpec) -> bool:
     risk = infer_risk(task.goal)
-    return task.external_write or task.target_scope in {"private_network", "link_local", "local_file"} or risk in ("external_write", "credential", "destructive")
+    sensitive_target = task.target_scope in {"loopback", "private_network", "link_local", "local_file"}
+    return (
+        task.external_write
+        or task.requires_auth
+        or bool(task.profile)
+        or (sensitive_target and not test_target_authorized(task))
+        or risk in ("mutating", "external_write", "credential", "destructive")
+    )
+
+
+def test_target_authorized(task: TaskSpec) -> bool:
+    """Permit only an exact operator-declared local fixture URL in explicit test mode."""
+    if task.target_scope not in {"loopback", "local_file"}:
+        return False
+    if os.environ.get("SUPER_BROWSER_TEST_MODE") != "1":
+        return False
+    try:
+        allowlist = json.loads(os.environ.get("SUPER_BROWSER_TEST_TARGET_ALLOWLIST_JSON", "[]"))
+    except json.JSONDecodeError:
+        return False
+    return isinstance(allowlist, list) and task.url in {item for item in allowlist if isinstance(item, str)}
 
 
 def requires_auth_for_goal(goal: str) -> bool:
-    return _contains_credentials(goal.lower())
+    return _contains_credentials(_normalize_policy_text(goal))
 
 
 def draft_only_for_goal(goal: str) -> bool:
-    return _is_draft_only_text_workflow(goal.lower())
+    return _is_draft_only_text_workflow(_normalize_policy_text(goal))
 
 
 def long_running_for_goal(goal: str) -> bool:
-    return _contains_any(goal.lower(), LONG_RUNNING_KEYWORDS)
+    return _contains_any(_normalize_policy_text(goal), LONG_RUNNING_KEYWORDS)
 
 
 def _contains_destructive_action(text: str) -> bool:
@@ -699,6 +762,12 @@ def _contains_destructive_action(text: str) -> bool:
 
 
 def _contains_external_write(text: str) -> bool:
+    if _is_non_external_content_planning_request(text):
+        return False
+    if _contains_any_pattern(text, COMMUNICATION_SURFACE_PATTERNS):
+        if _contains_any_pattern(text, PUBLIC_COMMUNICATION_REFERENCE_PATTERNS):
+            return False
+        return True
     if _is_local_delivery_request(text):
         return False
     if _is_safe_public_search_submission(text):
@@ -709,8 +778,6 @@ def _contains_external_write(text: str) -> bool:
         return False
     if _contains_ad_campaign_object(text):
         return True
-    if _is_non_external_content_planning_request(text):
-        return False
     if _is_read_only_reference_request(text):
         return False
     if _is_read_only_content_lookup(text):

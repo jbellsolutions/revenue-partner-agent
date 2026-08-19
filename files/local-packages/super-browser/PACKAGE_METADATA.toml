@@ -1,0 +1,4 @@
+name = "super-browser"
+version = "0.3.2"
+console_script = "super-browser"
+entry_point = "super_browser.cli:main"

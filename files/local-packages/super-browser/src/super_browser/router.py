@@ -13,10 +13,10 @@ from .deliberation import deliberate
 from .models import Plan, PlanStep, TargetScope, TaskSpec
 from .policy import approval_required, enrich_policy_flags, infer_risk, long_running_for_goal, requires_auth_for_goal
 from .profiles import ProfileStore
-from .providers import PROVIDERS
+from .providers import PLANNING_ONLY_PROVIDERS, PROVIDERS
 
 # Escalation ladder: a cost/escalation tie-breaker, not the routing model.
-# Capabilities (auth, anti-bot, captcha, profiles, proxy, fleet, desktop, raw HTTP)
+# Capabilities (auth, anti-bot, captcha, profiles, desktop, raw HTTP)
 # decide which providers CAN do the job; the rank only orders equally capable
 # providers from cheapest/most deterministic to most expensive.
 # Rank -1 = raw HTTP lane only (decodo), never used for browser work.
@@ -82,8 +82,6 @@ URL_REQUIRED_PROVIDERS = {
     "hyperbrowser",
     "steel",
 }
-
-
 def infer_task(
     goal: str,
     url: str | None = None,
@@ -92,8 +90,6 @@ def infer_task(
     max_cost_usd: float | None = None,
     timeout_seconds: int | None = None,
     profile: str | None = None,
-    proxy: str | None = None,
-    fleet_index: int | None = None,
 ) -> TaskSpec:
     goal = _validate_goal(goal)
     text = goal.lower()
@@ -103,7 +99,7 @@ def infer_task(
     max_cost = _validate_max_cost_usd(max_cost_usd)
     timeout = _validate_timeout_seconds(timeout_seconds)
     profile_name = _validate_profile_name(profile)
-    proxy_value = _validate_proxy_hint(proxy)
+
     if profile_name:
         _ensure_profile_exists(profile_name)
     task = TaskSpec(
@@ -120,8 +116,6 @@ def infer_task(
         timeout_seconds=timeout,
         providers_allowed=allowed_providers,
         profile=profile_name,
-        proxy=proxy_value,
-        fleet_index=fleet_index,
     )
     return enrich_policy_flags(task)
 
@@ -238,8 +232,7 @@ def rank_providers(task: TaskSpec) -> list[str]:
             score += 60 if provider.supports_profiles else -40
             if task.profile and name == "browser-use":
                 score += 8
-        if task.proxy and provider.supports_proxy_injection:
-            score += 25
+
         if provider.stability == "evaluating":
             score -= 12
         scores[name] = score
@@ -263,8 +256,7 @@ def _candidate_providers(task: TaskSpec) -> list[str]:
         candidates = [name for name in candidates if estimate_provider_cost(name, task)["estimated_floor_usd"] <= task.max_cost_usd]
     if task.profile:
         candidates = [name for name in candidates if PROVIDERS[name].supports_profiles]
-    if task.proxy:
-        candidates = [name for name in candidates if PROVIDERS[name].supports_proxy_injection or name == "decodo-http"]
+
     candidates = [name for name in candidates if PROVIDERS[name].stability != "docs-only"]
     return candidates
 
@@ -321,6 +313,14 @@ def provider_sequence_constraint_failures(plan: Plan | dict[str, Any]) -> list[d
                 "message": _raw_http_url_requirement_message(task.url),
                 "url": task.url,
                 "allowed_schemes": list(RAW_HTTP_URL_SCHEMES),
+            }
+        )
+    if task.target_scope == "public_web" and "playwright" in known_sequence:
+        failures.append(
+            {
+                "type": "playwright_public_web_non_executable",
+                "message": "Public-web Playwright navigation is non-executable in this immutable image",
+                "provider": "playwright",
             }
         )
     if task.providers_allowed:
@@ -382,19 +382,7 @@ def provider_sequence_constraint_failures(plan: Plan | dict[str, Any]) -> list[d
                     "profile": task.profile,
                 }
             )
-    if task.proxy:
-        unsupported_proxy = [
-            name for name in known_sequence if name not in {"decodo-http"} and not PROVIDERS[name].supports_proxy_injection
-        ]
-        if unsupported_proxy:
-            failures.append(
-                {
-                    "type": "provider_proxy_constraint_violation",
-                    "message": "Plan provider sequence includes providers that do not support proxy injection",
-                    "providers": unsupported_proxy,
-                    "proxy": task.proxy,
-                }
-            )
+
     return failures
 
 
@@ -547,14 +535,15 @@ def _validate_profile_name(profile: str | None) -> str | None:
 def _validate_proxy_hint(proxy: str | None) -> str | None:
     if proxy is None:
         return None
-    if not isinstance(proxy, str) or not proxy.strip():
-        raise ValueError("proxy must be a non-empty string when provided")
-    return proxy.strip()
+    raise ValueError("proxy routing is disabled in this image")
 
 
 def _ensure_profile_exists(name: str) -> None:
     if not ProfileStore(create=False).get(name):
-        raise ValueError(f"Profile not found: {name}. Create it with `super-browser profiles create --name {name}`.")
+        raise ValueError(
+            f"Profile not found: {name}. Persistent profiles are operator-provisioned in the reviewed image; "
+            "use an existing profile or rebuild the image with separately reviewed profile state."
+        )
 
 
 def _validate_task_constraints(task: TaskSpec) -> None:
@@ -566,7 +555,7 @@ def _validate_task_constraints(task: TaskSpec) -> None:
     task.max_cost_usd = _validate_max_cost_usd(task.max_cost_usd)
     task.timeout_seconds = _validate_timeout_seconds(task.timeout_seconds)
     task.profile = _validate_profile_name(task.profile)
-    task.proxy = _validate_proxy_hint(task.proxy)
+    _validate_proxy_hint(getattr(task, "proxy", None))
 
 
 def _validate_planning_requirements(task: TaskSpec) -> None:
@@ -682,19 +671,11 @@ def _needs_council(task: TaskSpec) -> bool:
 
 
 def _purpose_for(provider_name: str, task: TaskSpec) -> str:
-    if provider_name == "orgo":
-        return "Run a full desktop/computer workflow because browser-only automation is insufficient."
+    if provider_name in {"airtop", "browser-use", "browserbase", "hyperbrowser", "orgo", "steel"}:
+        return "Planning/reference record only; provider construction is blocked in this image."
     if provider_name == "decodo-http":
-        return "Use raw HTTP and residential proxy routing because rendering is not required."
-    if provider_name == "browser-use":
-        return "Use hardened cloud browser automation for anti-bot or complex browser work."
-    if provider_name == "airtop":
-        return "Use Airtop cloud sessions and page-query extraction."
-    if provider_name == "hyperbrowser":
-        return "Use Hyperbrowser cloud scraping for live-gated scale workflows."
-    if provider_name == "steel":
-        return "Use Steel cloud browser sessions through Playwright CDP."
-    return "Use local deterministic browser automation."
+        return "Use direct raw HTTP without a proxy because rendering is not required."
+    return "Record local Playwright as fixture-only; public-web navigation is non-executable in this image."
 
 
 def _council_report(
@@ -708,22 +689,29 @@ def _council_report(
     deliberation: Any | None = None,
 ) -> dict:
     sequence = [primary, *fallbacks]
+    execution_sequence = [name for name in sequence if name not in PLANNING_ONLY_PROVIDERS]
+    planning_only_sequence = [name for name in ranked if name in PLANNING_ONLY_PROVIDERS]
     specialists = [_specialist_review(name, task, sequence, primary) for name in ranked if name in PROVIDERS]
     loops = deliberation.loops if deliberation else _review_loops(task, mode, primary, fallbacks)
     deliberation_complete = deliberation.deliberation_complete if deliberation else True
     return {
         "mode": mode,
-        "selected_sequence": sequence,
+        "selected_sequence": execution_sequence,
+        "planning_comparison_sequence": list(ranked),
+        "execution_sequence": execution_sequence,
         "specialists_consulted": specialists,
         "review_loops": loops,
         "deliberation_complete": deliberation_complete,
         "deliberation_loop_count": deliberation.loop_count if deliberation else len(loops),
         "execution_pattern": deliberation.execution_pattern if deliberation else "single",
-        "combo_steps": deliberation.combo_steps if deliberation else [],
+        "combo_steps": [],
         "documented_recommendations": deliberation.documented_recommendations if deliberation else [],
         "planner_decision": {
-            "primary_provider": primary,
-            "fallback_providers": fallbacks,
+            "primary_provider": execution_sequence[0] if execution_sequence else None,
+            "fallback_providers": execution_sequence[1:],
+            "primary_provider_execution_eligible": bool(execution_sequence),
+            "execution_eligible_providers": execution_sequence,
+            "planning_only_providers": planning_only_sequence,
             "missing_env": missing_env,
             "approval_required": approval_required(task),
             "providers_allowed": task.providers_allowed,
@@ -755,6 +743,8 @@ def _specialist_review(provider_name: str, task: TaskSpec, sequence: list[str], 
         "provider": provider_name,
         "specialist": f"{provider_name}-specialist" if provider_name != "playwright" else "playwright-specialist",
         "recommendation": recommendation,
+        "execution_eligible": provider_name not in PLANNING_ONLY_PROVIDERS,
+        "selection_scope": "comparison_only" if provider_name in PLANNING_ONLY_PROVIDERS else "executable_local_lane",
         "confidence": _specialist_confidence(provider_name, task, recommendation),
         "cost_band": provider.cost_band,
         "estimated_cost_floor_usd": estimate_provider_cost(provider_name, task)["estimated_floor_usd"],
@@ -769,6 +759,8 @@ def _specialist_review(provider_name: str, task: TaskSpec, sequence: list[str], 
 
 
 def _specialist_recommendation(provider_name: str, selected: bool, primary: str, stability: str) -> str:
+    if provider_name in PLANNING_ONLY_PROVIDERS:
+        return "comparison only — non-executable"
     if provider_name == primary:
         return "use me"
     if selected:
@@ -791,7 +783,9 @@ def _specialist_confidence(provider_name: str, task: TaskSpec, recommendation: s
 def _specialist_reasons(provider_name: str, task: TaskSpec, recommendation: str) -> list[str]:
     reasons = []
     provider = PROVIDERS[provider_name]
-    if recommendation == "use me":
+    if recommendation == "comparison only — non-executable":
+        reasons.append("Planning/provenance record only; credentials, setup, and approval records cannot enable this provider in this image.")
+    elif recommendation == "use me":
         reasons.append(_purpose_for(provider_name, task))
     elif recommendation == "use me only as fallback":
         reasons.append("Useful if the primary provider is unavailable, blocked, or too expensive for this run.")
@@ -842,7 +836,7 @@ def _review_loops(task: TaskSpec, mode: str, primary: str, fallbacks: list[str])
                 "loop": 3,
                 "focus": "safety_and_verification",
                 "findings": [
-                    "Approval is required before credential-bearing or external-write execution."
+                    "Approval-required work is non-executable in this image; approval records are audit evidence only."
                     if approval_required(task)
                     else "No approval gate required for this draft-only or read-only plan.",
                     f"Target scope is {task.target_scope}; keep local/internal access explicit."
@@ -857,9 +851,13 @@ def _review_loops(task: TaskSpec, mode: str, primary: str, fallbacks: list[str])
 
 def _rationale(task: TaskSpec, primary: str, mode: str) -> list[str]:
     lines = [f"Mode is {mode} because task risk and provider uncertainty were evaluated."]
-    lines.append(f"Primary provider is {primary} based on capability scoring.")
+    lines.append(
+        f"Planning comparison primary is {primary}; execution eligibility is reported separately."
+        if primary in PLANNING_ONLY_PROVIDERS
+        else f"Executable local primary is {primary} based on capability scoring."
+    )
     if task.external_write:
-        lines.append("External write detected; approval is required before publishing, posting, commenting, replying, messaging, sending, or submitting.")
+        lines.append("External write detected; publishing, posting, commenting, replying, messaging, sending, and submitting are non-executable in this image. Approval records are audit evidence only.")
     if task.draft_only:
         lines.append("Draft-only instruction detected; prepare text without publishing, posting, commenting, replying, messaging, sending, or submitting.")
     if task.anti_bot_risk:
@@ -868,8 +866,7 @@ def _rationale(task: TaskSpec, primary: str, mode: str) -> list[str]:
         lines.append("Authenticated session need detected; profile/session-capable providers are prioritized.")
     if task.profile:
         lines.append(f"Named profile {task.profile!r} is bound; only profile-capable providers are eligible.")
-    if task.proxy:
-        lines.append("Proxy injection requested; providers with upstream proxy support are prioritized.")
+
     if task.needs_desktop:
         lines.append("Desktop need detected; computer-use backends are prioritized.")
     if task.raw_http:
@@ -888,12 +885,12 @@ def _rationale(task: TaskSpec, primary: str, mode: str) -> list[str]:
 def _approval_gate_reason(task: TaskSpec) -> str:
     if approval_required(task):
         if task.target_scope == "private_network":
-            return "private-network target requires explicit approval"
+            return "private-network work is non-executable in this image; approval records cannot activate it"
         if task.target_scope == "link_local":
-            return "link-local target requires explicit approval"
+            return "link-local work is non-executable in this image; approval records cannot activate it"
         if task.target_scope == "local_file":
-            return "local file target requires explicit approval"
-        return "external write, destructive, or credential-bearing workflow"
+            return "local-file work is non-executable outside the exact operator-test fixture mode"
+        return "approval-required work is non-executable in this image; activation requires a separately reviewed external integration and rebuilt release"
     if task.draft_only:
         return "draft-only workflow; publishing/posting/commenting/replying/messaging/sending/submitting remains disallowed"
     return "read-only workflow"

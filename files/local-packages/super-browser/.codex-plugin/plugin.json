@@ -1,7 +1,7 @@
 {
   "name": "super-browser",
   "version": "0.3.2",
-  "description": "Universal browser and computer automation plugin for agents. Includes specialist skills, a routing CLI, and an MCP server for choosing the right browser, proxy, authenticated session, or desktop backend.",
+  "description": "Constrained read-only browser planning and local fixture verification for the immutable Revenue Partner image.",
   "author": {
     "name": "AI Integraterz",
     "url": "https://github.com/jbellsolutions"
@@ -21,11 +21,11 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Super Browser",
-    "shortDescription": "Route agent browser and computer automation to the right tool.",
-    "longDescription": "Super Browser gives agents a documented plugin, CLI, and MCP interface for browser automation. Routing is capability-first (auth, anti-bot, CAPTCHA, profiles, proxy injection, fleet, desktop, raw HTTP) with an escalation rank as the cost tie-breaker: local Playwright and Browser Use (rank 1), Hyperbrowser/Airtop cloud scale (rank 2), Steel hosted Chromium (rank 3), Orgo desktop (rank 4), and raw HTTP to Decodo on a separate lane, with specialist skills and approval policy for external writes.",
+    "shortDescription": "Plan browser research and verify exact local fixtures under fail-closed policy.",
+    "longDescription": "This locked image exposes comparison and provenance planning for eight provider records. Execution is limited to exact process-allowlisted local Playwright fixtures and bounded bodyless GET/HEAD requests to public IPv4-literal raw-HTTP targets. Public Playwright, authenticated profiles, proxies, hosted providers, external computer use, writes, spending, and approval-required work are non-executable.",
     "developerName": "AI Integraterz",
     "category": "Engineering",
-    "capabilities": ["Read", "Write", "Interactive"],
+    "capabilities": ["Read"],
     "websiteURL": "https://github.com/jbellsolutions/super-browser",
     "privacyPolicyURL": "https://github.com/jbellsolutions/super-browser",
     "termsOfServiceURL": "https://github.com/jbellsolutions/super-browser",

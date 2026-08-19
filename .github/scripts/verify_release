@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+GIT=/usr/bin/git
+TAR=/usr/bin/tar
+ENV=/usr/bin/env
+MKTEMP=/usr/bin/mktemp
+CHMOD=/bin/chmod
+RM=/bin/rm
+for trusted_command in "$GIT" "$TAR" "$ENV" "$MKTEMP" "$CHMOD" "$RM"; do
+  [ -x "$trusted_command" ] || { printf 'release verification refused: missing trusted command %s\n' "$trusted_command" >&2; exit 1; }
+done
+PATH="/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:${PATH:-}"
+export PATH
+
+ROOT=$(CDPATH= cd -- "$(/usr/bin/dirname -- "$0")/../.." && pwd -P)
+cd "$ROOT"
+
+if ! "$GIT" diff --quiet --; then
+  printf '%s\n' 'release verification refused: tracked worktree bytes differ from the Git index' >&2
+  exit 1
+fi
+untracked=$("$GIT" ls-files --others --exclude-standard)
+if [ -n "$untracked" ]; then
+  printf '%s\n' 'release verification refused: untracked non-ignored files exist' >&2
+  printf '%s\n' "$untracked" >&2
+  exit 1
+fi
+
+tree=$("$GIT" write-tree)
+temp_root=$("$MKTEMP" -d "${TMPDIR:-/tmp}/revenue-partner-candidate-${tree%%????????????????????????????????}-XXXXXX")
+supplied_secrets=$("$MKTEMP" "${TMPDIR:-/tmp}/revenue-partner-supplied-secrets-XXXXXX")
+"$CHMOD" 600 "$supplied_secrets"
+while IFS='=' read -r name value; do
+  case "$name" in
+    *_API_KEY|*_KEY|*_TOKEN|*_SECRET|*_PASSWORD|GH_TOKEN|GITHUB_TOKEN)
+      if [ "${#value}" -ge 12 ]; then printf '%s\0' "$value" >> "$supplied_secrets"; fi
+      ;;
+  esac
+done < <("$ENV")
+cleanup() { "$RM" -rf -- "$temp_root"; "$RM" -f -- "$supplied_secrets"; }
+trap cleanup EXIT HUP INT TERM
+
+"$GIT" archive "$tree" | "$TAR" -x -C "$temp_root"
+"$GIT" -C "$temp_root" init -q
+"$GIT" -C "$temp_root" add -A
+export_tree=$("$GIT" -C "$temp_root" write-tree)
+if [ "$export_tree" != "$tree" ]; then
+  printf '%s\n' 'release verification refused: exact-tree export parity failed' >&2
+  exit 1
+fi
+
+python_bin=${REVENUE_PARTNER_VERIFY_PYTHON:-}
+case "$python_bin" in
+  /*) ;;
+  *) printf '%s\n' 'release verification refused: set REVENUE_PARTNER_VERIFY_PYTHON to an explicitly trusted absolute Python 3.11 interpreter' >&2; exit 1 ;;
+esac
+[ -x "$python_bin" ] || { printf '%s\n' 'release verification refused: configured Python interpreter is not executable' >&2; exit 1; }
+python_version=$("$python_bin" -I -s -E -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+[ "$python_version" = "3.11" ] || { printf 'release verification refused: Python 3.11 required, got %s\n' "$python_version" >&2; exit 1; }
+python_dir=$(/usr/bin/dirname -- "$python_bin")
+safe_path="$python_dir:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin"
+
+set +e
+"$ENV" -i \
+  HOME="${HOME:-/tmp}" \
+  USER="${USER:-runner}" \
+  LOGNAME="${LOGNAME:-${USER:-runner}}" \
+  LANG="${LANG:-C.UTF-8}" \
+  LC_ALL="${LC_ALL:-}" \
+  TMPDIR="${TMPDIR:-/tmp}" \
+  PATH="$safe_path" \
+  PYTHONNOUSERSITE=1 \
+  REVENUE_PARTNER_CANDIDATE_TREE="$tree" \
+  REVENUE_PARTNER_VERIFY_GIT="$GIT" \
+  REVENUE_PARTNER_SUPPLIED_SECRETS_FILE="$supplied_secrets" \
+  "$python_bin" -I -s -E "$temp_root/.github/scripts/verify_release.py" "$@"
+status=$?
+set -e
+exit "$status"

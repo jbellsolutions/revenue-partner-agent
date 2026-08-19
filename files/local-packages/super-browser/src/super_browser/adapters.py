@@ -6,22 +6,27 @@ import subprocess
 import asyncio
 import time
 import socket
-from dataclasses import replace
+import re
+from dataclasses import dataclass, replace
 from ipaddress import ip_address
 from pathlib import Path
 from typing import Any, Protocol
 from urllib.parse import urlencode, urlparse
 from urllib.error import HTTPError, URLError
-from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener, urlopen
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 from .artifacts import annotate_artifact, annotate_artifacts
-from .models import ExecutionResult, Plan, TaskSpec, action_fingerprint_from_plan, plan_fingerprint, utc_now
-from .policy import approval_required as task_approval_required, draft_only_for_goal, infer_risk
+from .models import ExecutionResult, Plan, TaskSpec, plan_fingerprint, utc_now
+from .policy import approval_required as task_approval_required, draft_only_for_goal, infer_risk, test_target_authorized
 from .profiles import ProfileStore
 from .proxy import playwright_proxy_settings, proxy_dict_for_requests, resolve_proxy_url
-from .providers import PROVIDERS
+from .providers import PLANNING_ONLY_PROVIDERS, PROVIDERS
 from .redaction import redact, redact_headers, redact_text, safe_json_dumps
 from .router import provider_sequence_constraint_failures, target_scope_for_url
+
+
+AUTONOMOUS_INTERACTION_PROVIDERS = frozenset({"browser-use", "orgo"})
+REMOTE_NETWORK_PROVIDERS = frozenset({"airtop", "browserbase", "hyperbrowser", "steel"})
 
 
 SENSITIVE_TARGET_SCOPES = {"loopback", "private_network", "link_local", "local_file"}
@@ -33,6 +38,10 @@ ALLOW_INSECURE_PROVIDER_BASES_ENV = "SUPER_BROWSER_ALLOW_INSECURE_PROVIDER_BASES
 FAILED_PROVIDER_STATUSES = {"failed", "failure", "error", "errored", "cancelled", "canceled", "timeout", "timed_out", "expired", "stopped"}
 UNFINISHED_PROVIDER_STATUSES = {"pending", "queued", "running", "processing", "in_progress", "started"}
 SUCCESS_PROVIDER_STATUSES = {"complete", "completed", "done", "finished", "success", "succeeded"}
+SAFE_READ_METHODS = frozenset({"GET", "HEAD"})
+RAW_HTTP_MAX_BYTES = 2 * 1024 * 1024
+PLAYWRIGHT_MAX_TEXT_CHARS = 200_000
+PLAYWRIGHT_MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024
 
 
 class ProviderAdapter(Protocol):
@@ -43,7 +52,151 @@ class ProviderAdapter(Protocol):
 
 
 def _task_proxy_url(task: TaskSpec) -> str | None:
-    return resolve_proxy_url(task, fleet_index=task.fleet_index)
+    return resolve_proxy_url(task)
+
+
+def _url_host_is_public_ip_literal(url: str | None) -> bool:
+    if not url:
+        return False
+    host = urlparse(url).hostname
+    if not host:
+        return False
+    try:
+        address = ip_address(host)
+    except ValueError:
+        return False
+    return address.version == 4 and not (
+        address.is_loopback
+        or address.is_private
+        or address.is_link_local
+        or address.is_multicast
+        or address.is_unspecified
+        or address.is_reserved
+    )
+
+
+def _network_binding_constraint_failures(plan: Plan) -> list[dict[str, Any]]:
+    task = plan.task
+    if task.target_scope != "public_web" or not task.url:
+        return []
+    sequence = _provider_sequence(plan)
+    failures: list[dict[str, Any]] = []
+    remote = [name for name in sequence if name in REMOTE_NETWORK_PROVIDERS]
+    if remote:
+        failures.append(
+            {
+                "type": "provider_peer_address_enforcement_unavailable",
+                "message": "Hosted provider target DNS, redirects, and connected peer addresses cannot be enforced by this image",
+                "providers": remote,
+            }
+        )
+    if "decodo-http" in sequence and not _url_host_is_public_ip_literal(task.url):
+        failures.append(
+            {
+                "type": "raw_http_peer_address_not_pinned",
+                "message": "Raw HTTP public execution requires a public IP-literal URL; hostname and proxy-side DNS are non-executable",
+                "provider": "decodo-http",
+            }
+        )
+    if "playwright" in sequence:
+        failures.append(
+            {
+                "type": "playwright_public_web_non_executable",
+                "message": "Public-web Playwright navigation is non-executable because hostile response bytes cannot be strictly bounded",
+                "provider": "playwright",
+            }
+        )
+    return failures
+
+
+def _direct_adapter_security_block(provider: str, task: TaskSpec) -> ExecutionResult | None:
+    derived_scope = target_scope_for_url(task.url)
+    if task.url and task.target_scope not in {"none", derived_scope}:
+        return ExecutionResult(
+            provider=provider,
+            status="blocked",
+            error="Declared target scope does not match the URL-derived target scope.",
+            events=[_event("blocked", "direct_adapter_target_scope_mismatch")],
+            verification={"confidence": "high", "checks": ["provider construction not reached"]},
+        )
+    normalized_task = replace(task, target_scope=derived_scope) if task.url else task
+    if task_approval_required(normalized_task):
+        return ExecutionResult(
+            provider=provider,
+            status="blocked",
+            error="Direct adapter execution is disabled for approval-required tasks.",
+            events=[_event("blocked", "direct_adapter_approval_required")],
+            verification={"confidence": "high", "checks": ["policy recomputed at adapter boundary", "provider construction not reached"]},
+        )
+    if normalized_task.target_scope in SENSITIVE_TARGET_SCOPES and not test_target_authorized(normalized_task):
+        return ExecutionResult(
+            provider=provider,
+            status="blocked",
+            error="Sensitive target execution is disabled outside an exact operator-declared test fixture.",
+            events=[_event("blocked", "sensitive_target_non_executable")],
+            verification={"confidence": "high", "checks": ["exact test target allowlist not present", "network execution not reached"]},
+        )
+    if provider in AUTONOMOUS_INTERACTION_PROVIDERS:
+        return ExecutionResult(
+            provider=provider,
+            status="blocked",
+            error="Autonomous interaction provider execution is disabled in this image.",
+            events=[_event("blocked", "autonomous_provider_non_executable")],
+            verification={"confidence": "high", "checks": ["provider construction not reached"]},
+        )
+    if normalized_task.url and provider in REMOTE_NETWORK_PROVIDERS:
+        return ExecutionResult(
+            provider=provider,
+            status="blocked",
+            error="Hosted target DNS, redirects, and connected peer addresses cannot be enforced by this image.",
+            events=[_event("blocked", "provider_peer_address_enforcement_unavailable")],
+            verification={"confidence": "high", "checks": ["remote target network execution not reached"]},
+        )
+    if provider == "decodo-http" and normalized_task.target_scope == "public_web" and not _url_host_is_public_ip_literal(normalized_task.url):
+        return ExecutionResult(
+            provider=provider,
+            status="blocked",
+            error="Raw HTTP public execution requires a public IP-literal URL; hostname and proxy-side DNS are non-executable.",
+            events=[_event("blocked", "raw_http_peer_address_not_pinned")],
+            verification={"confidence": "high", "checks": ["raw HTTP network execution not reached"]},
+        )
+    if provider == "playwright" and normalized_task.target_scope == "public_web":
+        return ExecutionResult(
+            provider=provider,
+            status="blocked",
+            error="Public-web Playwright execution is disabled because hostile navigation bytes cannot be strictly bounded in this immutable image; use an eligible bounded public-IP-literal raw HTTP read.",
+            events=[_event("blocked", "playwright_public_web_non_executable")],
+            verification={"confidence": "high", "checks": ["browser construction not reached"]},
+        )
+    return None
+
+
+def _validated_chromium_host_pin(url: str) -> tuple[str, str] | None:
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").strip().lower().rstrip(".")
+    if not host or _url_host_is_public_ip_literal(url):
+        return None
+    if not re.fullmatch(r"[a-z0-9.-]+", host):
+        raise ValueError("public hostname cannot be represented safely in Chromium resolver rules")
+    evidence = _target_scope_evidence_for_url(url)
+    if _target_scope_evidence_is_disallowed("public_web", evidence):
+        raise ValueError("public hostname did not resolve exclusively to public addresses")
+    resolved_addresses = evidence.get("resolved_addresses", [])
+    if not isinstance(resolved_addresses, list):
+        raise ValueError("public hostname resolution evidence is malformed")
+    ipv4 = []
+    for item in resolved_addresses:
+        if not isinstance(item, dict) or item.get("target_scope") != "public_web":
+            continue
+        address = str(item.get("address") or "")
+        try:
+            if ip_address(address).version == 4:
+                ipv4.append(address)
+        except ValueError:
+            continue
+    if not ipv4:
+        raise ValueError("public hostname has no validated public IPv4 address available for Chromium pinning")
+    return host, sorted(set(ipv4))[0]
 
 
 def _provider_profile_ref(task: TaskSpec, provider: str) -> str | None:
@@ -58,30 +211,8 @@ def _browser_use_api_base() -> str:
 
 
 def _browser_use_profile_id(task: TaskSpec) -> str | None:
-    if not task.profile:
-        return None
-    store = ProfileStore(create=False)
-    bound = store.resolve_provider_id(task.profile, "browser-use")
-    if bound:
-        return bound
-    api_key = os.environ.get("BROWSER_USE_API_KEY")
-    if not api_key:
-        return None
-    headers = {"Authorization": f"Bearer {api_key}"}
-    try:
-        payload = _http_json(
-            f"{_browser_use_api_base()}/v3/profiles",
-            {"name": task.profile},
-            headers,
-            timeout_seconds=30,
-        )
-        profile_id = str(payload.get("id") or payload.get("profile_id") or "")
-        if profile_id:
-            ProfileStore().bind_provider_id(task.profile, "browser-use", profile_id)
-            return profile_id
-    except Exception:
-        return None
-    return None
+    del task
+    raise RuntimeError("browser-use is planning-only and profile operations are non-executable in this image")
 
 
 def _airtop_session_configuration(task: TaskSpec) -> dict[str, Any]:
@@ -92,15 +223,13 @@ def _airtop_session_configuration(task: TaskSpec) -> dict[str, Any]:
 
 
 def _hyperbrowser_session_options(task: TaskSpec) -> dict[str, Any]:
-    proxy_url = _task_proxy_url(task)
+    _task_proxy_url(task)
     options: dict[str, Any] = {
         "useStealth": bool(task.anti_bot_risk),
-        "useProxy": bool(os.environ.get("HYPERBROWSER_USE_PROXY") or proxy_url or task.proxy),
+        "useProxy": False,
     }
     if task.profile:
         options["profile"] = _provider_profile_ref(task, "hyperbrowser")
-    if proxy_url:
-        options["proxy"] = proxy_url
     return options
 
 
@@ -111,9 +240,7 @@ def _steel_session_body(task: TaskSpec) -> dict[str, Any]:
         profile_ref = _provider_profile_ref(task, "steel")
         if profile_ref:
             body["profileId"] = profile_ref
-    proxy_url = _task_proxy_url(task)
-    if proxy_url:
-        body["proxy"] = proxy_url
+    _task_proxy_url(task)
     return body
 
 
@@ -122,18 +249,32 @@ def execute_plan(
     run_id: str,
     state_dir: Path | None = None,
     use_fallbacks: bool = True,
-    approval_granted: bool = False,
-    approval_context: dict[str, Any] | None = None,
 ) -> ExecutionResult:
     artifact_dir = (state_dir or Path(".super-browser")) / "artifacts" / run_id
     artifact_dir.mkdir(parents=True, exist_ok=True)
-    provider_constraint_failures = provider_sequence_constraint_failures(plan)
+    provider_constraint_failures = [
+        *provider_sequence_constraint_failures(plan),
+        *_network_binding_constraint_failures(plan),
+    ]
     if provider_constraint_failures:
         return _provider_constraints_result(plan, run_id, artifact_dir, provider_constraint_failures)
-    approval_check = _approval_context_check(plan, approval_context, approval_granted=approval_granted)
-    if not approval_check["valid"]:
-        return _approval_required_result(plan, run_id, artifact_dir, approval_check["reason"])
+    if _plan_requires_approval(plan):
+        return _approval_required_result(
+            plan,
+            run_id,
+            artifact_dir,
+            "local production approval and execution are disabled in this template",
+        )
     provider_sequence = _provider_sequence(plan) if use_fallbacks else [plan.primary_provider]
+    autonomous_providers = [
+        provider_name
+        for provider_name in provider_sequence
+        if provider_name in AUTONOMOUS_INTERACTION_PROVIDERS
+    ]
+    if autonomous_providers:
+        return _autonomous_provider_blocked_result(
+            plan, run_id, artifact_dir, autonomous_providers
+        )
     attempts = []
     all_events = []
     all_artifacts = []
@@ -174,13 +315,41 @@ def _approval_required_result(plan: Plan, run_id: str, artifact_dir: Path, reaso
     result = ExecutionResult(
         provider=plan.primary_provider,
         status="blocked",
-        error=f"Provider execution requires durable approval context. {reason}. Use create_run plus approve/resume so runtime can pass structured approval proof.",
+        error=f"Provider execution is disabled for approval-required plans in this image. {reason}. A future production path requires a separately reviewed operator-controlled integration and rebuilt release.",
         events=[_event("blocked", "approval_required")],
         verification={
             "confidence": "high",
             "checks": [
                 "approval-gated plan was not executed",
                 reason,
+            ],
+        },
+    )
+    return _finalize_sequence_result(run_id, artifact_dir, plan, result, [], [], result.events)
+
+
+def _autonomous_provider_blocked_result(
+    plan: Plan,
+    run_id: str,
+    artifact_dir: Path,
+    providers: list[str],
+) -> ExecutionResult:
+    names = ", ".join(providers)
+    result = ExecutionResult(
+        provider=plan.primary_provider,
+        status="blocked",
+        error=(
+            "Autonomous interaction providers are non-executable in this image "
+            f"without an independently enforced read-only action interceptor: {names}. "
+            "Replan with a technically read-only extraction provider."
+        ),
+        events=[_event("blocked", "autonomous_provider_non_executable")],
+        verification={
+            "confidence": "high",
+            "checks": [
+                "provider construction was not reached",
+                "autonomous browser/computer actions cannot rely on prompt-only read restrictions",
+                f"blocked providers: {names}",
             ],
         },
     )
@@ -252,44 +421,16 @@ def _plan_requires_approval(plan: Plan) -> bool:
     return bool(plan.approval_required or task_approval_required(plan.task))
 
 
-def _approval_context_check(plan: Plan, approval_context: dict[str, Any] | None, approval_granted: bool = False) -> dict[str, Any]:
-    if not _plan_requires_approval(plan):
-        return {"valid": True, "reason": "approval is not required"}
-    if approval_granted and not approval_context:
-        return {"valid": False, "reason": "bare approval_granted=True is not sufficient without approval_context"}
-    if not isinstance(approval_context, dict):
-        return {"valid": False, "reason": "structured approval_context is missing"}
-    if approval_context.get("status") != "approved":
-        return {"valid": False, "reason": "approval_context status is not approved"}
-    if not approval_context.get("approval_id"):
-        return {"valid": False, "reason": "approval_context approval_id is missing"}
-    if not approval_context.get("decided_at") or not approval_context.get("decided_by"):
-        return {"valid": False, "reason": "approval_context decision metadata is missing"}
-    if approval_context.get("required_before") not in {"provider_execution", "provider_retry"}:
-        return {"valid": False, "reason": "approval_context required_before is invalid"}
-    if approval_context.get("action_fingerprint") != action_fingerprint_from_plan(plan):
-        return {"valid": False, "reason": "approval_context action fingerprint does not match plan"}
-    if approval_context.get("plan_sha256") != plan_fingerprint(plan):
-        return {"valid": False, "reason": "approval_context plan fingerprint does not match plan"}
-    return {"valid": True, "reason": "approval_context verified"}
-
-
 def get_adapter(provider_name: str) -> ProviderAdapter:
     if provider_name == "playwright":
         return PlaywrightAdapter()
     if provider_name == "decodo-http":
         return RawHttpAdapter()
-    if provider_name == "browser-use":
-        return BrowserUseAdapter()
-    if provider_name == "orgo":
-        return OrgoAdapter()
-    if provider_name == "airtop":
-        return AirtopAdapter()
-    if provider_name == "hyperbrowser":
-        return HyperbrowserAdapter()
-    if provider_name == "steel":
-        return SteelAdapter()
-    return ExternalProviderAdapter(provider_name)
+    if provider_name in PLANNING_ONLY_PROVIDERS:
+        raise RuntimeError(
+            f"{provider_name} is a planning/provenance record only; adapter construction is disabled in this image"
+        )
+    raise ValueError(f"unknown Super Browser provider: {provider_name}")
 
 
 def _provider_sequence(plan: Plan) -> list[str]:
@@ -372,9 +513,14 @@ class UnsafeRedirectError(ValueError):
     pass
 
 
+class ResponseSizeLimitError(ValueError):
+    pass
+
+
 class _BrowserRequestScopeGuard:
-    def __init__(self, initial_scope: str):
+    def __init__(self, initial_scope: str, allowed_network_host: str | None = None):
         self.initial_scope = initial_scope
+        self.allowed_network_host = allowed_network_host
         self.installed = False
         self.installed_on: str | None = None
         self.blocked_requests: list[dict[str, object]] = []
@@ -383,8 +529,40 @@ class _BrowserRequestScopeGuard:
     def route(self, route) -> None:
         request = getattr(route, "request", None)
         url = str(getattr(request, "url", "") or "")
+        method = str(getattr(request, "method", "") or "").upper()
+        post_data = getattr(request, "post_data", None)
+        if method not in SAFE_READ_METHODS or post_data not in {None, "", b""}:
+            self.blocked_requests.append(
+                {
+                    "url": url,
+                    "method": method,
+                    "resource_type": getattr(request, "resource_type", None),
+                    "target_scope": "unsafe_method",
+                    "resolved_addresses": [],
+                    "resolution_error": None,
+                    "error": "browser requests are restricted to bodyless GET/HEAD",
+                }
+            )
+            _abort_browser_route(route)
+            return
         if not _browser_request_needs_scope_check(url):
             _continue_browser_route(route)
+            return
+
+        request_host = (urlparse(url).hostname or "").strip().lower().rstrip(".")
+        if self.allowed_network_host and request_host != self.allowed_network_host:
+            self.blocked_requests.append(
+                {
+                    "url": url,
+                    "method": getattr(request, "method", None),
+                    "resource_type": getattr(request, "resource_type", None),
+                    "target_scope": "cross_host",
+                    "resolved_addresses": [],
+                    "resolution_error": None,
+                    "error": "cross-host browser request is not covered by the pinned target address",
+                }
+            )
+            _abort_browser_route(route)
             return
 
         try:
@@ -438,10 +616,14 @@ class _TargetScopeRedirectHandler(HTTPRedirectHandler):
         )
         if error:
             raise UnsafeRedirectError(f"Raw HTTP redirect target is invalid or unsupported: {error}")
+        if self.initial_scope == "public_web" and not _url_host_is_public_ip_literal(newurl):
+            raise UnsafeRedirectError(
+                "Raw HTTP redirect target is not a public IP literal; hostname and proxy-side DNS are non-executable."
+            )
         if _target_scope_evidence_is_disallowed(self.initial_scope, target_evidence):
             target_scope = _first_disallowed_scope(self.initial_scope, target_evidence) or target_evidence.get("target_scope")
             raise UnsafeRedirectError(
-                f"Raw HTTP redirect from {self.initial_scope} to {target_scope} target is blocked; create an approved run for the redirect target instead."
+                f"Raw HTTP redirect from {self.initial_scope} to {target_scope} target is blocked; sensitive-target execution is unavailable outside an exact operator test fixture."
             )
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
@@ -552,7 +734,11 @@ def _browser_request_needs_scope_check(url: str) -> bool:
 
 
 def _install_browser_request_scope_guard(page, context, task: TaskSpec) -> _BrowserRequestScopeGuard:
-    guard = _BrowserRequestScopeGuard(task.target_scope)
+    effective_scope = target_scope_for_url(task.url)
+    allowed_network_host = None
+    if effective_scope == "public_web" and task.url:
+        allowed_network_host = (urlparse(task.url).hostname or "").strip().lower().rstrip(".") or None
+    guard = _BrowserRequestScopeGuard(effective_scope, allowed_network_host)
     for target_name, target in (("context", context), ("page", page)):
         route = getattr(target, "route", None)
         if callable(route):
@@ -593,7 +779,7 @@ def _browser_request_scope_block_result(
     error = (
         "Browser request target DNS could not be verified; create a new run after DNS is resolvable or use an explicitly scoped target."
         if unresolved_count
-        else "Browser request to a sensitive target scope was blocked; create an approved run for that target scope instead."
+        else "Browser request to a sensitive target scope was blocked; sensitive-target execution is unavailable outside an exact operator test fixture."
     )
     checks = [
         "browser request target was inspected",
@@ -656,7 +842,7 @@ def _raw_http_target_scope_block_result(
         error=(
             "Raw HTTP target DNS could not be verified; retry after DNS is resolvable or use an explicitly scoped target."
             if unresolved
-            else "Raw HTTP target resolved to a sensitive target scope; create an approved run for that target scope instead."
+            else "Raw HTTP target resolved to a sensitive target scope; sensitive-target execution is unavailable outside an exact operator test fixture."
         ),
         artifacts=[{"type": "metadata", "path": str(meta_path), "provider": provider_name, "blocked_scope": blocked_scope}],
         events=[_event("blocked", "raw_http_resolved_target_scope")],
@@ -708,7 +894,7 @@ def _provider_url_scope_block_result(
         error=(
             "Provider target URL DNS could not be verified locally; retry after DNS is resolvable or use an explicitly scoped target."
             if unresolved
-            else "Provider target URL resolved to a sensitive target scope; create an approved run for that target scope instead."
+            else "Provider target URL resolved to a sensitive target scope; sensitive-target execution is unavailable outside an exact operator test fixture."
         ),
         artifacts=[{"type": "metadata", "path": str(meta_path), "provider": provider_name, "blocked_scope": blocked_scope}],
         events=[_event("blocked", "provider_url_resolved_target_scope")],
@@ -861,11 +1047,81 @@ def _env_flag(name: str) -> bool:
     return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _open_raw_http_request(request: Request, timeout_seconds: int, proxy: str | None, redirect_handler: _TargetScopeRedirectHandler):
-    handlers = [redirect_handler]
+@dataclass(frozen=True)
+class _BoundedRawHttpResponse:
+    status: int
+    headers: dict[str, str]
+    final_url: str
+    body: bytes
+
+
+def _open_raw_http_request(
+    request: Request,
+    timeout_seconds: int,
+    proxy: str | None,
+    redirect_handler: _TargetScopeRedirectHandler,
+) -> _BoundedRawHttpResponse:
     if proxy:
-        handlers.append(ProxyHandler({"http": proxy, "https": proxy}))
-    return build_opener(*handlers).open(request, timeout=timeout_seconds)
+        raise ValueError("proxy routing is disabled in this image")
+    if type(redirect_handler) is not _TargetScopeRedirectHandler or redirect_handler.initial_scope != "public_web":
+        raise ValueError("raw HTTP requires the canonical public-web redirect policy")
+    url = str(getattr(request, "full_url", "") or "")
+    parsed = urlparse(url)
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname:
+        raise ValueError("raw HTTP requires an absolute HTTP(S) URL")
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("raw HTTP URLs cannot contain credentials")
+    try:
+        parsed.port
+    except ValueError as exc:
+        raise ValueError("raw HTTP URL has an invalid port") from exc
+    if not _url_host_is_public_ip_literal(url):
+        raise ValueError("raw HTTP requires a canonical public IPv4-literal target")
+    method = str(request.get_method() or "").upper()
+    if method not in SAFE_READ_METHODS:
+        raise ValueError("raw HTTP permits only GET or HEAD")
+    if getattr(request, "data", None) not in {None, b"", ""}:
+        raise ValueError("raw HTTP request bodies are disabled")
+    transport_request = Request(
+        url,
+        data=None,
+        headers={"Accept": "*/*"},
+        method=method,
+    )
+    try:
+        response = build_opener(ProxyHandler({}), redirect_handler).open(
+            transport_request, timeout=timeout_seconds
+        )
+    except HTTPError as exc:
+        with exc:
+            raise
+    try:
+        content_length = response.headers.get("Content-Length")
+        if content_length:
+            try:
+                declared_bytes = int(content_length)
+            except (TypeError, ValueError) as exc:
+                raise ResponseSizeLimitError("Raw HTTP Content-Length is invalid") from exc
+            if declared_bytes > RAW_HTTP_MAX_BYTES:
+                raise ResponseSizeLimitError("Raw HTTP Content-Length exceeds the fixed 2 MiB ceiling")
+        body = response.read(RAW_HTTP_MAX_BYTES + 1)
+        if len(body) > RAW_HTTP_MAX_BYTES:
+            raise ResponseSizeLimitError("Raw HTTP response exceeded the fixed 2 MiB ceiling")
+        status_value = getattr(response, "status", None)
+        status = int(status_value if status_value is not None else response.getcode())
+        final_url = _response_url(response, url)
+        if not _url_host_is_public_ip_literal(final_url):
+            raise UnsafeRedirectError("raw HTTP final target is not a canonical public IPv4 literal")
+        return _BoundedRawHttpResponse(
+            status=status,
+            headers=redact_headers(dict(response.headers.items())),
+            final_url=final_url,
+            body=body,
+        )
+    finally:
+        close_response = getattr(response, "close", None)
+        if callable(close_response):
+            close_response()
 
 
 def _response_url(response, fallback_url: str) -> str:
@@ -880,6 +1136,9 @@ class PlaywrightAdapter:
 
     def execute(self, plan: Plan, run_id: str, artifact_dir: Path) -> ExecutionResult:
         task = plan.task
+        security_block = _direct_adapter_security_block(self.name, task)
+        if security_block:
+            return security_block
         if not task.url:
             return ExecutionResult(
                 provider=self.name,
@@ -906,6 +1165,29 @@ class PlaywrightAdapter:
         scope_guard: _BrowserRequestScopeGuard | None = None
         close_error = None
         launch_kwargs: dict[str, Any] = {"headless": True}
+        try:
+            host_pin = _validated_chromium_host_pin(task.url) if target_scope_for_url(task.url) == "public_web" else None
+        except ValueError as exc:
+            return ExecutionResult(
+                provider=self.name,
+                status="blocked",
+                error=f"Playwright target address pinning failed: {exc}",
+                events=[_event("blocked", "playwright_target_address_not_pinned")],
+                verification={"confidence": "high", "checks": ["browser construction not reached"]},
+            )
+        if host_pin:
+            host, address = host_pin
+            launch_kwargs["args"] = [
+                f"--host-resolver-rules=MAP {host} {address},MAP * ~NOTFOUND",
+                "--disable-quic",
+                "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+            ]
+        elif target_scope_for_url(task.url) == "public_web":
+            launch_kwargs["args"] = [
+                "--host-resolver-rules=MAP * ~NOTFOUND",
+                "--disable-quic",
+                "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+            ]
         proxy_settings = playwright_proxy_settings(_task_proxy_url(task))
         if proxy_settings:
             launch_kwargs["proxy"] = proxy_settings
@@ -913,16 +1195,68 @@ class PlaywrightAdapter:
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch(**launch_kwargs)
                 try:
-                    page = browser.new_page()
-                    scope_guard = _install_browser_request_scope_guard(page, None, task)
+                    context = browser.new_context(
+                        service_workers="block",
+                        java_script_enabled=False,
+                        accept_downloads=False,
+                        viewport={"width": 1280, "height": 720},
+                        device_scale_factor=1,
+                    )
+                    route_web_socket = getattr(context, "route_web_socket", None)
+                    if not callable(route_web_socket):
+                        return ExecutionResult(
+                            provider=self.name,
+                            status="blocked",
+                            error="Playwright WebSocket routing is unavailable; browser network containment cannot be guaranteed.",
+                            events=[_event("blocked", "playwright_websocket_guard_unavailable")],
+                            verification={"confidence": "high", "checks": ["navigation not reached"]},
+                        )
+                    route_web_socket("**/*", lambda websocket: websocket.close())
+                    page = context.new_page()
+                    page.add_init_script(
+                        """
+                        for (const name of ['WebSocket', 'RTCPeerConnection', 'webkitRTCPeerConnection', 'WebTransport']) {
+                          Object.defineProperty(globalThis, name, {value: undefined, configurable: false, writable: false});
+                        }
+                        """
+                    )
+                    scope_guard = _install_browser_request_scope_guard(page, context, task)
                     page.goto(task.url, wait_until="domcontentloaded", timeout=navigation_timeout_ms)
                     if scope_guard.blocked_requests:
                         return _browser_request_scope_block_result(self.name, run_id, artifact_dir, task, scope_guard)
-                    title = page.title()
-                    text = page.locator("body").inner_text(timeout=text_timeout_ms)
+                    title = page.title()[:1_000]
+                    text = page.locator("body").evaluate(
+                        """
+                        (body, limit) => {
+                          const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+                          const parts = [];
+                          let used = 0;
+                          while (used < limit) {
+                            const node = walker.nextNode();
+                            if (!node) break;
+                            const value = node.nodeValue || '';
+                            const remaining = limit - used;
+                            parts.push(value.slice(0, remaining));
+                            used += Math.min(value.length, remaining);
+                          }
+                          return parts.join('');
+                        }
+                        """,
+                        PLAYWRIGHT_MAX_TEXT_CHARS,
+                        timeout=text_timeout_ms,
+                    )
                     if scope_guard.blocked_requests:
                         return _browser_request_scope_block_result(self.name, run_id, artifact_dir, task, scope_guard)
-                    page.screenshot(path=str(screenshot_path), full_page=True)
+                    page.screenshot(path=str(screenshot_path), full_page=False)
+                    if screenshot_path.stat().st_size > PLAYWRIGHT_MAX_SCREENSHOT_BYTES:
+                        screenshot_path.unlink(missing_ok=True)
+                        return ExecutionResult(
+                            provider=self.name,
+                            status="blocked",
+                            error="Playwright screenshot exceeded the fixed artifact byte ceiling.",
+                            events=[_event("blocked", "playwright_artifact_size_limit")],
+                            verification={"confidence": "high", "checks": ["oversized screenshot removed"]},
+                        )
                     if scope_guard.blocked_requests:
                         return _browser_request_scope_block_result(self.name, run_id, artifact_dir, task, scope_guard)
                 finally:
@@ -985,6 +1319,9 @@ class RawHttpAdapter:
 
     def execute(self, plan: Plan, run_id: str, artifact_dir: Path) -> ExecutionResult:
         task = plan.task
+        security_block = _direct_adapter_security_block(self.name, task)
+        if security_block:
+            return security_block
         if not task.url:
             return ExecutionResult(
                 provider=self.name,
@@ -1005,16 +1342,18 @@ class RawHttpAdapter:
         target_evidence = _target_scope_evidence_for_url(task.url)
         if _target_scope_evidence_is_disallowed(task.target_scope, target_evidence):
             return _raw_http_target_scope_block_result(self.name, run_id, artifact_dir, task, target_evidence)
-        proxy = _task_proxy_url(task) or os.environ.get("DECODO_PROXY")
+        # Proxy execution is unavailable in this image: the connected peer and
+        # proxy-side DNS cannot be independently pinned and verified.
+        proxy = None
         request = Request(task.url, headers={"User-Agent": "SuperBrowser/0.3 (+https://github.com/jbellsolutions/super-browser)"})
         timeout_seconds = _timeout_seconds(task, 30)
         redirect_handler = _TargetScopeRedirectHandler(task.target_scope)
         try:
             response = _open_raw_http_request(request, timeout_seconds, proxy, redirect_handler)
-            body = response.read()
-            status = getattr(response, "status", response.getcode())
-            headers = redact_headers(dict(response.headers.items()))
-            final_url = _response_url(response, task.url)
+            body = response.body
+            status = response.status
+            headers = response.headers
+            final_url = response.final_url
             final_target_scope = target_scope_for_url(final_url)
         except UnsafeRedirectError as exc:
             meta_path.write_text(
@@ -1043,6 +1382,14 @@ class RawHttpAdapter:
                         "redirect to sensitive target scope was blocked",
                     ],
                 },
+            )
+        except ResponseSizeLimitError as exc:
+            return ExecutionResult(
+                provider=self.name,
+                status="blocked",
+                error=str(exc),
+                events=[_event("blocked", "raw_http_response_size_limit")],
+                verification={"confidence": "high", "checks": [f"max_response_bytes={RAW_HTTP_MAX_BYTES}", "oversized response not saved"]},
             )
         except TimeoutError as exc:
             return ExecutionResult(
@@ -1107,6 +1454,9 @@ class BrowserUseAdapter:
     name = "browser-use"
 
     def execute(self, plan: Plan, run_id: str, artifact_dir: Path) -> ExecutionResult:
+        security_block = _direct_adapter_security_block(self.name, plan.task)
+        if security_block:
+            return security_block
         provider = PROVIDERS[self.name]
         missing = [env_name for env_name in provider.env_vars if not os.environ.get(env_name)]
         if missing:
@@ -1120,7 +1470,10 @@ class BrowserUseAdapter:
             return ExecutionResult(
                 provider=self.name,
                 status="blocked",
-                error=f"Browser Use SDK is not installed or importable: {exc}. Install with `pip install browser-use-sdk`.",
+                error=(
+                    f"Browser Use SDK is unavailable in this verified image: {exc}. "
+                    "Update the committed dependency lock and rebuild; do not mutate the runtime."
+                ),
                 artifacts=[{"type": "provider_docs", "provider": self.name, "url": provider.docs_url}],
                 events=[_event("blocked", "missing_browser_use_sdk")],
                 verification={"confidence": "low", "checks": ["credentials present", "sdk import failed"]},
@@ -1165,24 +1518,17 @@ class BrowserUseAdapter:
         )
 
     async def _run_browser_use(self, client_class, task: TaskSpec) -> dict:
-        client = client_class()
-        prompt = _task_prompt(task)
-        run_kwargs: dict[str, Any] = {}
-        profile_id = _browser_use_profile_id(task)
-        if profile_id:
-            run_kwargs["profile_id"] = profile_id
-        result = await asyncio.wait_for(client.run(prompt, **run_kwargs), timeout=_timeout_seconds(task, 600))
-        payload = _object_to_payload(result)
-        if profile_id and task.profile:
-            payload.setdefault("profile", task.profile)
-            payload.setdefault("profile_id", profile_id)
-        return payload
+        del self, client_class, task
+        raise RuntimeError("browser-use is planning-only and client construction is disabled in this image")
 
 
 class OrgoAdapter:
     name = "orgo"
 
     def execute(self, plan: Plan, run_id: str, artifact_dir: Path) -> ExecutionResult:
+        security_block = _direct_adapter_security_block(self.name, plan.task)
+        if security_block:
+            return security_block
         provider = PROVIDERS[self.name]
         missing = [env_name for env_name in provider.env_vars if not os.environ.get(env_name)]
         if missing:
@@ -1302,6 +1648,9 @@ class AirtopAdapter:
     name = "airtop"
 
     def execute(self, plan: Plan, run_id: str, artifact_dir: Path) -> ExecutionResult:
+        security_block = _direct_adapter_security_block(self.name, plan.task)
+        if security_block:
+            return security_block
         provider = PROVIDERS[self.name]
         missing = [env_name for env_name in provider.env_vars if not os.environ.get(env_name)]
         if missing:
@@ -1405,6 +1754,9 @@ class HyperbrowserAdapter:
     name = "hyperbrowser"
 
     def execute(self, plan: Plan, run_id: str, artifact_dir: Path) -> ExecutionResult:
+        security_block = _direct_adapter_security_block(self.name, plan.task)
+        if security_block:
+            return security_block
         provider = PROVIDERS[self.name]
         missing = [env_name for env_name in provider.env_vars if not os.environ.get(env_name)]
         if missing:
@@ -1512,6 +1864,9 @@ class SteelAdapter:
     name = "steel"
 
     def execute(self, plan: Plan, run_id: str, artifact_dir: Path) -> ExecutionResult:
+        security_block = _direct_adapter_security_block(self.name, plan.task)
+        if security_block:
+            return security_block
         provider = PROVIDERS[self.name]
         missing = [env_name for env_name in provider.env_vars if not os.environ.get(env_name)]
         if missing:
@@ -1671,6 +2026,9 @@ class ExternalProviderAdapter:
         self.name = provider_name
 
     def execute(self, plan: Plan, run_id: str, artifact_dir: Path) -> ExecutionResult:
+        security_block = _direct_adapter_security_block(self.name, plan.task)
+        if security_block:
+            return security_block
         provider = PROVIDERS[self.name]
         missing = [env_name for env_name in provider.env_vars if not os.environ.get(env_name)]
         if missing:
@@ -1686,40 +2044,21 @@ class ExternalProviderAdapter:
 
 
 def _missing_credentials_result(provider_name: str, missing: list[str]) -> ExecutionResult:
+    del missing
     provider = PROVIDERS[provider_name]
     return ExecutionResult(
         provider=provider_name,
         status="blocked",
-        error=f"{provider.display_name} requires missing env vars: {', '.join(missing)}",
-        artifacts=[{"type": "provider_docs", "provider": provider_name, "url": provider.docs_url, "missing_env": missing}],
-        events=[_event("blocked", "missing_provider_credentials")],
-        verification={"confidence": "low", "checks": ["provider selected", "credentials missing"]},
+        error=f"{provider.display_name} is a planning/provenance record only; credentials cannot enable execution in this image.",
+        artifacts=[{"type": "provider_docs", "provider": provider_name, "url": provider.docs_url}],
+        events=[_event("blocked", "planning_only_provider")],
+        verification={"confidence": "high", "checks": ["provider construction and networking disabled"]},
     )
 
 
 def _http_json(url: str, body: dict | None, headers: dict[str, str], method: str = "POST", timeout_seconds: int | None = None) -> dict:
-    # Some provider edges (e.g. Steel behind Cloudflare) reject the default Python-urllib user agent with 403.
-    request_headers = {"Content-Type": "application/json", "User-Agent": "super-browser/1.0"}
-    request_headers.update(headers)
-    data = None if body is None else _json_dump(body).encode("utf-8")
-    request = Request(url, data=data, headers=request_headers, method=method)
-    try:
-        response = urlopen(request, timeout=timeout_seconds or 600)
-    except HTTPError as exc:
-        detail = ""
-        try:
-            detail = exc.read().decode("utf-8", errors="replace")[:500]
-        except Exception:
-            pass
-        if detail:
-            raise HTTPError(exc.url, exc.code, f"{exc.reason}: {detail}", exc.headers, None) from None
-        raise
-    raw = response.read()
-    if not raw:
-        return {}
-    import json
-
-    return json.loads(raw.decode("utf-8"))
+    del url, body, headers, method, timeout_seconds
+    raise RuntimeError("hosted-provider HTTP construction is disabled in this image")
 
 
 def _timeout_seconds(task: TaskSpec, default: int) -> int:
@@ -1907,37 +2246,8 @@ def _orgo_collection(payload, keys: tuple[str, ...]) -> list[dict]:
 
 
 def _orgo_resolve_computer_id(api_base: str, headers: dict[str, str], timeout_seconds: int) -> tuple[str, str]:
-    """Resolve an Orgo computer id: pinned env, then reuse, then start, then create."""
-    pinned = os.environ.get("ORGO_COMPUTER_ID")
-    if pinned:
-        return pinned, "pinned via ORGO_COMPUTER_ID"
-    # Orgo's live API returns workspace lists under "projects" and computers under "desktops".
-    workspaces = _orgo_collection(_http_json(f"{api_base}/workspaces", None, headers, method="GET", timeout_seconds=timeout_seconds), ("workspaces", "projects"))
-    workspace = next((item for item in workspaces if item.get("name") == ORGO_DEFAULT_WORKSPACE_NAME), None)
-    if workspace is None and workspaces:
-        workspace = workspaces[0]
-    if workspace is None:
-        workspace = _http_json(f"{api_base}/workspaces", {"name": ORGO_DEFAULT_WORKSPACE_NAME}, headers, timeout_seconds=timeout_seconds)
-    workspace_id = workspace["id"]
-    detail = _http_json(f"{api_base}/workspaces/{workspace_id}", None, headers, method="GET", timeout_seconds=timeout_seconds)
-    computers = _orgo_collection(detail, ("computers", "desktops"))
-    running = [item for item in computers if item.get("status") == "running"]
-    chosen = next((item for item in running if item.get("name") == ORGO_DEFAULT_COMPUTER_NAME), None)
-    if chosen is None and running:
-        chosen = running[0]
-    if chosen is not None:
-        return chosen["id"], f"reused running computer {chosen.get('name', chosen['id'])}"
-    if computers:
-        target = next((item for item in computers if item.get("name") == ORGO_DEFAULT_COMPUTER_NAME), computers[0])
-        _http_json(f"{api_base}/computers/{target['id']}/start", {}, headers, timeout_seconds=timeout_seconds)
-        return target["id"], f"started existing computer {target.get('name', target['id'])}"
-    created = _http_json(
-        f"{api_base}/computers",
-        {"workspace_id": workspace_id, "name": ORGO_DEFAULT_COMPUTER_NAME, "auto_stop_minutes": ORGO_AUTO_STOP_MINUTES},
-        headers,
-        timeout_seconds=timeout_seconds,
-    )
-    return created["id"], f"created computer {ORGO_DEFAULT_COMPUTER_NAME} in workspace {workspace_id}"
+    del api_base, headers, timeout_seconds
+    raise RuntimeError("orgo is planning-only and computer resolution or mutation is disabled in this image")
 
 
 def _task_prompt(task: TaskSpec) -> str:
@@ -1953,12 +2263,9 @@ def _task_prompt(task: TaskSpec) -> str:
         )
     if _task_is_external_write(task):
         return (
-            "SAFETY: This is an external-write run. Provider execution is allowed only after durable approval has been verified by the runtime. "
-            "Perform only the exact requested external action on the exact intended target. "
-            "Do not perform adjacent actions such as following, connecting, liking, reacting, sharing, saving, bookmarking, joining, inviting, messaging, buying, checking out, changing account settings, changing permissions, or updating unrelated CRM/project/workspace records. "
-            "Do not expand the audience, target, content, account, payment, billing, legal, government, health, insurance, identity, infrastructure, repository, cloud-file, workspace, channel, moderation, or profile scope beyond the request. "
-            "Stop after the exact requested action and preserve evidence for verification.\n"
-            f"{prompt}"
+            "SAFETY: External-write provider execution is non-executable in this immutable image. "
+            "Keep the request at awaiting_approval as audit evidence and stop. Approval records, new runs, retries, resumes, credentials, and restarts cannot activate it. "
+            "A separately reviewed implementation, rebuilt image, and new release are required."
         )
     if _task_is_authenticated_read(task):
         return (

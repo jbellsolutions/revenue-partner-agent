@@ -51,7 +51,7 @@ UNTRUSTED_PROVIDER_CONSTRAINT_FAILURE_TYPES = {
     "provider_raw_http_url_constraint_violation",
     "provider_profile_missing",
     "provider_profile_constraint_violation",
-    "provider_proxy_constraint_violation",
+
 }
 DURABLE_ARTIFACT_TYPES = {"plan"}
 
@@ -65,8 +65,6 @@ def create_run(
     max_cost_usd: float | None = None,
     timeout_seconds: int | None = None,
     profile: str | None = None,
-    proxy: str | None = None,
-    fleet_index: int | None = None,
     deliberation_rounds: int | None = None,
 ) -> RunState:
     task = infer_task(
@@ -77,8 +75,6 @@ def create_run(
         max_cost_usd=max_cost_usd,
         timeout_seconds=timeout_seconds,
         profile=profile,
-        proxy=proxy,
-        fleet_index=fleet_index,
     )
     plan = build_plan(task, deliberation_rounds=deliberation_rounds)
     status = "awaiting_approval" if plan.approval_required else "planned"
@@ -104,24 +100,11 @@ def create_run(
 
 
 def approve_run(run_id: str, approver: str = "user", reason: str = "", execute: bool = False) -> RunState:
-    approver = _validate_decision_actor(approver, "approval")
-    reason = _validate_decision_reason(reason, "approval")
-    store = RunStore()
-    payload = store.get(run_id)
-    if not payload:
-        raise ValueError(f"Run not found: {run_id}")
-    run = _run_from_payload(payload)
-    if run.status != "awaiting_approval":
-        raise ValueError(f"Run {run_id} is not awaiting approval; current status is {run.status}")
-    plan = _plan_from_run(run)
-    _validate_pending_approval_matches_plan(run, plan)
-    _close_pending_approval(run, "approved", approver, reason)
-    run.status = "approved"
-    run.events.append({"at": utc_now(), "type": "approval_granted", "by": approver, "reason": redact_text(reason)})
-    store.save(run)
-    if execute:
-        return _execute_run(run, store, "execution_started_after_approval")
-    return run
+    del run_id, approver, reason, execute
+    raise PermissionError(
+        "local production approval is disabled; operator-controlled production activation "
+        "requires a reviewed integration outside the agent runtime"
+    )
 
 
 def resume_run(run_id: str) -> RunState:
@@ -130,9 +113,11 @@ def resume_run(run_id: str) -> RunState:
     if not payload:
         raise ValueError(f"Run not found: {run_id}")
     run = _run_from_payload(payload)
-    if run.status == "awaiting_approval":
-        run.events.append({"at": utc_now(), "type": "resume_blocked", "reason": "awaiting_approval"})
-        run.verification = {"confidence": "high", "checks": ["resume stopped because approval is still pending"]}
+    plan = _plan_from_run(run)
+    if run.status in {"awaiting_approval", "approved"} or _plan_requires_approval(plan):
+        run.status = "awaiting_approval"
+        run.events.append({"at": utc_now(), "type": "resume_blocked", "reason": "approval_required_work_non_executable"})
+        run.verification = {"confidence": "high", "checks": ["approval-required work cannot resume or execute in this image; approval records are audit evidence only"]}
         store.save(run)
         return run
     integrity_blocked = _block_untrusted_resume_evidence(run, store)
@@ -185,6 +170,21 @@ def _execute_run(run: RunState, store: RunStore, event_type: str) -> RunState:
     if integrity_blocked:
         return integrity_blocked
     plan = _plan_from_run(run)
+    if _plan_requires_approval(plan):
+        run.status = "awaiting_approval"
+        run.events.append(
+            {
+                "at": utc_now(),
+                "type": "execution_blocked",
+                "reason": "local production approval is disabled",
+            }
+        )
+        run.verification = {
+            "confidence": "high",
+            "checks": ["approval-required provider execution is disabled inside the agent runtime"],
+        }
+        store.save(run)
+        return run
     expired_approval_blocked = _block_expired_approval(run, plan, store)
     if expired_approval_blocked:
         return expired_approval_blocked
@@ -201,7 +201,7 @@ def _execute_run(run: RunState, store: RunStore, event_type: str) -> RunState:
         return _run_from_payload(current) if current else run
     run = _run_from_payload(claimed)
     try:
-        result = execute_plan(plan, run.run_id, state_dir=default_state_dir(), approval_context=_execution_approval_context(run, plan))
+        result = execute_plan(plan, run.run_id, state_dir=default_state_dir())
     except Exception as exc:
         result = _runtime_execution_exception_result(plan, run.run_id, exc)
     result = _ensure_execution_result_run_report(plan, run.run_id, result)
@@ -502,16 +502,13 @@ def _run_report_final_status(verifier_report: dict) -> str | None:
 
 
 def _approved_retry_transition(run: RunState, verifier_report: dict) -> bool:
-    write_retry_guard = verifier_report.get("write_retry_guard") or {}
-    return bool(run.status == "approved" and write_retry_guard.get("retry_approval_after_last_attempt"))
+    del run, verifier_report
+    return False
 
 
 def _evidence_failure_allows_state_transition(run: RunState, verifier_report: dict, failure: dict) -> bool:
     if failure.get("type") != "missing_run_report":
         return False
-    write_retry_guard = verifier_report.get("write_retry_guard") or {}
-    if write_retry_guard.get("fresh_retry_approval_required"):
-        return True
     return any(event.get("type") == "stale_execution_recovered" for event in run.events)
 
 
@@ -530,26 +527,24 @@ def _block_duplicate_external_write_retry(run: RunState, plan: Plan, store: RunS
     last_attempt_at = _last_external_write_attempt_at(run, fingerprint)
     if not last_attempt_at:
         return None
-    if _approved_retry_after(run, last_attempt_at):
-        return None
     if _pending_approval_exists(run):
         run.status = "awaiting_approval"
-        run.events.append({"at": utc_now(), "type": "external_write_retry_blocked", "reason": "pending_retry_approval", "action_fingerprint": fingerprint})
+        run.events.append({"at": utc_now(), "type": "external_write_retry_blocked", "reason": "external_write_retry_non_executable", "action_fingerprint": fingerprint})
     else:
         run.status = "awaiting_approval"
         run.approvals.append(
             approval_request_from_plan(
                 plan,
                 required_before="provider_retry",
-                reason="A previous approved external-write attempt already started; fresh approval is required before retry.",
+                reason="External-write retries are disabled; local production approval and execution are unavailable.",
             )
         )
-        run.events.append({"at": utc_now(), "type": "external_write_retry_blocked", "reason": "fresh_approval_required", "action_fingerprint": fingerprint})
+        run.events.append({"at": utc_now(), "type": "external_write_retry_blocked", "reason": "external_write_retry_non_executable", "action_fingerprint": fingerprint})
     run.verification = {
         "confidence": "high",
         "checks": [
             "external write retry was stopped",
-            "fresh approval is required before another publish/send/submit attempt",
+            "approval records cannot activate another publish/send/submit attempt in this image",
         ],
     }
     store.save(run)
@@ -566,11 +561,11 @@ def _block_expired_approval(run: RunState, plan: Plan, store: RunStore) -> RunSt
     decided_at = _parse_utc_datetime(approval.get("decided_at"))
     if decided_at is None:
         # Fail closed: an approval whose decision timestamp is missing or
-        # unparseable cannot be proven fresh, so require a new approval.
+        # unparseable cannot be trusted as audit evidence.
         age_seconds = None
     else:
         age_seconds = (datetime.now(timezone.utc) - decided_at).total_seconds()
-        if age_seconds <= ttl_seconds:
+        if not (age_seconds < 0 or age_seconds > ttl_seconds):
             return None
     required_before = approval.get("required_before")
     if required_before not in {"provider_execution", "provider_retry"}:
@@ -580,7 +575,7 @@ def _block_expired_approval(run: RunState, plan: Plan, store: RunStore) -> RunSt
         approval_request_from_plan(
             plan,
             required_before=required_before,
-            reason="The previous approval expired before provider execution; fresh approval is required.",
+            reason="The previous approval record expired; approval-required execution remains disabled in this image.",
         )
     )
     run.events.append(
@@ -601,7 +596,7 @@ def _block_expired_approval(run: RunState, plan: Plan, store: RunStore) -> RunSt
         verification.get("checks", []),
         [
             "approval expired before provider execution",
-            "fresh approval is required because the previous approval expired",
+            "approval-required execution remains disabled regardless of approval freshness",
         ],
     )
     verification["approval_expiry"] = {
@@ -729,23 +724,6 @@ def _close_pending_approval(run: RunState, status: str, actor: str, reason: str)
             item["reason"] = redact_text(reason)
             return
     raise ValueError(f"Run {run.run_id} has no pending approval request")
-
-
-def _execution_approval_context(run: RunState, plan: Plan) -> dict | None:
-    if not _plan_requires_approval(plan):
-        return None
-    approval = _latest_decided_approval(run, "approved")
-    if not approval:
-        return None
-    return {
-        "approval_id": approval.get("approval_id"),
-        "status": approval.get("status"),
-        "required_before": approval.get("required_before"),
-        "action_fingerprint": approval.get("action_fingerprint"),
-        "decided_at": approval.get("decided_at"),
-        "decided_by": approval.get("decided_by"),
-        "plan_sha256": approval.get("plan_sha256"),
-    }
 
 
 def _plan_requires_approval(plan: Plan) -> bool:

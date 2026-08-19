@@ -43,7 +43,9 @@ class BrowserProfile:
 
 
 class ProfileStore:
-    def __init__(self, path: str | Path | None = None, create: bool = True):
+    def __init__(self, path: str | Path | None = None, create: bool = False):
+        if create:
+            raise PermissionError("profile mutation is disabled; profiles are provisioned by the operator outside the agent runtime")
         if path:
             self.path = Path(path)
             if create:
@@ -66,17 +68,7 @@ class ProfileStore:
             conn.close()
 
     def _init(self) -> None:
-        with self._connect() as conn:
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS profiles (
-                    name TEXT PRIMARY KEY,
-                    payload TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
-                )
-                """
-            )
+        raise PermissionError("profile mutation is disabled in the agent runtime")
 
     def create(
         self,
@@ -86,32 +78,12 @@ class ProfileStore:
         preferred_provider: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> BrowserProfile:
-        normalized = _validate_profile_name(name)
-        if self.get(normalized):
-            raise ValueError(f"Profile already exists: {normalized}")
-        profile = BrowserProfile(
-            name=normalized,
-            description=description.strip(),
-            preferred_provider=preferred_provider,
-            metadata=metadata or {},
-        )
-        self._save(profile)
-        return profile
+        del name, description, preferred_provider, metadata
+        raise PermissionError("profile creation is disabled; provision records outside the agent runtime")
 
     def _save(self, profile: BrowserProfile) -> None:
-        profile.updated_at = utc_now()
-        payload = json.dumps(redact(profile.to_dict()), sort_keys=True)
-        with self._connect() as conn:
-            conn.execute(
-                """
-                INSERT INTO profiles (name, payload, created_at, updated_at)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(name) DO UPDATE SET
-                    payload = excluded.payload,
-                    updated_at = excluded.updated_at
-                """,
-                (profile.name, payload, profile.created_at, profile.updated_at),
-            )
+        del profile
+        raise PermissionError("profile mutation is disabled in the agent runtime")
 
     def get(self, name: str) -> BrowserProfile | None:
         if not self.path.exists():
@@ -140,19 +112,12 @@ class ProfileStore:
         return [BrowserProfile.from_dict(json.loads(row[0])) for row in rows]
 
     def delete(self, name: str) -> bool:
-        if not self.path.exists():
-            return False
-        with self._connect() as conn:
-            cursor = conn.execute("DELETE FROM profiles WHERE name = ?", (name,))
-            return cursor.rowcount > 0
+        del name
+        raise PermissionError("profile deletion is disabled in the agent runtime")
 
     def bind_provider_id(self, name: str, provider: str, provider_id: str) -> BrowserProfile:
-        profile = self.get(name)
-        if not profile:
-            raise ValueError(f"Profile not found: {name}")
-        profile.provider_ids[provider] = provider_id
-        self._save(profile)
-        return profile
+        del name, provider, provider_id
+        raise PermissionError("profile binding is disabled in the agent runtime")
 
     def resolve_provider_id(self, name: str, provider: str) -> str | None:
         profile = self.get(name)

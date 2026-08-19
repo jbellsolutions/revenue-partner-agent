@@ -1,34 +1,16 @@
 ---
 name: browser-use-specialist
-description: "Escalation rank 1 (default cloud browser): Use Browser Use Cloud for hardened cloud browser automation," anti-bot workflows, browser profiles, recordings, live URLs, and complex natural-language browser tasks. Use when sites are protected or local Playwright is likely to fail.
+description: "Planning-only Browser Use reference; execution is hard-blocked in this Revenue Partner release."
 ---
 
-# Browser Use Specialist
+# Browser Use Specialist — planning only
 
-## Use For
+Browser Use remains in the provider catalog for capability comparison and future operator-controlled integration work. **It cannot execute in this image.**
 
-- Anti-bot or high-risk sites: Meta, LinkedIn, Cloudflare-heavy flows, PerimeterX, DataDome.
-- Complex cloud browser tasks where a hardened browser and agent loop are valuable.
-- Profiles, recordings, live URLs, and structured extraction.
+Its autonomous agent loop cannot be constrained to read-only behavior by prompt text alone: page-level prompt injection could induce clicking, typing, submission, uploads, or other external mutation. `execute_plan()` therefore blocks every plan containing `browser-use` before adapter construction, even when the request is nominally read-only and credentials are present.
 
-## Do Not Use For
+For current work, replan only to an exact allowlisted local Playwright fixture or bounded raw HTTP with a public IPv4-literal target and redirects. Public Playwright navigation and hosted alternatives are non-executable. If neither lane satisfies the task, stop and report the blocker.
 
-- Simple local tests where Playwright is enough.
-- Raw HTTP endpoints.
-- High-volume scraping when a cheaper route is proven reliable.
+Enabling Browser Use requires an independently enforced read-only action interceptor or a separately reviewed operator-controlled production integration, updated locks, a rebuilt image, and a new release.
 
-## Required Env
-
-- `BROWSER_USE_API_KEY`
-
-## Super Browser Adapter
-
-The runtime uses `browser_use_sdk.v3.AsyncBrowserUse().run(...)`, saves `browser-use-output.json`, and records live/recording/screenshot URLs when returned by the SDK. If the key or SDK is missing, it returns a structured blocked result with setup instructions.
-
-Before dispatching a target URL to Browser Use, Super Browser resolves public-looking hostnames locally. If DNS points to loopback, private-network, or link-local addresses, execution returns `provider_url_resolved_target_scope` and does not call the SDK. Treat that as a non-resumable safety stop; create a new run or replan for the intended target scope.
-
-## MCP Note
-
-Use the current Browser Use MCP docs for the exact auth header and endpoint. Do not copy stale examples without checking docs.
-
-Docs: https://docs.browser-use.com/cloud/guides/mcp-server
+Reference docs: https://docs.browser-use.com/cloud/guides/mcp-server

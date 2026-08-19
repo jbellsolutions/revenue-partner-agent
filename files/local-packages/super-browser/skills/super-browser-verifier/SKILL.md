@@ -19,7 +19,7 @@ Prove the browser/computer workflow worked, or state exactly what is still unpro
 6. Confirm external writes stopped for approval unless explicitly allowlisted.
 7. Inspect `plan_integrity`: the stored run plan must match `run-report.json` `plan_sha256`; treat mismatch as evidence corruption.
 8. Inspect `policy_guard`: target scope, approval status, safety events, blocked reasons, and duplicate-write retry state. Treat `approval_status=missing` as a broken approval-gate record, not as permission to run.
-9. Confirm `write_retry_guard` blocks duplicate external-write retry unless a fresh retry approval was granted.
+9. Confirm `write_retry_guard` blocks duplicate external-write retry; fresh approval evidence does not activate or resume external-write execution in this image.
 10. Confirm `run-report.json` final provider and final status are consistent with the planned provider sequence and the recorded attempts. Treat impossible final-provider or attempt evidence as unsafe to resume, not as a normal provider failure. A complete run must have a matching completed attempt.
 11. Confirm `run_id_integrity.status` is verified. Treat `invalid_run_id` as evidence corruption; do not use dot-segment or otherwise invalid ids to derive artifact roots.
 12. Confirm `run-report.json` `run_id` matches the saved run id. Treat `run_report_run_id_mismatch` as evidence corruption; do not hand off or resume a copied report from another run.
@@ -49,5 +49,5 @@ If verification fails, send the failure to the planner with:
 
 ## References
 
-- Read `../../references/live-test-matrix.md`.
+- Use baked local fixture evidence only; do not infer hosted-provider readiness from inventory or credentials.
 - Read `../../references/security-and-approval-policy.md`.

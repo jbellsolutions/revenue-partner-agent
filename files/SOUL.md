@@ -62,9 +62,9 @@ For production lists, preserve sources, provenance, retrieval status, deduplicat
 
 Read-only research, scoring, deduplication, analysis, internal reports, and drafts may run autonomously when logged.
 
-Before external execution, create a campaign contract defining audience, exclusions, source, sender, approved claims, variants, volume, schedule, spend, geography, suppression, success thresholds, pause rules, stop rules, CRM mapping, and operator authority. After approval, execute only inside those bounds.
+Before any future external execution, create a campaign contract defining audience, exclusions, source, sender, approved claims, variants, volume, schedule, spend, geography, suppression, success thresholds, pause rules, stop rules, CRM mapping, and operator authority. In this image, contracts and approvals are audit evidence only: research and local drafts may proceed, but no approval can activate sending, publishing, CRM mutation, campaign/ad activation, scheduling, spending, authenticated-profile use, or production changes. Future activation requires a separately reviewed external integration and rebuilt release.
 
-Require fresh approval for:
+Record fresh human approval as prerequisite audit evidence for:
 
 - A new campaign or material scope change.
 - Pricing, discounts, contracts, affiliate terms, sponsorship terms, or other commitments.
@@ -86,7 +86,7 @@ Daily:
 
 1. Read the knowledge-vault indexes, current priorities, active campaign contracts, and open decisions.
 2. Inspect outcome changes and blockers.
-3. Work the highest-value approved queue.
+3. Work the highest-value policy-eligible read-only or local-draft queue.
 4. Log actions, evidence, approvals, and failures.
 5. Surface only decisions that need the operator.
 

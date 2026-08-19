@@ -6,21 +6,20 @@ import sys
 
 from .bundle import build_bundle_manifest, write_bundle_manifest
 from .env_checklist import environment_checklist
-from .fleet import create_fleet_runs
+
 from .models import RUN_STATUS_VALUES
 from .profiles import ProfileStore
 from .production import production_readiness
 from .providers import PROVIDERS, list_providers, provider_readiness
 from .redaction import redact_text, safe_json_dumps
 from .router import build_plan, infer_task
-from .runtime import approve_run, create_run, deny_run, resume_run
-from .setup_helpers import install_skill_bundle, mcp_config, write_mcp_config
+from .runtime import create_run, deny_run, resume_run
 from .setup_walkthrough import launch_setup
 from .store import RunStore
 from .handoff import build_handoff
 from .live_tests import WORKFLOW_CLASSES, run_live_tests
 from .verifier import verify_run
-from . import agent as slack_agent
+
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -35,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
     plan_p.add_argument("--max-cost-usd", type=float)
     plan_p.add_argument("--timeout-seconds", type=_positive_int)
     plan_p.add_argument("--profile", help="Named persistent browser profile from ProfileStore.")
-    plan_p.add_argument("--proxy", help="Proxy hint (decodo/auto/sticky or full proxy URL).")
+
     plan_p.add_argument(
         "--deliberation-rounds",
         type=_deliberation_rounds,
@@ -50,8 +49,8 @@ def main(argv: list[str] | None = None) -> int:
     run_p.add_argument("--max-cost-usd", type=float)
     run_p.add_argument("--timeout-seconds", type=_positive_int)
     run_p.add_argument("--profile", help="Named persistent browser profile from ProfileStore.")
-    run_p.add_argument("--proxy", help="Proxy hint (decodo/auto/sticky or full proxy URL).")
-    run_p.add_argument("--fleet", type=_fleet_size, help="Create 2-10 coordinated fleet runs with per-member profiles.")
+
+
     run_p.add_argument("--plan-only", action="store_true", help="Create the durable run plan without executing the provider.")
     run_p.add_argument(
         "--deliberation-rounds",
@@ -59,19 +58,13 @@ def main(argv: list[str] | None = None) -> int:
         help="Planner deliberation loops (3-5). Default: 3 direct, 5 council.",
     )
 
-    profiles_p = sub.add_parser("profiles", help="Manage named persistent browser profiles.")
+    profiles_p = sub.add_parser("profiles", help="Read named persistent browser profiles.")
     profiles_sub = profiles_p.add_subparsers(dest="profiles_command", required=True)
-    profiles_create = profiles_sub.add_parser("create", help="Create a named browser profile.")
-    profiles_create.add_argument("--name", required=True)
-    profiles_create.add_argument("--description", default="")
-    profiles_create.add_argument("--preferred-provider", choices=list(PROVIDERS.keys()))
     profiles_sub.add_parser("list", help="List saved browser profiles.")
     profiles_get = profiles_sub.add_parser("get", help="Return one browser profile by name.")
     profiles_get.add_argument("name")
-    profiles_delete = profiles_sub.add_parser("delete", help="Delete a browser profile.")
-    profiles_delete.add_argument("name")
 
-    resume_p = sub.add_parser("resume", help="Resume a planned, approved, blocked, or failed run when policy allows.")
+    resume_p = sub.add_parser("resume", help="Resume a planned, blocked, or failed read-only run when policy allows.")
     resume_p.add_argument("run_id")
 
     get_p = sub.add_parser("get", help="Return a saved run by id without executing it.")
@@ -88,11 +81,6 @@ def main(argv: list[str] | None = None) -> int:
     verify_p = sub.add_parser("verify", help="Verify a run report.")
     verify_p.add_argument("run_id")
 
-    approve_p = sub.add_parser("approve", help="Approve a run that is awaiting approval.")
-    approve_p.add_argument("run_id")
-    approve_p.add_argument("--by", default="user")
-    approve_p.add_argument("--reason", required=True)
-    approve_p.add_argument("--execute", action="store_true", help="Execute the provider immediately after recording approval.")
 
     deny_p = sub.add_parser("deny", help="Deny a run that is awaiting approval.")
     deny_p.add_argument("run_id")
@@ -109,33 +97,16 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("env-checklist", help="Print required and optional Super Browser environment variables without values.")
     setup_p = sub.add_parser(
         "setup",
-        help="Return a step-by-step install walkthrough for agents (clone, pip, skills, MCP, doctor).",
+        help="Return the baked-runtime verification, credential, doctor, and read-only fixture walkthrough.",
     )
     setup_p.add_argument(
         "--client",
         choices=["cursor", "codex", "claude"],
-        help="Optional agent client hint to tailor install-skill and init-mcp commands.",
+        help="Optional agent client label for the non-mutating baked-runtime report.",
     )
     live_p = sub.add_parser("live-test", help="Run gated local/provider live tests.")
     live_p.add_argument("--provider", choices=["local", "fixtures", "all", *PROVIDERS.keys()], default="local")
     live_p.add_argument("--workflow-class", choices=list(WORKFLOW_CLASSES), default="default")
-    install_p = sub.add_parser("install-skill", help="Install a self-contained Super Browser skill/plugin bundle.")
-    install_p.add_argument("--target", help="Directory that should receive the super-browser bundle.")
-    install_p.add_argument("--name", default="super-browser", help="Installed bundle directory name.")
-    install_p.add_argument("--force", action="store_true", help="Update an existing bundle in place.")
-
-    init_mcp_p = sub.add_parser("init-mcp", help="Print or write MCP server config.")
-    init_mcp_p.add_argument("--path", help="Write MCP config JSON to this file instead of only printing it.")
-    init_mcp_p.add_argument("--cwd", help="Repository or installed bundle path for the MCP server.")
-    init_mcp_p.add_argument("--force", action="store_true", help="Overwrite an existing MCP config file.")
-    init_mcp_p.add_argument("--merge", action="store_true", help="Merge super-browser into an existing MCP config without removing other servers.")
-
-    agent_p = sub.add_parser("agent", help="Start the optional Slack Socket Mode daemon (Level 2 ingress).")
-    agent_p.add_argument(
-        "--execute-on-approve",
-        action="store_true",
-        help="Execute provider runs immediately after Slack approval (default: env SUPER_BROWSER_SLACK_EXECUTE).",
-    )
 
     args = parser.parse_args(argv)
     try:
@@ -156,7 +127,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "setup":
             return _print(launch_setup(client=args.client))
         if args.command == "live-test":
-            return _print(run_live_tests(args.provider, workflow_class=args.workflow_class))
+            payload = run_live_tests(args.provider, workflow_class=args.workflow_class)
+            _print(payload)
+            return _live_test_exit_code(payload)
         if args.command == "plan":
             task = infer_task(
                 args.goal,
@@ -166,18 +139,10 @@ def main(argv: list[str] | None = None) -> int:
                 max_cost_usd=args.max_cost_usd,
                 timeout_seconds=args.timeout_seconds,
                 profile=args.profile,
-                proxy=args.proxy,
             )
             return _print(build_plan(task, deliberation_rounds=args.deliberation_rounds).to_dict())
         if args.command == "profiles":
-            store = ProfileStore()
-            if args.profiles_command == "create":
-                profile = store.create(
-                    args.name,
-                    description=args.description,
-                    preferred_provider=args.preferred_provider,
-                )
-                return _print(profile.to_dict())
+            store = ProfileStore(create=False)
             if args.profiles_command == "list":
                 return _print([item.to_dict() for item in store.list()])
             if args.profiles_command == "get":
@@ -185,27 +150,9 @@ def main(argv: list[str] | None = None) -> int:
                 if not profile:
                     return _error(f"Profile not found: {args.name}")
                 return _print(profile.to_dict())
-            if args.profiles_command == "delete":
-                deleted = store.delete(args.name)
-                if not deleted:
-                    return _error(f"Profile not found: {args.name}")
-                return _print({"deleted": args.name})
+
         if args.command == "run":
-            if args.fleet:
-                return _print(
-                    create_fleet_runs(
-                        args.goal,
-                        fleet_size=args.fleet,
-                        url=args.url,
-                        optimize=args.optimize,
-                        execute=not args.plan_only,
-                        providers_allowed=args.allow_provider,
-                        max_cost_usd=args.max_cost_usd,
-                        timeout_seconds=args.timeout_seconds,
-                        profile=args.profile,
-                        proxy=args.proxy,
-                    )
-                )
+
             run = create_run(
                 args.goal,
                 url=args.url,
@@ -215,7 +162,6 @@ def main(argv: list[str] | None = None) -> int:
                 max_cost_usd=args.max_cost_usd,
                 timeout_seconds=args.timeout_seconds,
                 profile=args.profile,
-                proxy=args.proxy,
                 deliberation_rounds=args.deliberation_rounds,
             )
             return _print(run.to_dict())
@@ -232,19 +178,10 @@ def main(argv: list[str] | None = None) -> int:
             return _print(RunStore(create=False).list(status=args.status, limit=args.limit, include_details=args.details))
         if args.command == "verify":
             return _print(verify_run(args.run_id))
-        if args.command == "approve":
-            return _print(approve_run(args.run_id, approver=args.by, reason=args.reason, execute=args.execute).to_dict())
+
         if args.command == "deny":
             return _print(deny_run(args.run_id, denied_by=args.by, reason=args.reason).to_dict())
-        if args.command == "install-skill":
-            return _print(install_skill_bundle(args.target, name=args.name, force=args.force))
-        if args.command == "init-mcp":
-            if args.path:
-                return _print(write_mcp_config(args.path, force=args.force, merge=args.merge, cwd=args.cwd))
-            return _print(mcp_config(cwd=args.cwd))
-        if args.command == "agent":
-            slack_agent.run_slack_daemon(execute_on_approve=True if args.execute_on_approve else None)
-            return 0
+
         return _error("Unknown command")
     except Exception as exc:
         return _error_from_exception(exc)
@@ -253,6 +190,11 @@ def main(argv: list[str] | None = None) -> int:
 def _print(payload: object) -> int:
     print(safe_json_dumps(payload))
     return 0
+
+
+def _live_test_exit_code(payload: dict[str, object]) -> int:
+    """Treat anything short of a completed pass as a failed readiness gate."""
+    return 0 if payload.get("status") == "passed" else 1
 
 
 def _error(message: str, *, error_type: str = "ValueError") -> int:
@@ -270,12 +212,6 @@ def _positive_int(value: str) -> int:
         raise argparse.ArgumentTypeError("must be >= 1")
     return parsed
 
-
-def _fleet_size(value: str) -> int:
-    parsed = int(value)
-    if parsed < 2 or parsed > 10:
-        raise argparse.ArgumentTypeError("fleet size must be between 2 and 10")
-    return parsed
 
 
 def _deliberation_rounds(value: str) -> int:

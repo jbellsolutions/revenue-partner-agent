@@ -15,13 +15,16 @@ Required env vars (set in your environment or ``~/.hermes/.env``):
   LATITUDE_API_KEY   - Latitude API key
   LATITUDE_PROJECT   - Latitude project slug (or LATITUDE_PROJECT_SLUG)
 
+The ingest origin is fixed to ``https://ingest.latitude.so`` in this image and
+cannot be changed by environment values.
+
 Optional env vars:
-  LATITUDE_BASE_URL  - ingest endpoint (default: https://ingest.latitude.so)
   LATITUDE_USER_ID   - stable end-user id attached to each trace
   LATITUDE_USER_EMAIL - end-user email attached to each trace, when known
   LATITUDE_USER_NAME - end-user display name attached to each trace, when known
-  LATITUDE_NO_CONTENT - "true" to export structure/timing without prompts,
-                        responses, or tool I/O
+  LATITUDE_HERMES_ALLOW_CONTENT - explicit "true" opt-in to export recursively
+                                  redacted prompt/response/tool content
+  LATITUDE_NO_CONTENT - legacy force-off switch; "true" always disables content
   LATITUDE_HERMES_PROFILE - Hermes profile name, default: HERMES_PROFILE/default
   LATITUDE_HERMES_APPROVAL_MODE - operator approval mode marker, when known
   LATITUDE_DEBUG     - "true" for verbose logging
@@ -58,6 +61,7 @@ logger = logging.getLogger(__name__)
 
 SCOPE_NAME = "latitude-telemetry-hermes"
 PKG_VERSION = "0.1.0+revenuepartner.1"
+LATITUDE_INGEST_ORIGIN = "https://ingest.latitude.so"
 
 # Bound on live trace state, so turns that never reach a clean finish
 # (interrupted / tool-only final step) can't leak forever.
@@ -78,19 +82,22 @@ _CONFIG_LOCK = threading.Lock()
 def _load_config() -> Dict[str, Any]:
     api_key = _env("LATITUDE_API_KEY")
     project = _env("LATITUDE_PROJECT") or _env("LATITUDE_PROJECT_SLUG")
-    base_url = _env("LATITUDE_BASE_URL") or "https://ingest.latitude.so"
+
     enabled_flag = _env("LATITUDE_HERMES_TELEMETRY_ENABLED") or _env("LATITUDE_TELEMETRY_ENABLED")
     enabled = enabled_flag.lower() not in {"0", "false", "no"} if enabled_flag else True
+    allow_flag = _env("LATITUDE_HERMES_ALLOW_CONTENT") or _env("LATITUDE_ALLOW_CONTENT")
     no_content = _env("LATITUDE_HERMES_NO_CONTENT") or _env("LATITUDE_NO_CONTENT")
-    allow_content = no_content.lower() not in {"1", "true", "yes"} if no_content else True
+    allow_content = allow_flag.lower() in {"1", "true", "yes"}
+    if no_content.lower() in {"1", "true", "yes"}:
+        allow_content = False
     profile = _env("LATITUDE_HERMES_PROFILE") or _env("HERMES_PROFILE") or "default"
     return {
         "api_key": api_key,
         "project": project,
-        "base_url": base_url,
+        "base_url": LATITUDE_INGEST_ORIGIN,
         "enabled": bool(enabled and api_key and project),
         "allow_content": allow_content,
-        "capture_level": "full_content" if allow_content else "redacted_summary",
+        "capture_level": "redacted_content_opt_in" if allow_content else "redacted_summary",
         "profile": profile,
         "platform": _env("LATITUDE_HERMES_PLATFORM") or _env("HERMES_PLATFORM"),
         "approval_mode": _env("LATITUDE_HERMES_APPROVAL_MODE") or _env("HERMES_APPROVAL_MODE"),

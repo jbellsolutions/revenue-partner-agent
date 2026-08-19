@@ -4,23 +4,24 @@ import json
 import math
 import os
 import sys
+
 from pathlib import Path
 from typing import Any
 
 from .bundle import build_bundle_manifest
 from .env_checklist import environment_checklist
-from .fleet import create_fleet_runs
+
 from .models import RUN_STATUS_VALUES
 from .production import production_readiness
 from .profiles import ProfileStore
 from .providers import PROVIDERS, list_providers, provider_readiness
 from .redaction import redact, redact_text, safe_json_dumps
 from .router import build_plan, infer_task
-from .runtime import approve_run, create_run, deny_run, resume_run
+from .runtime import create_run, deny_run, resume_run
 from .store import RunStore
 from .handoff import build_handoff
 from .live_tests import WORKFLOW_CLASSES, run_live_tests
-from .setup_helpers import discover_repo_root, install_skill_bundle, is_super_browser_root, mcp_config, write_mcp_config
+from .setup_helpers import discover_repo_root, is_super_browser_root
 from .setup_walkthrough import launch_setup
 from .verifier import verify_run
 
@@ -29,12 +30,29 @@ PROVIDER_NAMES = list(PROVIDERS.keys())
 OPTIMIZE_VALUES = ["balanced", "cost", "reliability"]
 SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"]
 DEFAULT_PROTOCOL_VERSION = "2025-06-18"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _canonical_package_version() -> str:
+    matches = []
+    for line in (PACKAGE_ROOT / "PACKAGE_METADATA.toml").read_text(encoding="utf-8").splitlines():
+        key, separator, value = line.partition("=")
+        if separator and key.strip() == "version":
+            rendered = value.strip()
+            if len(rendered) >= 2 and rendered[0] == rendered[-1] == '"':
+                matches.append(rendered[1:-1])
+    if len(matches) != 1 or not matches[0]:
+        raise RuntimeError("invalid canonical package version")
+    return matches[0]
+
+
+SERVER_VERSION = _canonical_package_version()
 SERVER_INSTRUCTIONS = (
     "Use plan_browser_task before run_browser_task for nontrivial work. "
     "Use get_browser_run and list_browser_runs for read-only run lookup. "
     "Use resources/list and resources/read for provider docs and routing playbooks. "
     "Use bundle_manifest before handoff or release audits. "
-    "Use setup_walkthrough or env_checklist for first-time install without exposing secret values. "
+    "Use setup_walkthrough or env_checklist for baked-runtime verification without exposing secret values. "
     "External writes and credential-bearing work must stop for approval."
 )
 
@@ -42,7 +60,7 @@ RESOURCE_FILES = {
     "super-browser://README": {
         "path": "README.md",
         "name": "README",
-        "description": "Super Browser architecture, install paths, workflows, provider matrix, and verification status.",
+        "description": "Baked local runtime contract, readiness evidence, read-only workflows, and production hard stop.",
     },
     "super-browser://SKILL": {
         "path": "SKILL.md",
@@ -69,15 +87,11 @@ RESOURCE_FILES = {
         "name": "Security And Approval Policy",
         "description": "Approval gates, external-write safety, redaction policy, and MCP/CLI safety rules.",
     },
-    "super-browser://references/live-test-matrix": {
-        "path": "references/live-test-matrix.md",
-        "name": "Live Test Matrix",
-        "description": "Fixture and provider live-test scenarios and gating rules.",
-    },
+
     "super-browser://references/combo-playbook": {
         "path": "references/combo-playbook.md",
         "name": "Combo Playbook",
-        "description": "When to combine providers vs use one tool alone.",
+        "description": "Comparison-only provider guidance; this image never executes provider combinations and uses at most one enforceable local lane.",
     },
     "super-browser://references/providers/README": {
         "path": "references/providers/README.md",
@@ -92,12 +106,12 @@ RESOURCE_FILES = {
     "super-browser://docs/setup-walkthrough": {
         "path": "docs/setup-walkthrough.md",
         "name": "Setup Walkthrough",
-        "description": "Step-by-step onboarding for new users: clone, install, API keys, skills, MCP, doctor.",
+        "description": "Baked-runtime verification, external credential configuration, doctor, and read-only fixture verification.",
     },
     "super-browser://docs/agent-quickstart": {
         "path": "docs/agent-quickstart.md",
         "name": "Agent Quickstart",
-        "description": "Drop-in quickstart when an agent receives the GitHub repo link.",
+        "description": "Drop-in quickstart for the configured local MCP runtime and its fail-closed execution boundary.",
     },
 }
 
@@ -129,7 +143,7 @@ PLAN_INPUT_SCHEMA = {
         "max_cost_usd": {"type": "number", "minimum": 0, "description": "Optional routing cost ceiling."},
         "timeout_seconds": {"type": "integer", "minimum": 1, "description": "Optional provider execution timeout in seconds."},
         "profile": {"type": "string", "minLength": 1, "description": "Named persistent browser profile from ProfileStore."},
-        "proxy": {"type": "string", "minLength": 1, "description": "Proxy hint (decodo/auto/sticky or full proxy URL)."},
+
         "deliberation_rounds": {
             "type": "integer",
             "minimum": 3,
@@ -146,7 +160,7 @@ RUN_INPUT_SCHEMA = {
     "properties": {
         **PLAN_INPUT_SCHEMA["properties"],
         "execute": {"type": "boolean", "default": True, "description": "Whether to execute immediately when policy allows."},
-        "fleet_size": {"type": "integer", "minimum": 2, "maximum": 10, "description": "Create 2-10 coordinated fleet runs with per-member profiles."},
+
     },
     "required": ["goal"],
     "additionalProperties": False,
@@ -159,28 +173,6 @@ PROFILE_NAME_SCHEMA = {
     "additionalProperties": False,
 }
 
-CREATE_PROFILE_INPUT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string", "minLength": 1},
-        "description": {"type": "string", "default": ""},
-        "preferred_provider": {"type": "string", "enum": PROVIDER_NAMES},
-    },
-    "required": ["name"],
-    "additionalProperties": False,
-}
-
-APPROVE_INPUT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "run_id": {"type": "string", "minLength": 1},
-        "by": {"type": "string", "minLength": 1, "default": "user"},
-        "reason": {"type": "string", "minLength": 1, "description": "Required audit note describing the exact approved action."},
-        "execute": {"type": "boolean", "default": False},
-    },
-    "required": ["run_id", "reason"],
-    "additionalProperties": False,
-}
 
 DENY_INPUT_SCHEMA = {
     "type": "object",
@@ -196,7 +188,7 @@ DENY_INPUT_SCHEMA = {
 LIVE_TEST_INPUT_SCHEMA = {
     "type": "object",
     "properties": {
-        "provider": {"type": "string", "enum": ["local", "fixtures", "all", *PROVIDER_NAMES], "default": "local"},
+        "provider": {"type": "string", "enum": ["local", "fixtures"], "default": "local"},
         "workflow_class": {"type": "string", "enum": list(WORKFLOW_CLASSES), "default": "default"},
     },
     "additionalProperties": False,
@@ -223,32 +215,12 @@ SETUP_WALKTHROUGH_INPUT_SCHEMA = {
         "client": {
             "type": "string",
             "enum": ["cursor", "codex", "claude"],
-            "description": "Optional agent client hint to tailor install-skill and init-mcp commands.",
+            "description": "Optional agent client label included in the non-mutating baked-runtime report.",
         }
     },
     "additionalProperties": False,
 }
 
-INSTALL_SKILL_INPUT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "target": {"type": "string", "minLength": 1, "description": "Directory that should receive the super-browser bundle."},
-        "name": {"type": "string", "minLength": 1, "default": "super-browser", "description": "Installed bundle directory name."},
-        "force": {"type": "boolean", "default": False, "description": "Replace an existing installed bundle."},
-    },
-    "additionalProperties": False,
-}
-
-INIT_MCP_INPUT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "path": {"type": "string", "minLength": 1, "description": "Optional MCP config JSON path to write."},
-        "cwd": {"type": "string", "minLength": 1, "description": "Repository or installed bundle path for the MCP server."},
-        "force": {"type": "boolean", "default": False, "description": "Overwrite an existing MCP config file."},
-        "merge": {"type": "boolean", "default": False, "description": "Merge Super Browser into an existing MCP config."},
-    },
-    "additionalProperties": False,
-}
 
 LIST_RUNS_INPUT_SCHEMA = {
     "type": "object",
@@ -268,7 +240,6 @@ TOOL_INPUT_SCHEMAS = {
     "handoff_browser_run": _run_id_schema(),
     "list_browser_runs": LIST_RUNS_INPUT_SCHEMA,
     "verify_browser_run": _run_id_schema(),
-    "approve_browser_run": APPROVE_INPUT_SCHEMA,
     "deny_browser_run": DENY_INPUT_SCHEMA,
     "list_browser_providers": _empty_schema(),
     "browser_doctor": _empty_schema(),
@@ -277,37 +248,28 @@ TOOL_INPUT_SCHEMAS = {
     "env_checklist": ENV_CHECKLIST_INPUT_SCHEMA,
     "setup_walkthrough": SETUP_WALKTHROUGH_INPUT_SCHEMA,
     "run_browser_live_tests": LIVE_TEST_INPUT_SCHEMA,
-    "install_super_browser_skill": INSTALL_SKILL_INPUT_SCHEMA,
-    "init_super_browser_mcp": INIT_MCP_INPUT_SCHEMA,
     "list_browser_profiles": _empty_schema(),
     "get_browser_profile": PROFILE_NAME_SCHEMA,
-    "create_browser_profile": CREATE_PROFILE_INPUT_SCHEMA,
-    "delete_browser_profile": PROFILE_NAME_SCHEMA,
 }
 
 TOOL_DESCRIPTIONS = {
     "plan_browser_task": "Build a provider routing plan for a browser/computer automation task.",
     "run_browser_task": "Create a durable Super Browser run record.",
-    "resume_browser_run": "Resume a planned, approved, blocked, or failed run when policy allows; may execute an already approved provider action.",
+    "resume_browser_run": "Resume an eligible read-only run; approval-required and blocked runs remain non-executable in this image.",
     "get_browser_run": "Return a saved run by id without executing it.",
     "handoff_browser_run": "Return a compact run handoff package for another agent without executing it.",
     "list_browser_runs": "List saved runs without executing them.",
     "verify_browser_run": "Verify run artifacts and report confidence.",
-    "approve_browser_run": "Record approval for a run that is awaiting approval; execute=true may execute the approved provider action immediately.",
     "deny_browser_run": "Record denial for a run that is awaiting approval.",
     "list_browser_providers": "List provider capabilities.",
     "browser_doctor": "Check provider env vars and local CLI readiness.",
     "production_readiness": "Return a hard production-readiness gate with missing env vars, uncertified workflow classes, and provider blockers.",
     "bundle_manifest": "Return a hashed inventory of the installed Super Browser bundle for agent handoff and release audits.",
     "env_checklist": "Return required and optional Super Browser environment variable setup without secret values.",
-    "setup_walkthrough": "Return a step-by-step install walkthrough with signup links, skills, MCP, and doctor commands.",
-    "run_browser_live_tests": "Run gated local/provider live tests and return artifact evidence.",
-    "install_super_browser_skill": "Install or describe a self-contained Super Browser skill/plugin bundle for another agent.",
-    "init_super_browser_mcp": "Generate, write, or merge MCP config for the Super Browser server.",
+    "setup_walkthrough": "Return baked-runtime verification, provider readiness, and read-only fixture steps without mutating the image.",
+    "run_browser_live_tests": "Run the baked local read-only fixture checks; hosted provider live tests are unavailable in this image.",
     "list_browser_profiles": "List named persistent browser profiles.",
     "get_browser_profile": "Return one named browser profile.",
-    "create_browser_profile": "Create a named persistent browser profile.",
-    "delete_browser_profile": "Delete a named persistent browser profile.",
 }
 
 TOOL_ANNOTATIONS = {
@@ -318,7 +280,6 @@ TOOL_ANNOTATIONS = {
     "handoff_browser_run": {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False},
     "list_browser_runs": {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False},
     "verify_browser_run": {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
-    "approve_browser_run": {"readOnlyHint": False, "destructiveHint": True, "idempotentHint": False, "openWorldHint": True},
     "deny_browser_run": {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": False},
     "list_browser_providers": {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False},
     "browser_doctor": {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False},
@@ -326,13 +287,9 @@ TOOL_ANNOTATIONS = {
     "bundle_manifest": {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False},
     "env_checklist": {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False},
     "setup_walkthrough": {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False},
-    "run_browser_live_tests": {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True},
-    "install_super_browser_skill": {"readOnlyHint": False, "destructiveHint": True, "idempotentHint": False, "openWorldHint": False},
-    "init_super_browser_mcp": {"readOnlyHint": False, "destructiveHint": True, "idempotentHint": False, "openWorldHint": False},
+    "run_browser_live_tests": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
     "list_browser_profiles": {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False},
     "get_browser_profile": {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False},
-    "create_browser_profile": {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": False},
-    "delete_browser_profile": {"readOnlyHint": False, "destructiveHint": True, "idempotentHint": False, "openWorldHint": False},
 }
 
 TOOLS = [
@@ -359,7 +316,6 @@ def _task_kwargs(args: dict[str, Any]) -> dict[str, Any]:
         "max_cost_usd": args.get("max_cost_usd"),
         "timeout_seconds": args.get("timeout_seconds"),
         "profile": args.get("profile"),
-        "proxy": args.get("proxy"),
     }
 
 
@@ -372,14 +328,7 @@ def _handle_tool(name: str, args: dict[str, Any]) -> Any:
         task = infer_task(args["goal"], **_task_kwargs(args))
         return build_plan(task, deliberation_rounds=_deliberation_rounds(args)).to_dict()
     if name == "run_browser_task":
-        fleet_size = args.get("fleet_size")
-        if fleet_size:
-            return create_fleet_runs(
-                args["goal"],
-                fleet_size=fleet_size,
-                execute=args.get("execute", True),
-                **_task_kwargs(args),
-            )
+
         run = create_run(
             args["goal"],
             execute=args.get("execute", True),
@@ -404,13 +353,6 @@ def _handle_tool(name: str, args: dict[str, Any]) -> Any:
         )
     if name == "verify_browser_run":
         return verify_run(args["run_id"])
-    if name == "approve_browser_run":
-        return approve_run(
-            args["run_id"],
-            approver=args.get("by", "user"),
-            reason=args.get("reason", ""),
-            execute=args.get("execute", False),
-        ).to_dict()
     if name == "deny_browser_run":
         return deny_run(args["run_id"], denied_by=args.get("by", "user"), reason=args.get("reason", "")).to_dict()
     if name == "list_browser_providers":
@@ -427,17 +369,7 @@ def _handle_tool(name: str, args: dict[str, Any]) -> Any:
         return launch_setup(client=args.get("client"))
     if name == "run_browser_live_tests":
         return run_live_tests(args.get("provider", "local"), workflow_class=args.get("workflow_class", "default"))
-    if name == "install_super_browser_skill":
-        return install_skill_bundle(args.get("target"), name=args.get("name", "super-browser"), force=args.get("force", False))
-    if name == "init_super_browser_mcp":
-        if args.get("path"):
-            return write_mcp_config(
-                args["path"],
-                force=args.get("force", False),
-                merge=args.get("merge", False),
-                cwd=args.get("cwd"),
-            )
-        return mcp_config(cwd=args.get("cwd"))
+
     if name == "list_browser_profiles":
         return [item.to_dict() for item in ProfileStore(create=False).list()]
     if name == "get_browser_profile":
@@ -445,18 +377,7 @@ def _handle_tool(name: str, args: dict[str, Any]) -> Any:
         if not profile:
             raise ValueError(f"Profile not found: {args['name']}")
         return profile.to_dict()
-    if name == "create_browser_profile":
-        profile = ProfileStore().create(
-            args["name"],
-            description=args.get("description", ""),
-            preferred_provider=args.get("preferred_provider"),
-        )
-        return profile.to_dict()
-    if name == "delete_browser_profile":
-        deleted = ProfileStore().delete(args["name"])
-        if not deleted:
-            raise ValueError(f"Profile not found: {args['name']}")
-        return {"deleted": args["name"]}
+
     raise ValueError(f"Unknown tool: {name}")
 
 
@@ -531,7 +452,7 @@ def main() -> int:
             if method == "initialize":
                 result = {
                     "protocolVersion": _protocol_version(request.get("params", {})),
-                    "serverInfo": {"name": "super-browser", "version": "0.3.0"},
+                    "serverInfo": {"name": "super-browser", "version": SERVER_VERSION},
                     "capabilities": {"tools": {}, "resources": {}},
                     "instructions": SERVER_INSTRUCTIONS,
                 }

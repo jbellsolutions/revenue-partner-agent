@@ -32,7 +32,7 @@ Gate anything externally visible or credential-bearing.
 - Screenshot, DOM snapshot, extraction, analysis.
 - Public search, filter, or sort form submissions and public/local reference docs about sharing, OAuth, tokens, auth, integrations, API keys, webhooks, DNS records, environment variables, billing, trading, banking, ACH/wire transfers, payouts, legal forms, tax filing, insurance claims, prescriptions, medical records, passports, visas, government IDs, channels, workspaces, roles, or moderation that stay read-only and do not include credentials, private/personal data, or another external action; a later like, save, bookmark, share, follow, connect, CRM update, cart/order/payment/trading/banking/payout change, legal/government/health/insurance/identity change, project/repository update, cloud-file/sharing/integration/settings change, secret/API-key change, webhook/deployment/DNS/environment-variable change, billing/payment-method change, workspace/channel/role/moderation change, notification toggle, message/email state change, or other external write still requires approval.
 - Preparing text in an editor or social composer when the instruction explicitly says not to publish, post, comment, reply, respond, message/DM, send, or submit.
-- Loopback fixture and development targets.
+- Exact allowlisted loopback or local-file fixtures only when explicit process test mode is enabled. The exact URL must be in the process allowlist; ordinary loopback and development targets remain blocked.
 
 ## Still Require Approval
 
@@ -47,7 +47,7 @@ Include target site, account/profile if known, exact action, exact content to pu
 
 ## Retry Safety
 
-If an approved external-write attempt already started, do not allow automatic retry or resume. Require a fresh `provider_retry` approval before another post, comment, message, upload, purchase, or submit attempt.
+Do not allow any external-write attempt, retry, or production resume in this template. Local approval and production execution are disabled.
 
 ## Reference
 

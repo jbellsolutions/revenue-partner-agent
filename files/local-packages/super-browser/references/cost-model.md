@@ -1,72 +1,23 @@
-# Super Browser Cost Model
+# Cost model — planning evidence only
 
-Use this model to keep routing practical. Exact prices change, so treat values as planning bands unless verified on the provider billing page.
+Cost estimates compare provider records; they do not grant execution authority or prove readiness.
 
-| Cost band | Meaning | Providers |
-| --- | --- | --- |
-| free | Local or already bundled | Playwright |
-| low | Cheap per request/GB when rendering is unnecessary and an HTTP endpoint is supplied | Decodo HTTP |
-| medium | Subscription or per-machine cost that should be justified | Orgo, Airtop |
-| variable | Session/token/proxy/credit costs can move fast | Browser Use, Hyperbrowser, Steel |
+## Executable lanes
+
+| Lane | Image execution | Cost treatment |
+|---|---|---|
+| Local Playwright | Exact allowlisted fixture only | Local compute/runtime cost; public navigation is non-executable. |
+| Raw HTTP / `decodo-http` | Bounded public-IPv4-literal reads | Direct transport is local, responses are capped at 2 MiB, and proxy transport is disabled. |
+
+## Planning-only records
+
+Airtop, Browser Use, Browserbase, Hyperbrowser, Orgo, and Steel are non-executable in this image. Their catalog estimates may help an operator compare a future separately reviewed integration, but the router must not convert an estimate, credential, budget, or historical live-test record into execution readiness.
 
 ## Rules
 
-- Cheapest reliable tool wins, not cheapest theoretical tool.
-- `--allow-provider` is a strict allowlist; unlisted providers must not be selected.
-- `--max-cost-usd` filters providers by the cost-floor table below. If none fit, planning fails. Verifier, handoff, direct resume, and low-level execution re-check the stored provider sequence against the same ceiling before provider dispatch.
-- If anti-bot risk is high, do not burn time and account reputation by repeatedly trying weak providers.
-- If the page is a raw API/JSON endpoint, do not launch a browser.
-- If a workflow needs a logged-in user profile, cost includes human reauth friction.
-- If a provider has no fresh live test for the task class in doctor-filtered `certified_workflow_classes`, mark it evaluating for that class and do not call it production-ready for that workflow. Classes listed in `ignored_unsupported_evidence_workflow_classes` or `ignored_provider_mismatch_evidence_workflow_classes` do not count as proof.
-- For long-running jobs, include browser session time, proxy bandwidth, LLM/tool credits, retries, and verification artifacts.
-
-## Proxy Tiers (bandwidth cost lever — not wired)
-
-Proxy IP tiers price very differently, and the cheapest tier that actually gets through wins:
-
-| Tier | Relative cost | Use when |
-| --- | --- | --- |
-| direct (no proxy) | free | ordinary public pages |
-| datacenter | ~1/3 of residential (Browserless publishes 2 units/MB vs 6) | volume crawls of sites that were never going to block you; IP diversity + rate-limit avoidance |
-| residential | baseline "expensive" | the target blocks datacenter ranges, or consumer-geo targeting is required |
-| unlocker / full anti-bot | priciest | hardened Cloudflare/DataDome — already bundles residential rotation, so never stack another proxy under it |
-
-Escalate on evidence of a block, not on fear. Paying residential rates for a datacenter-friendly site is waste; running a long crawl on datacenter IPs against a hard-blocking target is also waste. Pilot a few pages per tier.
-
-⚠️ Super Browser does **not** implement tier selection today: `src/super_browser/proxy.py` treats proxying as on/off (`DECODO_PROXY`), and the crawl ladder in `scripts/lead_pipeline.py` escalates providers, not proxy tiers. Do not promise a `proxy=datacenter` flag. See `vault/super_browser/knowledge/providers/brightdata-proxies.md`.
-
-## Cost Floors Used By Router
-
-These are conservative routing floors, not provider billing promises:
-
-| Cost band | Floor |
-| --- | --- |
-| free | `0.0` |
-| low | `0.01` |
-| medium | `0.25` |
-| variable | `0.05` |
-| high | `1.0` |
-
-## Cost Estimate Fields
-
-`super-browser plan`, `run-report.json`, and `super-browser verify <run-id>` include a `cost_estimate` object:
-
-- `primary`: selected provider cost band, floor, multiplier, confidence, and notes.
-- `fallbacks`: planned fallback provider estimates.
-- `selected_provider_floor_usd`: floor for the selected provider.
-- `fallback_floor_usd`: sum of fallback floors.
-- `worst_case_floor_usd`: selected provider plus fallbacks if every attempt runs once.
-- `budget_status`: `no_ceiling`, `within_ceiling`, or `over_ceiling`.
-- `max_cost_usd`: the user-supplied cost ceiling, if any.
-
-Long-running, anti-bot, desktop, and authenticated workflows can add conservative multipliers or notes. These estimates are meant for routing, plan review, and verifier reporting; live provider billing must still be checked against provider dashboards for production budgeting.
-
-## Cost-Sensitive Provider Order
-
-1. Playwright or direct local tooling.
-2. Decodo/raw HTTP when rendering is unnecessary and the task supplies an HTTP endpoint.
-3. Browser Use for hard anti-bot or complex cloud agent work.
-4. Hyperbrowser or Airtop for general cloud sessions at scale.
-5. Steel for hosted Chromium sessions when CDP control is needed.
-6. Orgo only when desktop/computer use is actually required.
-7. Hyperbrowser, Airtop, and Steel only count as production-ready after live tests prove the task class.
+1. Security and approval constraints run before cost optimization.
+2. Unknown cost is not zero cost.
+3. `max_cost_usd` is a planning ceiling, not spending approval.
+4. A proxy, hosted session, fleet, computer, or authenticated profile must never be created by this locked image merely to measure cost.
+5. If the enforceable local lane cannot satisfy the task, report the blocker; do not silently fall back to a hosted provider.
+6. Record actual usage only from completed executable-lane evidence. Do not infer charges from plans or schema validation.

@@ -1,6 +1,6 @@
 # Revenue Partner Campaign Contract
 
-No external campaign may execute without a completed, approved contract.
+This image cannot execute an external campaign. A completed contract and human approval are audit evidence for a future separately reviewed integration; they do not create send, publish, write, spend, schedule, authenticated-profile, or production authority here.
 
 ## Contract Header
 
@@ -117,9 +117,9 @@ Fresh approval is mandatory for:
 - Paid placement, purchase, or budget increase.
 - Sensitive-data disclosure.
 
-## Execution authority
+## Execution hard stop
 
-After the operator approves this contract, the agent **may operate only within the approved bounds**. Drafting and read-only research do not imply send/publish/write authority. Any ambiguity resolves to pause and escalate.
+After the operator approves this contract, the agent may continue only policy-eligible read-only research and local drafting. Approval cannot activate send/publish/write authority in this image. Any future execution requires a separately reviewed external integration and rebuilt release; ambiguity resolves to stop and escalate.
 
 ## Approval Record
 

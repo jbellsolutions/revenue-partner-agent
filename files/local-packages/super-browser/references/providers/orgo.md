@@ -1,13 +1,3 @@
-# Orgo
+# Orgo provider record
 
-**Status:** `stable` | **Docs:** https://docs.orgo.ai/
-
-## Use alone when
-
-Full desktop VM: browser + files + terminal + multi-window.
-
-## Do not use when
-
-Browser-only API or raw HTTP is enough.
-
-**Note:** Does not set `supports_anti_bot` in router — desktop escalation, not anti-bot lane.
+Planning/reference only. Autonomous computer use cannot be constrained to the locked image's read-only action and network policy, so execution is blocked before provider construction for every task. Credentials do not change readiness. Do not create computers, connect, navigate, or run provider live tests from this image.

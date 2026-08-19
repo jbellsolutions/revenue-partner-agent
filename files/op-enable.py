@@ -2,7 +2,7 @@
 # ==========================================================================
 # Revenue Partner — flip secrets.onepassword.enabled once a token exists
 # ==========================================================================
-# The baked config ships the 19-var 1Password map DISABLED (a token-less
+# The baked config ships a narrow model/Telegram/telemetry map DISABLED (a token-less
 # enabled map makes `op read` prompt on /dev/tty and stall interactive
 # hermes starts). Onboarding and on_resume call this after writing
 # ~/.hermes/.op.env; it is idempotent and refuses to enable without a token.

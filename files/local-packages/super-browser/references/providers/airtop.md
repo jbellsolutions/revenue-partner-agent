@@ -1,11 +1,3 @@
-# Airtop
+# Airtop provider record
 
-**Status:** `evaluating` | **Docs:** https://docs.airtop.ai/
-
-## Use alone when
-
-Cloud sessions, page-query extraction, GTM webhook automations.
-
-## Do not use when
-
-MCP-native local runtime is enough or live tests missing.
+Planning/reference only. Execution is blocked before provider construction because this image cannot enforce Airtop's target DNS answers, redirects, or connected peer addresses. Credentials do not change readiness. Do not create sessions, submit URLs, or run provider live tests from this image.

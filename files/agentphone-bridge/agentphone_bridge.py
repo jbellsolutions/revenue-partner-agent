@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""AgentPhone inbound SMS/iMessage webhook bridge for Hermes.
+"""Hard-stopped AgentPhone future-integration reference for Hermes.
 
-Inbound AgentPhone webhook -> local HTTP server -> Hermes one-shot -> POST /v1/messages.
-Secrets are loaded from /root/.hermes/.env and /root/.hermes_agentphone_bridge/env,
-with the bridge env taking precedence. Secret values are never logged.
+Every executable entrypoint and concrete network/send boundary is unavailable in
+this immutable image. Credentials, audience records, URLs, and restarts cannot
+activate it; a separately reviewed source change, rebuild, and release are required.
 """
 
 from __future__ import annotations
@@ -44,8 +44,19 @@ PORT = 8787
 HOOK_PATH = "/hooks/agentphone"
 MEDIA_PATH_PREFIX = "/media/"
 MEDIA_CACHE_DIR = BRIDGE_DIR / "outbound_media"
+MEDIA_GENERATED_DIR = BRIDGE_DIR / "generated_media"
 LOCAL_URL = f"http://{HOST}:{PORT}"
 API_BASE = "https://api.agentphone.ai"
+AGENTPHONE_EXECUTION_AVAILABLE = False
+AGENTPHONE_EXECUTION_DISABLED_REASON = (
+    "AgentPhone network execution is non-executable in this immutable image; "
+    "credentials and audience records cannot activate it. A separately reviewed "
+    "integration, rebuilt image, and new release are required."
+)
+
+def deny_agentphone_execution() -> None:
+    raise RuntimeError(AGENTPHONE_EXECUTION_DISABLED_REASON)
+
 
 # Hermes Telegram-style delivery markers and common image refs.
 MEDIA_LINE_RE = re.compile(r"(?im)^\s*MEDIA:\s*(\S+)\s*$")
@@ -144,7 +155,7 @@ def load_config() -> dict[str, str]:
     cfg: dict[str, str] = dict(os.environ)
     load_env_file(HERMES_ENV, cfg)
     load_env_file(BRIDGE_ENV, cfg)  # bridge-specific file wins
-    cfg.setdefault("AGENTPHONE_BASE_URL", API_BASE)
+
     cfg.setdefault("AGENTPHONE_HERMES_TOOLSETS", "web,vision")
     cfg.setdefault("AGENTPHONE_HERMES_MAX_TURNS", "90")
     cfg.setdefault("AGENTPHONE_WEBHOOK_CONTEXT_LIMIT", "10")
@@ -158,6 +169,28 @@ def require_config(cfg: dict[str, str], key: str) -> str:
     if not val:
         raise RuntimeError(f"required config missing: {key}")
     return val
+
+
+def validate_agentphone_base_url(value: str) -> str:
+    parsed = urllib.parse.urlsplit(value.strip())
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != "api.agentphone.ai"
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.port is not None
+        or parsed.path not in {"", "/"}
+        or parsed.query
+        or parsed.fragment
+        or parsed.netloc != "api.agentphone.ai"
+    ):
+        raise ValueError("AgentPhone API base must be the exact approved HTTPS origin https://api.agentphone.ai")
+    return API_BASE
+
+
+class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> None:
+        return None
 
 
 def normalize_phone(value: str | None) -> str:
@@ -206,11 +239,10 @@ def save_state(state: dict[str, Any]) -> None:
 
 
 def api_request(method: str, path: str, payload: dict[str, Any] | None = None, timeout: int = 30) -> Any:
+    deny_agentphone_execution()
+    base = validate_agentphone_base_url(API_BASE)
     api_key = require_config(CONFIG, "AGENTPHONE_API_KEY")
-    base = CONFIG.get("AGENTPHONE_BASE_URL", API_BASE).rstrip("/")
-    if base.endswith("/v1") and path.startswith("/v1/"):
-        url = base[:-3] + path
-    elif not base.endswith("/v1") and not path.startswith("/v1/"):
+    if not path.startswith("/v1/"):
         url = base + "/v1" + path
     else:
         url = base + path
@@ -224,8 +256,9 @@ def api_request(method: str, path: str, payload: dict[str, Any] | None = None, t
         data = json.dumps(payload).encode("utf-8")
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=data, headers=headers, method=method.upper())
+    opener = urllib.request.build_opener(NoRedirectHandler())
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with opener.open(req, timeout=timeout) as resp:
             body = resp.read().decode("utf-8", errors="replace")
             if not body:
                 return None
@@ -312,7 +345,8 @@ def extract_event_fields(payload: dict[str, Any]) -> dict[str, Any]:
     timestamp = str(data.get("receivedAt") or data.get("createdAt") or payload.get("timestamp") or "")
     text = str(data.get("message") or data.get("transcript") or data.get("reactionType") or data.get("messageBody") or "")
     media_urls = extract_media_urls(data)
-    reply_to = str(group.get("groupId") or data.get("from") or sender)
+    is_group = bool(group or data.get("groupId") or data.get("group_id") or data.get("roomId") or data.get("room_id"))
+    reply_to = sender
     message_id = str(
         data.get("messageId")
         or data.get("message_id")
@@ -330,9 +364,17 @@ def extract_event_fields(payload: dict[str, Any]) -> dict[str, Any]:
         "text": text,
         "media_urls": media_urls,
         "reply_to": reply_to,
+        "is_group": is_group,
         "direction": str(data.get("direction") or ""),
         "message_id": message_id,
     }
+
+
+def authorized_reply_target(fields: dict[str, Any], allowed_senders: set[str]) -> str:
+    sender = normalize_phone(str(fields.get("sender") or ""))
+    if fields.get("is_group") or not sender or sender not in allowed_senders:
+        return ""
+    return sender
 
 
 def event_dedupe_key(fields: dict[str, Any]) -> str:
@@ -529,37 +571,125 @@ def purge_expired_media(now: float | None = None) -> None:
                 pass
 
 
-def publish_local_media(path: Path) -> str | None:
-    """Copy a local file into the bridge media cache and return a public URL."""
+def configured_media_generated_root() -> Path | None:
+    """Return the operator-controlled generated-media root, creating it safely."""
+    raw = str(CONFIG.get("AGENTPHONE_MEDIA_GENERATED_ROOT", MEDIA_GENERATED_DIR)).strip()
+    if not raw:
+        return None
+    root = Path(raw).expanduser()
+    if not root.is_absolute():
+        return None
     try:
-        path = path.expanduser().resolve()
-    except Exception:
-        return None
-    if not path.is_file():
-        log_event("media_missing", path=str(path))
-        return None
-    if path.suffix.lower() not in MEDIA_EXTS:
-        log_event("media_skipped_ext", path=str(path), ext=path.suffix)
-        return None
-    # Size cap default 12MB
-    max_bytes = int_config("AGENTPHONE_MEDIA_MAX_BYTES", 12 * 1024 * 1024)
-    try:
-        size = path.stat().st_size
-    except OSError as exc:
-        log_event("media_stat_failed", path=str(path), error=str(exc)[:200])
-        return None
-    if size <= 0 or size > max_bytes:
-        log_event("media_skipped_size", path=str(path), size=size, max_bytes=max_bytes)
+        if root.exists() and root.is_symlink():
+            return None
+        root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if root.is_symlink():
+            return None
+        os.chmod(root, 0o700)
+        return root.resolve(strict=True)
+    except OSError:
         return None
 
-    MEDIA_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+def approved_local_media_path(path: Path) -> Path | None:
+    """Resolve a real, non-symlink file confined to the generated-media root."""
+    root = configured_media_generated_root()
+    if root is None:
+        return None
+
+    candidate = path.expanduser()
+    if ".." in candidate.parts:
+        return None
+    raw_root = Path(str(CONFIG.get("AGENTPHONE_MEDIA_GENERATED_ROOT", MEDIA_GENERATED_DIR))).expanduser()
+    lexical_root = Path(os.path.abspath(str(raw_root)))
+    if not candidate.is_absolute():
+        candidate = lexical_root / candidate
+    lexical = Path(os.path.abspath(str(candidate)))
+
+    relative: Path | None = None
+    walk_root: Path | None = None
+    for possible_root in (lexical_root, root):
+        try:
+            relative = lexical.relative_to(possible_root)
+            walk_root = possible_root
+            break
+        except ValueError:
+            continue
+    if relative is None or walk_root is None:
+        return None
+
+    current = walk_root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            return None
+    try:
+        resolved = lexical.resolve(strict=True)
+    except (OSError, RuntimeError):
+        return None
+    if resolved != root and root not in resolved.parents:
+        return None
+    return resolved if resolved.is_file() else None
+
+
+def publish_local_media(path: Path) -> str | None:
+    """Publish one approved generated file through the short-lived media cache."""
+    approved = approved_local_media_path(path)
+    if approved is None:
+        log_event("media_rejected_path", name=path.name[:80])
+        return None
+    path = approved
+    try:
+        suffix = path.suffix.lower()
+    except OSError:
+        return None
+    if suffix not in MEDIA_EXTS:
+        log_event("media_skipped_ext", path=str(path), ext=path.suffix)
+        return None
+    # Size cap default 12MB. Open with O_NOFOLLOW so the final path cannot be
+    # swapped to a symlink between validation and copy.
+    max_bytes = int_config("AGENTPHONE_MEDIA_MAX_BYTES", 12 * 1024 * 1024)
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        source_fd = os.open(path, flags)
+        size = os.fstat(source_fd).st_size
+    except OSError as exc:
+        log_event("media_open_failed", name=path.name[:80], error=str(exc)[:200])
+        return None
+    if size <= 0 or size > max_bytes:
+        os.close(source_fd)
+        log_event("media_skipped_size", name=path.name[:80], size=size, max_bytes=max_bytes)
+        return None
+
+    try:
+        if MEDIA_CACHE_DIR.exists() and MEDIA_CACHE_DIR.is_symlink():
+            os.close(source_fd)
+            log_event("media_cache_rejected", reason="symlink")
+            return None
+        MEDIA_CACHE_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if MEDIA_CACHE_DIR.is_symlink():
+            os.close(source_fd)
+            log_event("media_cache_rejected", reason="symlink")
+            return None
+        os.chmod(MEDIA_CACHE_DIR, 0o700)
+    except OSError as exc:
+        os.close(source_fd)
+        log_event("media_cache_failed", error=str(exc)[:200])
+        return None
     token = secrets.token_urlsafe(18)
     safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", path.name)[:80] or "file.bin"
     dest = MEDIA_CACHE_DIR / f"{token}_{safe_name}"
     try:
-        shutil.copy2(path, dest)
+        with os.fdopen(source_fd, "rb") as source, dest.open("xb") as target:
+            shutil.copyfileobj(source, target)
+        dest.chmod(0o600)
     except Exception as exc:
-        log_event("media_copy_failed", path=str(path), error=str(exc)[:300])
+        try:
+            os.close(source_fd)
+        except OSError:
+            pass
+        dest.unlink(missing_ok=True)
+        log_event("media_copy_failed", name=path.name[:80], error=str(exc)[:300])
         return None
 
     ctype = mimetypes.guess_type(safe_name)[0] or "application/octet-stream"
@@ -596,8 +726,19 @@ def publish_local_media(path: Path) -> str | None:
     return url
 
 
+def approved_remote_media_url(value: str) -> bool:
+    """Reject arbitrary remote attachment URLs.
+
+    Generated local files are published through unguessable bridge URLs and
+    appended internally. Accepting model-supplied URLs would delegate DNS and
+    redirect trust to AgentPhone and create an unverifiable SSRF boundary.
+    """
+    del value
+    return False
+
+
 def resolve_media_refs(refs: list[str]) -> list[str]:
-    """Convert local paths and remote URLs into AgentPhone-ready public URLs."""
+    """Convert approved generated paths into bridge-hosted attachment URLs."""
     purge_expired_media()
     out: list[str] = []
     for ref in refs:
@@ -605,17 +746,16 @@ def resolve_media_refs(refs: list[str]) -> list[str]:
         if not ref:
             continue
         if ref.startswith("http://") or ref.startswith("https://"):
-            if ref not in out:
+            approved = approved_remote_media_url(ref)
+            if approved and ref not in out:
                 out.append(ref)
+            elif not approved:
+                log_event("media_remote_rejected")
             continue
         # file:// support
         if ref.startswith("file://"):
             ref = ref[7:]
         p = Path(ref)
-        if not p.is_absolute():
-            # common agent cache roots
-            candidates = [Path("/tmp") / ref, Path("/tmp/agentphone-media") / ref, MEDIA_CACHE_DIR / ref]
-            p = next((c for c in candidates if c.is_file()), Path(ref))
         url = publish_local_media(p)
         if url and url not in out:
             out.append(url)
@@ -733,6 +873,7 @@ def is_draft_like_reply(text: str) -> bool:
 
 
 def send_agentphone_reply(reply_target: str, body: str, conversation_id: str = "") -> None:
+    deny_agentphone_execution()
     text, media_urls = prepare_outbound_body(body)
     # Do not split draft-like / code content across media boundaries.
     chunks = split_reply_chunks(text) if text else [""]
@@ -768,15 +909,19 @@ def build_hermes_prompt(payload: dict[str, Any], fields: dict[str, Any], toolset
     message = fields.get("text", "")
     media_urls = fields.get("media_urls") or []
     media_block = "\n".join(str(u) for u in media_urls) if media_urls else "(none)"
+    generated_root = configured_media_generated_root()
+    generated_root_text = str(generated_root) if generated_root else "(generated-media root unavailable)"
     return f"""You are the Revenue Partner/Hermes agent replying over AgentPhone SMS/iMessage.
 
-This is an inbound AgentPhone webhook from an allowlisted sender. Produce ONLY the final text that should be sent back to the sender. Do not include debug output, tool logs, JSON envelopes, code fences, signatures, API keys, webhook secrets, cloudflared tunnel internals, or any hidden system/config details.
+This prompt is retained only as reviewed reference for a future separately released integration. The current image hard-stops webhook jobs, Hermes invocation, tunnel construction, API calls, and sends before this prompt can be used.
 
-Important delivery rule: DO NOT call AgentPhone send_message/make_call tools yourself. The local bridge sends only your final conversational reply. This bridge exposes read-only research/vision toolsets and cannot authorize production actions. If asked to contact another person, publish, mutate CRM records, launch a campaign, spend money, change consent/suppression state, negotiate terms, or use sensitive/regulated data, provide at most an internal draft and require explicit operator approval through the primary authenticated channel and campaign contract.
+Future-integration safety rule: never call AgentPhone send/call tools from model output. A separately reviewed bridge must independently authorize the exact audience and preserve the immutable production-action boundary; an inbound message is never approval.
 
-Outbound images/files: after generating media, include one line per file exactly like:
-MEDIA:/absolute/path/to/file.png
-The bridge converts MEDIA lines into real iMessage/MMS attachments. Do not paste base64. Do not claim the image was sent unless you emitted a MEDIA line for a real local file path (or a public https image URL).
+Outbound images/files: only attach a file you generated for this reply beneath this dedicated root:
+{generated_root_text}
+Include one line per generated file exactly like:
+MEDIA:{generated_root_text}/file.png
+The bridge rejects traversal, symlinks, remote URLs, and every local path outside that root. Never expose an existing customer, system, credential, or arbitrary local file. Do not paste base64. Do not claim the image was sent unless you emitted a MEDIA line for an approved generated local file beneath the dedicated root.
 
 Texting voice:
 - Sound like a sharp, warm friend texting, not a chatbot or corporate assistant.
@@ -908,6 +1053,7 @@ def find_inbound_message_id(fields: dict[str, str]) -> str:
 
 
 def send_reaction(message_id: str, reaction: str) -> bool:
+    deny_agentphone_execution()
     if not message_id:
         return False
     reaction = reaction.strip()
@@ -940,6 +1086,7 @@ def handle_reaction_only(fields: dict[str, str]) -> bool:
 
 
 def send_typing(conversation_id: str) -> None:
+    deny_agentphone_execution()
     if not conversation_id:
         return
     try:
@@ -1058,7 +1205,7 @@ def extract_keyword(text: str) -> str:
     # ("youre on agentphone", "you should use deepseek", etc.), the text
     # after a verb is NOT a task keyword. Return a safe fallback.
     second_person_re = re.compile(r"\b(?:you|youre|your|yours|ur|u\s+are|u\s+should|youll|youve)\b")
-    
+
     # Only match clear action verbs that take a noun object as a task.
     # Exclude "have" (it's a yes/no question, not a task) and other
     # conversational verbs that don't indicate work.
@@ -1113,6 +1260,7 @@ def job_key_for_fields(fields: dict[str, Any]) -> str:
 
 def start_conversation_job(fields: dict[str, Any], reply_target: str) -> dict[str, Any]:
     """Register a per-conversation Hermes run and cancel any stale run."""
+    deny_agentphone_execution()
     key = job_key_for_fields(fields)
     job = {
         "key": key,
@@ -1246,6 +1394,7 @@ def ack_and_typing_keepalive(done: threading.Event, reply_target: str, fields: d
 
 
 def run_hermes_and_reply(payload: dict[str, Any], fields: dict[str, Any], toolsets: str, job: dict[str, Any] | None = None) -> None:
+    deny_agentphone_execution()
     reply_target = fields.get("reply_to") or fields.get("sender")
     if job is None:
         job = start_conversation_job(fields, reply_target or "")
@@ -1345,6 +1494,7 @@ def run_hermes_and_reply(payload: dict[str, Any], fields: dict[str, Any], toolse
 
 
 def send_agentphone_message(to_number: str, body: str, media_urls: list[str] | None = None) -> None:
+    deny_agentphone_execution()
     # Final outbound gate: strip em/en dashes from every message (final reply, ack, progress).
     body = strip_em_dashes(body or "")
     media_urls = [u for u in (media_urls or []) if u]
@@ -1472,6 +1622,10 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             self.send_json(400, {"ok": False, "error": "bad content-length"})
             return
+        max_body_bytes = max(1024, int_config("AGENTPHONE_MAX_WEBHOOK_BODY_BYTES", 1_048_576))
+        if length < 0 or length > max_body_bytes:
+            self.send_json(413, {"ok": False, "error": "payload too large"})
+            return
         raw_body = self.rfile.read(length)
         ok, reason = verify_signature(raw_body, self.headers, WEBHOOK_SECRET)
         if not ok:
@@ -1501,6 +1655,11 @@ class Handler(BaseHTTPRequestHandler):
             log_event("webhook_ignored_sender", sender=sender, allowed=sorted(allowed), conversation_id=fields.get("conversation_id"))
             self.send_json(200, {"ok": True, "ignored": "sender not allowlisted"})
             return
+        reply_target = authorized_reply_target(fields, allowed)
+        if not reply_target:
+            log_event("webhook_ignored_audience", sender=sender, conversation_id=fields.get("conversation_id"))
+            self.send_json(200, {"ok": True, "ignored": "group audience not allowlisted"})
+            return
         key = event_dedupe_key(fields)
         if not mark_seen_once(key, fields):
             log_event("webhook_duplicate", sender=sender, conversation_id=fields.get("conversation_id"), dedupe_key=key)
@@ -1523,13 +1682,14 @@ class Handler(BaseHTTPRequestHandler):
             return
         requested_toolsets = {item.strip() for item in CONFIG.get("AGENTPHONE_HERMES_TOOLSETS", "web,vision").split(",")}
         toolsets = ",".join(item for item in ("web", "vision") if item in requested_toolsets) or "vision"
-        job = start_conversation_job(fields, fields.get("reply_to") or fields.get("sender") or "")
+        job = start_conversation_job(fields, reply_target)
         thread = threading.Thread(target=run_hermes_and_reply, args=(payload, fields, toolsets, job), daemon=True)
         thread.start()
         self.send_json(200, {"ok": True, "accepted": True})
 
 
 def start_http_server() -> BridgeHTTPServer:
+    deny_agentphone_execution()
     server = BridgeHTTPServer((HOST, PORT), Handler)
     thread = threading.Thread(target=server.serve_forever, name="http-server", daemon=True)
     thread.start()
@@ -1553,6 +1713,7 @@ def cloudflared_reader(proc: subprocess.Popen[str], q: queue.Queue[str]) -> None
 
 
 def start_cloudflared() -> tuple[subprocess.Popen[str], str]:
+    deny_agentphone_execution()
     cloudflared = CONFIG.get("CLOUDFLARED_BIN", "/usr/local/bin/cloudflared")
     if not Path(cloudflared).exists():
         cloudflared = "cloudflared"
@@ -1578,6 +1739,7 @@ def start_cloudflared() -> tuple[subprocess.Popen[str], str]:
 
 
 def register_agent_webhook(public_url: str) -> dict[str, Any]:
+    deny_agentphone_execution()
     agent_id = require_config(CONFIG, "AGENTPHONE_AGENT_ID")
     hook_url = public_url.rstrip("/") + HOOK_PATH
     payload = {
@@ -1627,6 +1789,8 @@ def shutdown(server: BridgeHTTPServer | None = None) -> None:
 
 def main() -> int:
     global CONFIG, WEBHOOK_SECRET, PUBLIC_URL, CLOUDFLARED_PROC
+    print(AGENTPHONE_EXECUTION_DISABLED_REASON, file=sys.stderr)
+    return 78
     BRIDGE_DIR.mkdir(parents=True, exist_ok=True)
     CONFIG = load_config()
     for key in ("AGENTPHONE_API_KEY", "AGENTPHONE_AGENT_ID"):

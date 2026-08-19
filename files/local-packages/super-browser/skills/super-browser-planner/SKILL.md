@@ -14,11 +14,11 @@ Act as the developer/planning agent. Produce a decision-complete implementation 
 1. Run `super-browser plan --goal "<goal>"`.
 2. Read the returned `council_report`.
 3. Identify relevant provider specialists from `specialists_consulted`.
-4. Confirm each specialist recommendation: `use me`, `use me only as fallback`, `do not use me`, or `not enough proof`.
+4. Confirm each specialist recommendation: executable local lanes may report `use me` or `use me only as fallback`; hosted providers must report `comparison only — non-executable`.
 5. Enforce any provider allowlist or `max_cost_usd`; impossible constraints must fail planning.
 6. Run **3 to 5 deliberation loops** (direct=3, council=5). Read `council_report.review_loops`, `deliberation_complete`, `execution_pattern`, and `documented_recommendations`.
 7. Do not execute until `deliberation_complete` is true.
-8. Return a plan with provider order, exact missing env vars, approval gates, expected artifacts, and verification steps.
+8. Return separate `planning_comparison_sequence` and `execution_sequence` fields. Hosted providers never enter `execution_sequence`, expose credential requirements, or become executable through approval records.
 
 ## Output Contract
 
