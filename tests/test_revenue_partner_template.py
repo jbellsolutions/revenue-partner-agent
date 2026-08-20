@@ -833,20 +833,17 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
                     self.builder.template["template"]["name"] = original_name
 
                 publication_receipt = self.builder._PublicationReceipt(
-                    "pub-1", f"{self.builder.NAMESPACE}/{self.builder.NAME}@{self.builder.VERSION}",
-                    expected["publication_sha256"], {},
+                    f"{self.builder.NAMESPACE}/{self.builder.NAME}@{self.builder.VERSION}",
+                    expected["publication_sha256"], "2026-08-19T00:00:00Z", {},
                 )
-                build_receipt = self.builder._BuildReceipt(
-                    "build-1", "pub-1", publication_receipt.publication_sha256, {},
-                )
-                event_url = f"{self.builder.API_BASE}/templates/pub-1/builds/build-1/events"
+                event_url = f"{self.builder.API_BASE}/templates/{self.builder.NAMESPACE}/{self.builder.NAME}/{self.builder.VERSION}/build/events"
                 nonce = "ab" * 32
                 with (
                     mock.patch.object(self.builder, "HERE", str(directory_path)),
                     mock.patch.object(self.builder, "_assert_exact_assembled_tree", return_value=tree),
                 ):
                     event_statement = self.builder._operation_intent_statement(
-                        "events", "GET", event_url, None, publication_receipt, build_receipt, nonce
+                        "events", "GET", event_url, None, publication_receipt, nonce
                     )
                 event_signature = directory_path / "event.sig"
                 signed_event = subprocess.run(
@@ -876,9 +873,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
                     "method": "GET",
                     "url": event_url,
                     "body": None,
-                    "publication_id": publication_receipt.publication_id,
-                    "publication_sha256": publication_receipt.publication_sha256,
-                    "build_id": build_receipt.build_id,
+                    "publication_digest": publication_receipt.digest,
                     "intent_path": str(event_intent),
                 }
                 with (
@@ -942,7 +937,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
 
     def test_http_failures_are_not_reported_as_success(self):
         self.assertEqual(self.builder.API_BASE, "https://www.orgo.ai/api")
-        self.assertEqual(self.builder.VERSION, "1.0.0")
+        self.assertEqual(self.builder.VERSION, "1.0.1")
         self.assertFalse(hasattr(self.builder, "_ORGO_OPENER"))
         self.assertFalse(hasattr(self.builder, "_orgo_api_key"))
         entry_source = (ROOT / "release_entry.py").read_text()
@@ -1033,14 +1028,16 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             broker_exchange.assert_not_called()
         with mock.patch.object(self.builder, "_send_approved", return_value=(200, "{}")):
             self.assertFalse(self.builder.remote_validate(object()))
-        validation_digest = hashlib.sha256(self.builder._json_body_bytes(self.builder.template)).hexdigest()
         validation_body = json.dumps({
-            "valid": True,
-            "template_ref": f"{self.builder.NAMESPACE}/{self.builder.NAME}@{self.builder.VERSION}",
-            "template_sha256": validation_digest,
+            "ok": True,
+            "template": self.builder.template,
         })
         with mock.patch.object(self.builder, "_send_approved", return_value=(200, validation_body)):
             self.assertTrue(self.builder.remote_validate(object()))
+        with mock.patch.object(self.builder, "_send_approved", return_value=(200, json.dumps({"ok": True, "template": {"api_version": "orgo.ai/v1", "template": {"name": "wrong", "version": "9.9.9"}}}))):
+            self.assertFalse(self.builder.remote_validate(object()))
+        with mock.patch.object(self.builder, "_send_approved", return_value=(200, json.dumps({"ok": False, "errors": []}))):
+            self.assertFalse(self.builder.remote_validate(object()))
         with mock.patch.object(self.builder, "_send_approved", return_value=(409, "collision")):
             self.assertFalse(self.builder.publish(object()))
         with mock.patch.object(self.builder, "_send_approved", return_value=(500, "failed")):
@@ -1049,23 +1046,17 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         expected_ref = f"{self.builder.NAMESPACE}/{self.builder.NAME}@{self.builder.VERSION}"
         expected_digest = hashlib.sha256(self.builder.publication_body_bytes()).hexdigest()
         valid_publication = json.dumps(
-            {"publication_id": "pub-1", "template_ref": expected_ref, "publication_sha256": expected_digest}
+            {"ref": expected_ref, "digest": expected_digest, "published": "2026-08-19T00:00:00Z"}
         )
         receipt = self.builder._publication_receipt_from_response(200, valid_publication)
         self.assertTrue(self.builder._valid_publication_receipt(receipt))
         for body in (
             "{}",
             "[]",
-            json.dumps({"publication_id": "pub-1", "template_ref": "default/wrong@1.0.0"}),
-            json.dumps({"publication_id": "pub-1", "template_ref": expected_ref}),
-            json.dumps({"publication_id": "pub-1", "template_ref": expected_ref, "sha256": "0" * 64}),
-            json.dumps({
-                "publication_id": "pub-stale",
-                "data": {"publication_id": "pub-other", "template_ref": expected_ref,
-                         "publication_sha256": expected_digest},
-            }),
-            json.dumps({"publication_id": "pub-1", "template_id": "pub-1", "template_ref": expected_ref,
-                        "publication_sha256": expected_digest}),
+            json.dumps({"ref": "default/wrong@1.0.0", "digest": expected_digest, "published": "2026-08-19T00:00:00Z"}),
+            json.dumps({"ref": expected_ref, "digest": expected_digest}),
+            json.dumps({"ref": expected_ref, "digest": "0" * 64, "published": "2026-08-19T00:00:00Z"}),
+            json.dumps({"ref": expected_ref, "digest": expected_digest, "published": ""}),
         ):
             self.assertIsNone(self.builder._publication_receipt_from_response(200, body), body)
 
@@ -1093,7 +1084,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
                     self.builder._verify_remote_publication_receipt(receipt)
                 broker_exchange.assert_not_called()
         mismatched_readback = json.dumps(
-            {"publication_id": "pub-1", "template_ref": expected_ref, "publication_sha256": "0" * 64}
+            {"ref": expected_ref, "digest": "0" * 64, "published": "2026-08-19T00:00:00Z"}
         ).encode()
         with (
             mock.patch.object(self.builder, "_verify_release_clearance", return_value="a" * 40),
@@ -1108,7 +1099,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             mock.patch.object(self.builder, "_await_signed_operation_intent", return_value="/intent"),
             mock.patch.object(self.builder, "_broker_exchange", return_value=(200, mismatched_readback)),
         ):
-            with self.assertRaisesRegex(RuntimeError, "did not match ID, reference, and signed digest"):
+            with self.assertRaisesRegex(RuntimeError, "did not match reference and signed digest"):
                 self.builder._verify_remote_publication_receipt(receipt)
         with (
             mock.patch.object(self.builder, "_verify_release_clearance", return_value="a" * 40),
@@ -1118,10 +1109,12 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             ) as broker_exchange,
         ):
             readback = self.builder._verify_remote_publication_receipt(receipt)
-            self.assertEqual(readback.publication_id, "pub-1")
+            self.assertEqual(readback.digest, expected_digest)
             requested = broker_exchange.call_args.args
             self.assertEqual(requested[:4], (
-                "readback", "GET", f"{self.builder.API_BASE}/templates/pub-1", None
+                "readback", "GET",
+                f"{self.builder.API_BASE}/templates/{self.builder.NAMESPACE}/{self.builder.NAME}/{self.builder.VERSION}",
+                None,
             ))
         with mock.patch.object(self.builder, "_verify_release_clearance", return_value="a" * 40):
             build_request = self.builder.require_release_clearance(
@@ -1129,7 +1122,10 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
                 operation="build",
                 publication_receipt=receipt,
             )
-        self.assertEqual(build_request.url, f"{self.builder.API_BASE}/templates/pub-1/build")
+        self.assertEqual(
+            build_request.url,
+            f"{self.builder.API_BASE}/templates/{self.builder.NAMESPACE}/{self.builder.NAME}/{self.builder.VERSION}/build",
+        )
 
         with self.assertRaisesRegex(RuntimeError, "exceeds"):
             self.builder._read_bounded_response(
@@ -1184,7 +1180,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
 
         generic_ready_line = b'data: {"phase":"ready","level":"success"}\n'
         valid_build_response = json.dumps(
-            {"build_id": "build-1", "template_id": "pub-1", "publication_sha256": expected_digest}
+            {"ref": expected_ref, "digest": expected_digest, "status": "building"}
         )
         build_receipt = self.builder._build_receipt_from_response(200, valid_build_response, receipt)
         self.assertIsNotNone(build_receipt)
@@ -1192,18 +1188,14 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         self.assertIsNone(
             self.builder._build_receipt_from_response(
                 200,
-                json.dumps({"build_id": "build-1", "template_id": "wrong", "publication_sha256": expected_digest}),
+                json.dumps({"ref": "default/wrong@1.0.0", "digest": expected_digest, "status": "building"}),
                 receipt,
             )
         )
         self.assertIsNone(
             self.builder._build_receipt_from_response(
                 200,
-                json.dumps({
-                    "build_id": "build-stale",
-                    "data": {"build_id": "build-other", "template_id": "pub-1",
-                             "publication_sha256": expected_digest},
-                }),
+                json.dumps({"ref": expected_ref, "digest": expected_digest, "status": "failed"}),
                 receipt,
             )
         )
@@ -1218,28 +1210,26 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             self.assertFalse(self.builder.build_and_stream(build_capability, receipt))
         with mock.patch.object(self.builder, "_broker_exchange") as broker_exchange:
             with self.assertRaisesRegex(RuntimeError, "signed one-use event capability"):
-                self.builder._stream_build_events(None, receipt, build_receipt)
+                self.builder._stream_build_events(None, receipt)
             broker_exchange.assert_not_called()
         event_capability = self.builder._ApprovedRequest(
             "events",
             "GET",
-            f"{self.builder.API_BASE}/templates/pub-1/builds/build-1/events",
+            f"{self.builder.API_BASE}/templates/{self.builder.NAMESPACE}/{self.builder.NAME}/{self.builder.VERSION}/build/events",
             None,
             receipt,
-            build_receipt,
         )
         with mock.patch.dict(os.environ, {self.builder.REVIEW_ATTESTATIONS_ENV: ""}, clear=False):
             with mock.patch.object(self.builder, "_broker_exchange") as broker_exchange:
                 with self.assertRaisesRegex(RuntimeError, "REVENUE_PARTNER_REVIEW_ATTESTATIONS"):
-                    self.builder._stream_build_events(event_capability, receipt, build_receipt)
+                    self.builder._stream_build_events(event_capability, receipt)
                 broker_exchange.assert_not_called()
         event_capability = self.builder._ApprovedRequest(
             "events",
             "GET",
-            f"{self.builder.API_BASE}/templates/pub-1/builds/build-1/events",
+            f"{self.builder.API_BASE}/templates/{self.builder.NAMESPACE}/{self.builder.NAME}/{self.builder.VERSION}/build/events",
             None,
             receipt,
-            build_receipt,
         )
         with (
             mock.patch.object(self.builder, "_verify_remote_publication_receipt", return_value=receipt),
@@ -1247,43 +1237,42 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             mock.patch.object(self.builder, "_broker_exchange") as broker_exchange,
         ):
             with self.assertRaisesRegex(RuntimeError, "externally signed operation intent"):
-                self.builder._stream_build_events(event_capability, receipt, build_receipt)
+                self.builder._stream_build_events(event_capability, receipt)
             broker_exchange.assert_not_called()
         sse_error = TrackingHTTPError(b"event failure")
         event_capability = self.builder._ApprovedRequest(
             "events",
             "GET",
-            f"{self.builder.API_BASE}/templates/pub-1/builds/build-1/events",
+            f"{self.builder.API_BASE}/templates/{self.builder.NAMESPACE}/{self.builder.NAME}/{self.builder.VERSION}/build/events",
             None,
             receipt,
-            build_receipt,
         )
         with (
             mock.patch.object(self.builder, "_verify_remote_publication_receipt", return_value=receipt),
             mock.patch.object(self.builder, "_await_signed_operation_intent", return_value="/intent"),
             mock.patch.object(self.builder, "_broker_exchange", side_effect=RuntimeError("event failure")),
         ):
-            self.assertFalse(self.builder._stream_build_events(event_capability, receipt, build_receipt))
-        ready_line = b'data: {"phase":"ready","level":"success","build_id":"build-1"}\n'
-        self.assertFalse(self.builder._consume_build_events(EventResponse([generic_ready_line]), build_receipt))
-        self.assertTrue(self.builder._consume_build_events(EventResponse([ready_line]), build_receipt))
+            self.assertFalse(self.builder._stream_build_events(event_capability, receipt))
+        ready_line = b'data: {"phase":"ready","level":"success"}\n'
+        self.assertTrue(self.builder._consume_build_events(EventResponse([generic_ready_line])))
+        self.assertTrue(self.builder._consume_build_events(EventResponse([ready_line])))
         with self.assertRaisesRegex(RuntimeError, "line exceeded"):
             self.builder._consume_build_events(
-                EventResponse([b"x" * (self.builder.MAX_ORGO_SSE_LINE_BYTES + 1)]), build_receipt
+                EventResponse([b"x" * (self.builder.MAX_ORGO_SSE_LINE_BYTES + 1)])
             )
         with mock.patch.object(self.builder, "MAX_ORGO_SSE_TOTAL_BYTES", 4):
             with self.assertRaisesRegex(RuntimeError, "cumulative byte"):
-                self.builder._consume_build_events(EventResponse([b"abc\n", b"d\n"]), build_receipt)
+                self.builder._consume_build_events(EventResponse([b"abc\n", b"d\n"]))
         with mock.patch.object(self.builder, "MAX_ORGO_SSE_EVENTS", 1):
             with self.assertRaisesRegex(RuntimeError, "event-count"):
-                self.builder._consume_build_events(EventResponse([ready_line, ready_line]), build_receipt)
+                self.builder._consume_build_events(EventResponse([ready_line, ready_line]))
         with mock.patch.object(self.builder.time, "monotonic", side_effect=[0.0, 2.0]):
             with self.assertRaisesRegex(RuntimeError, "absolute deadline"):
-                self.builder._consume_build_events(EventResponse([]), build_receipt, deadline_seconds=1)
+                self.builder._consume_build_events(EventResponse([]), deadline_seconds=1)
 
         launch_body = self.builder._json_body_bytes(
             {"workspace_id": "workspace-1", "name": "revenue-partner-smoke", "template_ref": expected_ref,
-             "template_id": "pub-1", "ram": 4, "cpu": 1}
+             "ram": 4, "cpu": 1}
         )
         launch_capability = self.builder._ApprovedRequest(
             "launch", "POST", f"{self.builder.API_BASE}/computers", launch_body, receipt
@@ -1291,7 +1280,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         with mock.patch.object(self.builder, "_send_approved", return_value=(200, "{}")):
             self.assertFalse(self.builder.launch(launch_capability, receipt))
         launch_without_publication_id = json.dumps(
-            {"computer_id": "computer-1", "workspace_id": "workspace-1", "template_ref": expected_ref}
+            {"id": "computer-1", "workspace_id": "workspace-1"}
         )
         launch_capability = self.builder._ApprovedRequest(
             "launch", "POST", f"{self.builder.API_BASE}/computers", launch_body, receipt
@@ -1299,10 +1288,21 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         with mock.patch.object(
             self.builder, "_send_approved", return_value=(200, launch_without_publication_id)
         ):
+            self.assertTrue(self.builder.launch(launch_capability, receipt))
+        launch_path = ROOT / f"{self.builder.NAME}.launch.json"
+        launch_path.unlink(missing_ok=True)
+        wrong_workspace = json.dumps(
+            {"id": "computer-1", "workspace_id": "other-workspace"}
+        )
+        launch_capability = self.builder._ApprovedRequest(
+            "launch", "POST", f"{self.builder.API_BASE}/computers", launch_body, receipt
+        )
+        with mock.patch.object(
+            self.builder, "_send_approved", return_value=(200, wrong_workspace)
+        ):
             self.assertFalse(self.builder.launch(launch_capability, receipt))
         valid_launch = json.dumps(
-            {"computer_id": "computer-1", "workspace_id": "workspace-1", "template_ref": expected_ref,
-             "template_id": "pub-1"}
+            {"id": "computer-1", "workspace_id": "workspace-1", "status": "running"}
         )
         launch_capability = self.builder._ApprovedRequest(
             "launch", "POST", f"{self.builder.API_BASE}/computers", launch_body, receipt
@@ -1314,7 +1314,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         finally:
             launch_path.unlink(missing_ok=True)
 
-        mismatched_receipt = self.builder._PublicationReceipt("pub-2", expected_ref, expected_digest, {})
+        mismatched_receipt = self.builder._PublicationReceipt(expected_ref, "0" * 64, "2026-08-19T00:00:00Z", {})
         build_capability = self.builder._ApprovedRequest(
             "build", "POST", f"{self.builder.API_BASE}/templates/x/build", None, receipt
         )
@@ -1437,9 +1437,9 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
 
         broker_side, client_side = socket.socketpair()
         publish_response_body = json.dumps({
-            "publication_id": "pub-1",
-            "template_ref": f"{broker.NAMESPACE}/{broker.NAME}@{broker.VERSION}",
-            "publication_sha256": publication_digest,
+            "ref": f"{broker.NAMESPACE}/{broker.NAME}@{broker.VERSION}",
+            "digest": publication_digest,
+            "published": "2026-08-19T00:00:00Z",
         }).encode()
         response = TrackingResponse(publish_response_body)
         order = []
@@ -1449,9 +1449,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             "method": "POST",
             "url": f"{broker.API_BASE}/templates",
             "body": publication_bytes,
-            "publication_id": None,
-            "publication_sha256": None,
-            "build_id": None,
+            "publication_digest": None,
             "intent_path": "/intent",
             "key_sha256": broker.broker_key_sha256(placeholder_key),
             "workspace_id": None,
@@ -1528,18 +1526,18 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         artifact_digest = hashlib.sha256(self.builder.resolved_artifact_bytes()).hexdigest()
         publication_digest = hashlib.sha256(publication_bytes).hexdigest()
         sse_body = (
-            b'data: {"phase":"building","level":"info","build_id":"build-1"}\n\n'
-            b'data: {"phase":"ready","level":"success","build_id":"build-1"}\n\n'
+            b'data: {"phase":"building","level":"info"}\n\n'
+            b'data: {"phase":"ready","level":"success"}\n\n'
         )
         # Direct semantic validation must skip JSON parsing for events.
         broker.validate_response_semantics(
-            {"operation": "events", "build_id": "build-1", "publication_id": "pub-1"},
+            {"operation": "events", "publication_digest": publication_digest},
             200,
             sse_body,
             publication_digest,
-            "d" * 64,
+            json.loads(self.builder.resolved_artifact_bytes()),
         )
-        ready, failed = broker.parse_sse_events(sse_body, "build-1")
+        ready, failed = broker.parse_sse_events(sse_body)
         self.assertTrue(ready)
         self.assertFalse(failed)
 
@@ -1578,11 +1576,9 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         canonical_request = {
             "operation": "events",
             "method": "GET",
-            "url": f"{broker.API_BASE}/builds/build-1/events",
+            "url": f"{broker.API_BASE}/templates/{broker.NAMESPACE}/{broker.NAME}/{broker.VERSION}/build/events",
             "body": None,
-            "publication_id": "pub-1",
-            "publication_sha256": publication_digest,
-            "build_id": "build-1",
+            "publication_digest": publication_digest,
             "intent_path": "/intent",
             "key_sha256": broker.broker_key_sha256(placeholder_key),
             "workspace_id": None,
@@ -1590,10 +1586,10 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         events_message = {
             "operation": "events",
             "method": "GET",
-            "url": f"{broker.API_BASE}/builds/build-1/events",
+            "url": f"{broker.API_BASE}/templates/{broker.NAMESPACE}/{broker.NAME}/{broker.VERSION}/build/events",
             "body_b64": None,
-            "publication": {"publication_id": "pub-1", "publication_sha256": publication_digest},
-            "build": {"build_id": "build-1", "publication_id": "pub-1", "publication_sha256": publication_digest},
+            "publication": {"ref": f"{broker.NAMESPACE}/{broker.NAME}@{broker.VERSION}", "digest": publication_digest},
+            "build": None,
             "intent_path": "/intent",
             "key_sha256": broker.broker_key_sha256(placeholder_key),
         }
@@ -1651,7 +1647,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         self.assertEqual(order[:2], ["reviews", "intent"])
         self.assertEqual(
             order[2],
-            ("open", f"{broker.API_BASE}/builds/build-1/events", "GET", None),
+            ("open", f"{broker.API_BASE}/templates/{broker.NAMESPACE}/{broker.NAME}/{broker.VERSION}/build/events", "GET", None),
         )
         json_line, mac_line = reply.split(b"\n", 1)
         record = json.loads(json_line)
@@ -1659,6 +1655,50 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         self.assertEqual(base64.b64decode(record["body_b64"]), sse_body)
         expected_mac = hmac.new(b"ef" * 32, json_line + b"\n", hashlib.sha256).hexdigest()
         self.assertEqual(mac_line.decode("ascii").strip(), expected_mac)
+
+    def test_broker_validate_response_binds_exact_template_inventory(self):
+        # Regression for the P1 where the validate branch referenced an
+        # undefined `template` name and deterministically raised NameError.
+        broker_spec = importlib.util.spec_from_file_location(
+            "orgo_release_broker_validate_test", ROOT / ".github/scripts/orgo_release_broker.py"
+        )
+        assert broker_spec and broker_spec.loader
+        broker = importlib.util.module_from_spec(broker_spec)
+        broker_spec.loader.exec_module(broker)
+        template = json.loads(self.builder.resolved_artifact_bytes())
+        publication_digest = hashlib.sha256(self.builder.publication_body_bytes()).hexdigest()
+        request = {"operation": "validate", "publication_digest": publication_digest}
+        echoed = {
+            "ok": True,
+            "template": {
+                "api_version": "orgo.ai/v1",
+                "template": {"name": broker.NAME, "version": broker.VERSION},
+                "files": [{"to": entry["to"]} for entry in template["files"]],
+            },
+        }
+        # A correctly-shaped live response must pass without raising.
+        broker.validate_response_semantics(
+            request, 200, json.dumps(echoed).encode(), publication_digest, template
+        )
+        # A file inventory that does not match the exact template bytes must fail closed.
+        wrong_inventory = json.loads(json.dumps(echoed))
+        wrong_inventory["template"]["files"] = wrong_inventory["template"]["files"][:-1]
+        with self.assertRaisesRegex(RuntimeError, "file inventory"):
+            broker.validate_response_semantics(
+                request, 200, json.dumps(wrong_inventory).encode(), publication_digest, template
+            )
+        # A wrong name/version binding must fail closed.
+        wrong_reference = json.loads(json.dumps(echoed))
+        wrong_reference["template"]["template"]["version"] = "9.9.9"
+        with self.assertRaisesRegex(RuntimeError, "canonical template reference"):
+            broker.validate_response_semantics(
+                request, 200, json.dumps(wrong_reference).encode(), publication_digest, template
+            )
+        # A 2xx without `ok: true` must fail closed.
+        with self.assertRaisesRegex(RuntimeError, "bound acceptance"):
+            broker.validate_response_semantics(
+                request, 200, json.dumps({"ok": False}).encode(), publication_digest, template
+            )
 
     def test_release_path_scrubs_home_and_git_config_from_subprocesses(self):
         broker_spec = importlib.util.spec_from_file_location(
@@ -2058,8 +2098,7 @@ print("LATITUDE_HTTP_ERROR closed=True")
                 "url": f"{broker.API_BASE}/templates",
                 "body_sha256": hashlib.sha256(b"x").hexdigest(),
                 "template_ref": broker.CANONICAL_REF,
-                "publication_id": None,
-                "build_id": None,
+                "publication_digest": None,
                 "tree": "a" * 40,
                 "artifact_sha256": "b" * 64,
                 "publication_sha256": "c" * 64,
@@ -2074,9 +2113,7 @@ print("LATITUDE_HTTP_ERROR closed=True")
                 "method": "POST",
                 "url": f"{broker.API_BASE}/templates",
                 "body": b"x",
-                "publication_id": None,
-                "publication_sha256": None,
-                "build_id": None,
+                "publication_digest": None,
                 "intent_path": str(intent),
             }
             marker = ledger / nonce

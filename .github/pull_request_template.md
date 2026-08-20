@@ -34,7 +34,7 @@
 ## Deployment status
 
 - Authenticated remote validation:
-- Publication ID:
+- Publication reference/digest:
 - Image build status:
 - Computer ID/live endpoint:
 - Live smoke evidence:

@@ -59,7 +59,7 @@ Canonical files:
 | [Contributing](CONTRIBUTING.md) | Development, testing, and review requirements |
 | [Security policy](SECURITY.md) | Private vulnerability reporting |
 
-> **Release identity:** this source snapshot is the `1.0.0` candidate, but repository files do not establish whether a GitHub tag/release or Orgo publication/build/launch exists. Determine live status through remote readback. A pre-release authenticated Orgo check accepted the schema but found the workspace lacked template-publishing entitlement; that historical result is neither publication nor a current entitlement claim.
+> **Release identity:** this source snapshot is the `1.0.1` candidate, but repository files do not establish whether a GitHub tag/release or Orgo publication/build/launch exists. Determine live status through remote readback. A pre-release authenticated Orgo check accepted the schema but found the workspace lacked template-publishing entitlement; that historical result is neither publication nor a current entitlement claim.
 
 Build and test:
 
@@ -193,7 +193,7 @@ LOCKED_RELEASE_PY="$PWD/.artifacts/release-venv/bin/python"
     release_entry.py --build --launch 'WORKSPACE_ID'
 ```
 
-Replace `'WORKSPACE_ID'` with the literal non-secret workspace ID. Omit `--launch 'WORKSPACE_ID'` to stop after a ready build. Launch cannot run as a later standalone command: it must consume the validated immutable publication ID returned by the successful publish in that same process.
+Replace `'WORKSPACE_ID'` with the literal non-secret workspace ID. Omit `--launch 'WORKSPACE_ID'` to stop after a ready build. Launch cannot run as a later standalone command: it must consume the validated immutable `namespace/name@version` reference and content digest returned by the successful publish in that same process.
 
 <details>
 <summary><b>Make it yours — what's in <code>files/</code></b></summary>
@@ -207,7 +207,7 @@ Replace `'WORKSPACE_ID'` with the literal non-secret workspace ID. Omit `--launc
 
 Edit those, bump the `VERSION` constant, rerun `REVENUE_PARTNER_VERIFY_PYTHON=/absolute/path/to/trusted/python3.11 bash .github/scripts/verify_release`, and then use the lock-backed safe-environment publication command in the [deployment guide](docs/DEPLOYMENT.md).
 
-`build_template.py` drives the full **publish → immutable-ID digest readback → immutable-ID build → job-bound stream → optional readback-gated immutable-ID launch** flow against the Orgo REST API (the `orgo` CLI has no template commands — REST is the path). It rejects empty/mismatched 2xx responses, version collisions, stale friendly references, oversized response bodies, unbound build events, and unbounded build-event streams. The big file trees ship inside one deterministic base64 tarball — the publish endpoint caps the request body around 1 MB.
+`build_template.py` drives the full **publish → reference/digest readback → reference/digest build → reference-bound event stream → optional readback-gated reference/digest launch** flow against the Orgo REST API (the `orgo` CLI has no template commands — REST is the path). It rejects empty/mismatched 2xx responses, version collisions, stale friendly references, oversized response bodies, unbound build events, and unbounded build-event streams. The big file trees ship inside one deterministic base64 tarball — the publish endpoint caps the request body around 1 MB.
 
 </details>
 

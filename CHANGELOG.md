@@ -4,6 +4,16 @@ All notable changes to Revenue Partner Agent are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and releases use semantic versioning.
 
+## [1.0.1] - Live API contract remediation
+
+### Fixed
+
+- Release transport response contracts aligned with the live Orgo API: validation accepts `{ok, template}` with a bound file inventory; publication/readback bind `{ref, digest, published}`; build binds `{ref, digest, status}`; build events use the canonical `…/build/events` SSE endpoint; launch binds the computer `id` and `workspace_id` from the live response shape.
+- Publication digest is re-verified against the signed publication bytes in both the builder and the isolated broker.
+- Removed the fabricated publication-ID/build-ID identity model; the immutable `namespace/name@version` reference plus content digest is the binding identity.
+- The broker validate response parser now binds the echoed file inventory against the exact template bytes instead of referencing an undefined name.
+- `release_entry.py` now forks before inspecting any credential value; each child computes the credential digest from its own environment copy and the builder child drops the key before `execve`.
+
 ## [1.0.0] - Release candidate
 
 ### Added
@@ -49,4 +59,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - GitHub publication and CI are tracked separately from Orgo deployment.
 - Orgo template publication was not completed because the authenticated workspace tier lacked template-publishing entitlement.
-- No Orgo publication ID, image-ready event, computer ID, live endpoint, or live smoke result is claimed for 1.0.0 yet.
+- No Orgo publication reference/digest, image-ready event, computer ID, live endpoint, or live smoke result is claimed for 1.0.1 yet.

@@ -6,8 +6,8 @@ A local green suite, an authenticated schema response, a published template, a r
 
 ## Release identity
 
-- Template: `default/revenue-partner-agent@1.0.0`
-- Intended canonical source identity after publication: GitHub tag `v1.0.0`
+- Template: `default/revenue-partner-agent@1.0.1`
+- Intended canonical source identity after publication: GitHub tag `v1.0.1`
 - Exact commit/tree, resolved-artifact size/checksum, credential scan, and final independent-review verdict must be read back from GitHub release notes before publication is claimed
 - Runtime target: Linux x86_64 / Python 3.11
 
@@ -34,7 +34,7 @@ Older candidate hashes and artifact sizes are intentionally not presented as cur
 | Resolved body | Recorded in release notes | Exact final candidate output |
 | Exact staged credential scan | 0 matches | Actual supplied values and credential-shape patterns |
 | Independent security/correctness review | Recorded in release notes | Exact immutable release candidate |
-| Orgo template publication | Blocked by account tier | `403 UPGRADE_REQUIRED`; no publication ID |
+| Orgo template publication | Blocked by account tier | `403 UPGRADE_REQUIRED`; no publication reference/digest |
 | Image build | Not run | Publication did not occur |
 | Computer launch | Not run | No published template |
 | Live smoke | Not run | No live computer |
@@ -74,8 +74,8 @@ Allowed:
 
 - “GitHub source published and CI verified” after remote readback and CI pass.
 - “Orgo schema validated” after authenticated `200`.
-- “Orgo template published” only after a non-empty publication ID, exact template reference, and server digest matching the signed publication bytes are validated from a bounded response.
-- “Image ready” only after immutable-ID remote readback matches the signed reference/digest, the build response binds a build/job ID to that publication ID and digest, and a second-readback-gated bounded event for that exact job reaches explicit success/ready before the absolute deadline.
-- “Live deployment proven” only after another immutable-ID remote readback matches the signed bytes, launch submits that publication ID, and a matching computer ID, workspace ID, template reference, publication ID, runtime, and conversational smoke tests pass.
+- “Orgo template published” only after the response binds the exact `namespace/name@version` reference, a server digest matching the signed publication bytes, and a published timestamp, validated from a bounded response.
+- “Image ready” only after immutable-reference remote readback matches the signed reference/digest, the build response binds the same reference/digest with a `building` or `ready` status, and a second-readback-gated bounded event stream for that exact reference reaches explicit success/ready before the absolute deadline.
+- “Live deployment proven” only after another immutable-reference remote readback matches the signed bytes, launch submits that reference, and a matching computer ID, workspace ID, runtime, and conversational smoke tests pass.
 
-Current 1.0.0 status is **implemented and locally verified; authenticated validation is not evidenced for this exact tree; exact GitHub publication/review evidence is release-bound; not yet published or live on Orgo**.
+Current 1.0.1 status is **implemented and locally verified; authenticated validation is not evidenced for this exact tree; exact GitHub publication/review evidence is release-bound; not yet published or live on Orgo**.

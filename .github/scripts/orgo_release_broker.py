@@ -34,7 +34,7 @@ BROKER_SECRET_ENV = "REVENUE_PARTNER_BROKER_SECRET"
 API_BASE = "https://www.orgo.ai/api"
 NAMESPACE = "default"
 NAME = "revenue-partner-agent"
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 CANONICAL_REF = f"{NAMESPACE}/{NAME}@{VERSION}"
 EXTERNAL_POLICY = Path("/etc/revenue-partner/reviewers.allowed_signers")
 SIGNATURE_NAMESPACE = "revenue-partner-operation"
@@ -218,47 +218,38 @@ def validate_request(message: dict, template: dict, publication: bytes) -> tuple
         raise fail("broker request body is invalid")
     publication_record = message["publication"]
     build_record = message["build"]
-    publication_id = None
     publication_digest = None
     if publication_record is not None:
-        if not isinstance(publication_record, dict) or set(publication_record) != {"publication_id", "template_ref", "publication_sha256"}:
+        if not isinstance(publication_record, dict) or set(publication_record) != {"ref", "digest"}:
             raise fail("broker publication identity is malformed")
-        publication_id = bounded_identity(publication_record["publication_id"], "publication ID")
-        if publication_record["template_ref"] != CANONICAL_REF:
+        if publication_record["ref"] != CANONICAL_REF:
             raise fail("broker publication reference is invalid")
-        publication_digest = publication_record["publication_sha256"]
-    build_id = None
+        publication_digest = publication_record["digest"]
+        if re.fullmatch(r"[0-9a-f]{64}", publication_digest or "") is None:
+            raise fail("broker publication digest is invalid")
     if build_record is not None:
-        if not isinstance(build_record, dict) or set(build_record) != {"build_id", "publication_id", "publication_sha256"}:
-            raise fail("broker build identity is malformed")
-        build_id = bounded_identity(build_record["build_id"], "build ID")
-        if build_record["publication_id"] != publication_id or build_record["publication_sha256"] != publication_digest:
-            raise fail("broker build identity does not bind publication")
+        raise fail("broker operation received unexpected build identity")
 
     template_bytes = json.dumps(template, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     if operation == "validate":
-        expected = ("POST", f"{API_BASE}/templates/validate", template_bytes, False, False)
+        expected = ("POST", f"{API_BASE}/templates/validate", template_bytes, False)
     elif operation == "publish":
-        expected = ("POST", f"{API_BASE}/templates", publication, False, False)
+        expected = ("POST", f"{API_BASE}/templates", publication, False)
     elif operation == "readback":
-        expected = ("GET", f"{API_BASE}/templates/{publication_id}", None, True, False)
+        expected = ("GET", f"{API_BASE}/templates/{NAMESPACE}/{NAME}/{VERSION}", None, True)
     elif operation == "build":
-        expected = ("POST", f"{API_BASE}/templates/{publication_id}/build", None, True, False)
+        expected = ("POST", f"{API_BASE}/templates/{NAMESPACE}/{NAME}/{VERSION}/build", None, True)
     elif operation == "events":
-        expected = ("GET", f"{API_BASE}/templates/{publication_id}/builds/{build_id}/events", None, True, True)
+        expected = ("GET", f"{API_BASE}/templates/{NAMESPACE}/{NAME}/{VERSION}/build/events", None, True)
     else:
-        expected = ("POST", f"{API_BASE}/computers", body, True, False)
-    expected_method, expected_url, expected_body, needs_publication, needs_build = expected
+        expected = ("POST", f"{API_BASE}/computers", body, True)
+    expected_method, expected_url, expected_body, needs_publication = expected
     if method != expected_method or url != expected_url or body != expected_body:
         raise fail("broker request does not match canonical operation bytes")
-    if needs_publication and publication_id is None:
+    if needs_publication and publication_digest is None:
         raise fail("broker operation requires publication identity")
-    if needs_build and build_id is None:
-        raise fail("broker operation requires build identity")
     if not needs_publication and publication_record is not None:
         raise fail("broker operation received unexpected publication identity")
-    if not needs_build and build_record is not None:
-        raise fail("broker operation received unexpected build identity")
     launch = None
     if operation == "launch":
         if not isinstance(body, (bytes, bytearray)):
@@ -267,12 +258,11 @@ def validate_request(message: dict, template: dict, publication: bytes) -> tuple
             launch = json.loads(body)
         except (TypeError, UnicodeError, json.JSONDecodeError) as exc:
             raise fail("broker launch body is invalid") from exc
-        expected_keys = {"workspace_id", "name", "template_ref", "template_id", "ram", "cpu"}
+        expected_keys = {"workspace_id", "name", "template_ref", "ram", "cpu"}
         if set(launch) != expected_keys or launch != {
             "workspace_id": launch.get("workspace_id"),
             "name": "revenue-partner-smoke",
             "template_ref": CANONICAL_REF,
-            "template_id": publication_id,
             "ram": 4,
             "cpu": 1,
         }:
@@ -283,9 +273,7 @@ def validate_request(message: dict, template: dict, publication: bytes) -> tuple
         "method": method,
         "url": url,
         "body": body,
-        "publication_id": publication_id,
-        "publication_sha256": publication_digest,
-        "build_id": build_id,
+        "publication_digest": publication_digest,
         "intent_path": message["intent_path"],
         "key_sha256": key_sha256,
         "workspace_id": launch["workspace_id"] if launch is not None else None,
@@ -425,8 +413,7 @@ def consume_intent(request: dict, tree: str, artifact_digest: str, publication_d
         "url": request["url"],
         "body_sha256": hashlib.sha256(request["body"]).hexdigest() if request["body"] is not None else None,
         "template_ref": CANONICAL_REF,
-        "publication_id": request["publication_id"],
-        "build_id": request["build_id"],
+        "publication_digest": request["publication_digest"],
         "tree": tree,
         "artifact_sha256": artifact_digest,
         "publication_sha256": publication_digest,
@@ -482,37 +469,7 @@ def send_frame(sock: socket.socket, payload: dict) -> None:
     sock.sendall(raw + mac)
 
 
-def _identity_object(payload: dict, identity_keys: set[str]) -> dict:
-    matches = []
-
-    def visit(value):
-        if isinstance(value, dict):
-            if any(key in value for key in identity_keys):
-                matches.append(value)
-            for nested in value.values():
-                visit(nested)
-        elif isinstance(value, list):
-            for nested in value:
-                visit(nested)
-
-    visit(payload)
-    if len(matches) != 1:
-        raise fail("broker response must contain exactly one co-resident identity object")
-    return matches[0]
-
-
-def _alias_value(identity: dict, *names: str, required: bool = True):
-    present = [(name, identity[name]) for name in names if name in identity and identity[name] not in (None, "")]
-    if len(present) > 1:
-        raise fail("broker response duplicate identity aliases are prohibited")
-    if not present:
-        if required:
-            raise fail("broker response required identity field is missing")
-        return None
-    return present[0][1]
-
-
-def validate_response_semantics(request: dict, status: int, body: bytes, publication_digest: str, template_digest: str) -> None:
+def validate_response_semantics(request: dict, status: int, body: bytes, publication_digest: str, template: dict) -> None:
     if status < 200 or status >= 300:
         return
     if request["operation"] == "events":
@@ -526,54 +483,60 @@ def validate_response_semantics(request: dict, status: int, body: bytes, publica
         raise fail("broker response must be a JSON object")
     operation = request["operation"]
     if operation == "validate":
-        identity = _identity_object(payload, {"valid", "template_ref", "ref", "template_sha256", "sha256", "checksum"})
-        valid = _alias_value(identity, "valid")
-        template_ref = _alias_value(identity, "template_ref", "ref")
-        digest = _alias_value(identity, "template_sha256", "sha256", "checksum")
-        if valid is not True or template_ref != CANONICAL_REF:
+        if payload.get("ok") is not True:
             raise fail("broker validation response is not a bound acceptance")
-        if str(digest).lower().removeprefix("sha256:") != template_digest:
-            raise fail("broker validation response digest does not match exact template bytes")
+        echoed = payload.get("template")
+        if not isinstance(echoed, dict) or not isinstance(echoed.get("template"), dict):
+            raise fail("broker validation response template is malformed")
+        if echoed.get("api_version") != "orgo.ai/v1":
+            raise fail("broker validation response api_version is invalid")
+        if echoed["template"].get("name") != NAME or str(echoed["template"].get("version", "")) != VERSION:
+            raise fail("broker validation response does not bind the canonical template reference")
+        echoed_files = echoed.get("files")
+        if not isinstance(echoed_files, list) or len(echoed_files) != len(template["files"]):
+            raise fail("broker validation response file inventory does not match exact template bytes")
+        expected_targets = {entry["to"] for entry in template["files"]}
+        echoed_targets = {entry.get("to") for entry in echoed_files if isinstance(entry, dict)}
+        if echoed_targets != expected_targets:
+            raise fail("broker validation response file targets do not match exact template bytes")
     elif operation == "publish":
-        identity = _identity_object(payload, {"publication_id", "template_id", "id", "template_ref", "ref", "publication_sha256", "sha256", "checksum"})
-        publication_id = _alias_value(identity, "publication_id", "template_id", "id")
-        template_ref = _alias_value(identity, "template_ref", "ref")
-        digest = _alias_value(identity, "publication_sha256", "sha256", "checksum")
-        if not str(publication_id).strip() or template_ref != CANONICAL_REF:
-            raise fail("broker publication response identity is invalid")
-        if str(digest).lower().removeprefix("sha256:") != publication_digest:
+        if payload.get("ref") != CANONICAL_REF:
+            raise fail("broker publication response reference is invalid")
+        digest = payload.get("digest")
+        if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+            raise fail("broker publication response digest is invalid")
+        if digest != publication_digest:
             raise fail("broker publication response digest does not match signed publication bytes")
+        if not isinstance(payload.get("published"), str) or not payload["published"]:
+            raise fail("broker publication response lacks a published timestamp")
     elif operation == "readback":
-        identity = _identity_object(payload, {"publication_id", "template_id", "id", "template_ref", "ref", "publication_sha256", "sha256", "checksum"})
-        publication_id = _alias_value(identity, "publication_id", "template_id", "id")
-        template_ref = _alias_value(identity, "template_ref", "ref")
-        digest = _alias_value(identity, "publication_sha256", "sha256", "checksum")
-        if str(publication_id) != request["publication_id"] or template_ref != CANONICAL_REF:
-            raise fail("broker readback response does not match the immutable publication identity")
-        if str(digest).lower().removeprefix("sha256:") != publication_digest:
+        if payload.get("ref") != CANONICAL_REF:
+            raise fail("broker readback response reference is invalid")
+        digest = payload.get("digest")
+        if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+            raise fail("broker readback response digest is invalid")
+        if digest != publication_digest:
             raise fail("broker readback response digest does not match signed publication bytes")
     elif operation == "build":
-        identity = _identity_object(payload, {"build_id", "job_id", "publication_id", "template_id", "publication_sha256", "sha256", "checksum"})
-        build_id = _alias_value(identity, "build_id", "job_id")
-        publication_id = _alias_value(identity, "publication_id", "template_id")
-        digest = _alias_value(identity, "publication_sha256", "sha256", "checksum")
-        if not str(build_id).strip() or str(publication_id) != request["publication_id"]:
-            raise fail("broker build response does not bind the immutable publication identity")
-        if str(digest).lower().removeprefix("sha256:") != publication_digest:
+        if payload.get("ref") != CANONICAL_REF:
+            raise fail("broker build response reference is invalid")
+        digest = payload.get("digest")
+        if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+            raise fail("broker build response digest is invalid")
+        if digest != publication_digest:
             raise fail("broker build response digest does not match signed publication bytes")
+        if payload.get("status") not in {"building", "ready"}:
+            raise fail("broker build response status is invalid")
     elif operation == "launch":
-        identity = _identity_object(payload, {"computer_id", "id", "workspace_id", "template_ref", "publication_id", "template_id"})
-        computer_id = _alias_value(identity, "computer_id", "id")
-        workspace_id = _alias_value(identity, "workspace_id")
-        template_ref = _alias_value(identity, "template_ref")
-        template_id = _alias_value(identity, "publication_id", "template_id")
-        if not str(computer_id).strip() or str(workspace_id) != request["workspace_id"]:
+        computer_id = payload.get("id")
+        workspace_id = payload.get("workspace_id")
+        if not isinstance(computer_id, (str, int)) or not str(computer_id).strip():
+            raise fail("broker launch response computer ID is missing")
+        if str(workspace_id) != request["workspace_id"]:
             raise fail("broker launch response does not bind the requested workspace")
-        if template_ref != CANONICAL_REF or str(template_id) != request["publication_id"]:
-            raise fail("broker launch response does not bind the immutable publication identity")
 
 
-def parse_sse_events(body: bytes, build_id: str) -> tuple[bool, bool]:
+def parse_sse_events(body: bytes) -> tuple[bool, bool]:
     """Parse a bounded SSE body inside the broker; return (ready, failed)."""
     started = time.monotonic()
     total_bytes = 0
@@ -599,12 +562,8 @@ def parse_sse_events(body: bytes, build_id: str) -> tuple[bool, bool]:
         except json.JSONDecodeError:
             event = {}
         if event.get("phase") == "ready" and event.get("level") == "success":
-            event_build_id = str(event.get("build_id") or event.get("job_id") or "")
-            if event_build_id == build_id:
-                ready = True
-            else:
-                failed = True
-        if event.get("phase") == "failed" or event.get("level") == "error":
+            ready = True
+        if event.get("phase") in {"failed", "cancel", "timeout"} or event.get("level") == "error":
             failed = True
         if "build failed" in text.lower() or '"failed"' in text:
             failed = True
@@ -677,7 +636,7 @@ def main() -> int:
             tree = exact_tree()
             artifact_digest, publication_digest, template, publication = canonical_products()
             request, body = validate_request(message, template, publication)
-            if request["publication_sha256"] is not None and request["publication_sha256"] != publication_digest:
+            if request["publication_digest"] is not None and request["publication_digest"] != publication_digest:
                 raise fail("broker publication identity digest does not match exact bytes")
             verify_reviews(tree, artifact_digest, publication_digest)
             consume_intent(request, tree, artifact_digest, publication_digest)
@@ -704,12 +663,9 @@ def main() -> int:
                 response = exc
             try:
                 status, response_body = read_bounded_response(response, request["operation"])
-                template_digest = hashlib.sha256(
-                    json.dumps(template, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-                ).hexdigest()
-                validate_response_semantics(request, status, response_body, publication_digest, template_digest)
+                validate_response_semantics(request, status, response_body, publication_digest, template)
                 if request["operation"] == "events":
-                    ready, failed = parse_sse_events(response_body, request["build_id"])
+                    ready, failed = parse_sse_events(response_body)
                     if not ready or failed:
                         raise fail("broker build event stream did not reach a bound ready state")
             finally:
