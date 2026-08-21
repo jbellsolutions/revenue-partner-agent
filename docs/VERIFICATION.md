@@ -6,8 +6,8 @@ A local green suite, an authenticated schema response, a published template, a r
 
 ## Release identity
 
-- Template: `default/revenue-partner-agent@1.0.0`
-- Intended canonical source identity after publication: GitHub tag `v1.0.0`
+- Template: `default/revenue-partner-agent@1.0.1`
+- Intended canonical source identity after publication: GitHub tag `v1.0.1`
 - Exact commit/tree, resolved-artifact size/checksum, credential scan, and final independent-review verdict must be read back from GitHub release notes before publication is claimed
 - Runtime target: Linux x86_64 / Python 3.11
 
@@ -30,14 +30,37 @@ Older candidate hashes and artifact sizes are intentionally not presented as cur
 | Markdown/HTML local links and assets | 43 resolved | Count derived by `.github/scripts/check_markdown_links.py`; Markdown links/images plus HTML `src`/`href` references |
 | Exact candidate export | Passed | Non-Python launcher rejects tracked/index differences and non-ignored untracked files, captures `git write-tree`, verifies archive parity, and runs all tests/builds inside that export |
 | Local JSON Schema | Passed | Disposable environment populated from `requirements-ci.lock` under `--require-hashes` |
-| Authenticated Orgo validation | Not evidenced for this exact tree | Source and clean-export matrices establish local schema acceptance only |
+| Authenticated Orgo validation | Passed for this exact tree | `POST /api/templates/validate` returned HTTP `200` with `ok: true`, `api_version: orgo.ai/v1`, the echoed `revenue-partner-agent@1.0.1` identity, and the bound 23-entry file inventory. Exact bytes below. Schema acceptance only — not publication, image readiness, launch, or live runtime |
 | Resolved body | Recorded in release notes | Exact final candidate output |
 | Exact staged credential scan | 0 matches | Actual supplied values and credential-shape patterns |
 | Independent security/correctness review | Recorded in release notes | Exact immutable release candidate |
-| Orgo template publication | Blocked by account tier | `403 UPGRADE_REQUIRED`; no publication ID |
+| Orgo template publication | Blocked by account tier | `403 UPGRADE_REQUIRED`; no publication reference/digest. Publishing requires an Orgo **Scale** plan; the authenticated workspace is `hacker_v2`. Independently confirmed read-side: `GET /api/templates` returns `{"templates":[]}` and `GET /api/templates/default/revenue-partner-agent/1.0.1` returns `404 not found` |
 | Image build | Not run | Publication did not occur |
 | Computer launch | Not run | No published template |
 | Live smoke | Not run | No live computer |
+
+## Authenticated validation evidence (1.0.1)
+
+Recorded from a direct authenticated call to the documented side-effect-free validation endpoint.
+The transport was the exact assembled bytes, not a paraphrase.
+
+| Field | Value |
+|---|---|
+| Exact Git tree | `065ed69653b255b46e6c606d61fdbb6fdbcb60dc` |
+| Resolved artifact SHA-256 | `5b399ff50a0212c24298f22b4ccb6450b8a8b34a23a44a97916b4dc9af2495ea` |
+| Validation body SHA-256 | `31e318a57d758a47d726da83c23ea8a2a44cd156cbc59acd27e7003eefdb46da` (528,156 bytes) |
+| Publication body SHA-256 | `07bee3a939e38841c2a86cbe06b678b16a42e6240d3d20012ea6e81d6c109f46` (528,240 bytes) |
+| Endpoint | `POST https://www.orgo.ai/api/templates/validate` |
+| Status | `200` |
+| Response | `ok: true`; `api_version: orgo.ai/v1`; `revenue-partner-agent@1.0.1`; 23-entry file inventory echoed |
+
+The artifact was regenerated from the exact Git index immediately after the call and compared
+byte-for-byte against the transmitted bytes; the digests are identical, so the `200` binds this tree
+rather than a stale build output.
+
+Scope boundary, stated explicitly so this gate is not read as more than it is: **schema acceptance
+only.** It is not publication, not a digest, not image readiness, not a launch, and not live runtime
+proof. Publication remains blocked by account tier, and the account holds no published template.
 
 ## Reproduce locally
 
@@ -74,8 +97,8 @@ Allowed:
 
 - “GitHub source published and CI verified” after remote readback and CI pass.
 - “Orgo schema validated” after authenticated `200`.
-- “Orgo template published” only after a non-empty publication ID, exact template reference, and server digest matching the signed publication bytes are validated from a bounded response.
-- “Image ready” only after immutable-ID remote readback matches the signed reference/digest, the build response binds a build/job ID to that publication ID and digest, and a second-readback-gated bounded event for that exact job reaches explicit success/ready before the absolute deadline.
-- “Live deployment proven” only after another immutable-ID remote readback matches the signed bytes, launch submits that publication ID, and a matching computer ID, workspace ID, template reference, publication ID, runtime, and conversational smoke tests pass.
+- “Orgo template published” only after the response binds the exact `namespace/name@version` reference, a server digest matching the signed publication bytes, and a published timestamp, validated from a bounded response.
+- “Image ready” only after immutable-reference remote readback matches the signed reference/digest, the build response binds the same reference/digest with a `building` or `ready` status, and a second-readback-gated bounded event stream for that exact reference reaches explicit success/ready before the absolute deadline.
+- “Live deployment proven” only after another immutable-reference remote readback matches the signed bytes, launch submits that reference, and a matching computer ID, workspace ID, runtime, and conversational smoke tests pass.
 
-Current 1.0.0 status is **implemented and locally verified; authenticated validation is not evidenced for this exact tree; exact GitHub publication/review evidence is release-bound; not yet published or live on Orgo**.
+Current 1.0.1 status is **implemented, locally verified, and authenticated-schema-validated for the exact tree `065ed696`; exact GitHub publication/review evidence is release-bound; not yet published or live on Orgo**.

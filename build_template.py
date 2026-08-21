@@ -48,7 +48,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FILES = os.path.join(HERE, "files")
 NAMESPACE = "default"
 NAME = "revenue-partner-agent"
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 API_BASE = "https://www.orgo.ai/api"
 MAX_PUBLICATION_BODY_BYTES = 1_000_000
 MAX_ORGO_RESPONSE_BYTES = 1_048_576
@@ -541,19 +541,18 @@ def _owner_only_regular_file(path):
 
 
 class _ApprovedRequest:
-    __slots__ = ("operation", "method", "url", "body", "publication_id", "publication_ref", "build_id", "_used")
+    __slots__ = ("operation", "method", "url", "body", "publication_digest", "publication_ref", "_used")
 
-    def __init__(self, operation, method, url, body, publication_receipt=None, build_receipt=None):
+    def __init__(self, operation, method, url, body, publication_receipt=None):
         self.operation = operation
         self.method = method
         self.url = url
         self.body = body
-        self.publication_id = publication_receipt.publication_id if publication_receipt else None
-        self.publication_ref = publication_receipt.template_ref if publication_receipt else None
-        self.build_id = build_receipt.build_id if build_receipt else None
+        self.publication_digest = publication_receipt.digest if publication_receipt else None
+        self.publication_ref = publication_receipt.ref if publication_receipt else None
         self._used = False
 
-    def consume(self, expected_operation, publication_receipt=None, build_receipt=None):
+    def consume(self, expected_operation, publication_receipt=None):
         if self.operation != expected_operation:
             raise RuntimeError("release capability does not authorize this operation")
         if self._used:
@@ -561,60 +560,41 @@ class _ApprovedRequest:
         if expected_operation in {"build", "events", "launch"}:
             if not isinstance(publication_receipt, _PublicationReceipt):
                 raise RuntimeError("bounded immutable publication identity required")
-            if (self.publication_id, self.publication_ref) != (
-                publication_receipt.publication_id,
-                publication_receipt.template_ref,
+            if (self.publication_digest, self.publication_ref) != (
+                publication_receipt.digest,
+                publication_receipt.ref,
             ):
                 raise RuntimeError("release capability publication identity mismatch")
-        if expected_operation == "events":
-            if not _valid_build_receipt(build_receipt, publication_receipt):
-                raise RuntimeError("bounded immutable build identity required")
-            assert isinstance(build_receipt, _BuildReceipt)
-            if self.build_id != build_receipt.build_id:
-                raise RuntimeError("release capability build identity mismatch")
         self._used = True
         return self.method, self.url, self.body
 
 class _PublicationReceipt:
-    __slots__ = ("publication_id", "template_ref", "publication_sha256", "response")
+    __slots__ = ("ref", "digest", "published", "response")
 
-    def __init__(self, publication_id, template_ref, publication_sha256, response):
-        self.publication_id = publication_id
-        self.template_ref = template_ref
-        self.publication_sha256 = publication_sha256
+    def __init__(self, ref, digest, published, response):
+        self.ref = ref
+        self.digest = digest
+        self.published = published
         self.response = response
 
 
 class _BuildReceipt:
-    __slots__ = ("build_id", "publication_id", "publication_sha256", "response")
+    __slots__ = ("ref", "digest", "status", "response")
 
-    def __init__(self, build_id, publication_id, publication_sha256, response):
-        self.build_id = build_id
-        self.publication_id = publication_id
-        self.publication_sha256 = publication_sha256
+    def __init__(self, ref, digest, status, response):
+        self.ref = ref
+        self.digest = digest
+        self.status = status
         self.response = response
 
 
 def _valid_publication_receipt(receipt):
-    expected_ref = f"{NAMESPACE}/{NAME}@{VERSION}"
-    expected_digest = hashlib.sha256(publication_body_bytes()).hexdigest()
     return (
         isinstance(receipt, _PublicationReceipt)
-        and isinstance(receipt.publication_id, str)
-        and re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", receipt.publication_id) is not None
-        and receipt.template_ref == expected_ref
-        and receipt.publication_sha256 == expected_digest
-    )
-
-
-def _valid_build_receipt(receipt, publication_receipt):
-    return (
-        isinstance(receipt, _BuildReceipt)
-        and _valid_publication_receipt(publication_receipt)
-        and isinstance(receipt.build_id, str)
-        and re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", receipt.build_id) is not None
-        and receipt.publication_id == publication_receipt.publication_id
-        and receipt.publication_sha256 == publication_receipt.publication_sha256
+        and receipt.ref == f"{NAMESPACE}/{NAME}@{VERSION}"
+        and isinstance(receipt.digest, str)
+        and re.fullmatch(r"[0-9a-f]{64}", receipt.digest) is not None
+        and receipt.digest == hashlib.sha256(publication_body_bytes()).hexdigest()
     )
 
 
@@ -682,27 +662,20 @@ def _verify_review_signature(reviewer_id, statement, signature_path):
         raise RuntimeError(f"review signature verification failed for {reviewer_id}")
 
 
-def _operation_intent_statement(operation, method, url, data, publication_receipt, build_receipt, nonce):
+def _operation_intent_statement(operation, method, url, data, publication_receipt, nonce):
     if operation not in {"validate", "publish", "readback", "build", "events", "launch"}:
         raise RuntimeError("unsupported authenticated operation intent")
     if method not in {"GET", "POST"}:
         raise RuntimeError("operation intent method is invalid")
     if re.fullmatch(r"[0-9a-f]{64}", nonce or "") is None:
         raise RuntimeError("operation intent nonce must be 256-bit lowercase hex")
-    publication_id = None
-    build_id = None
+    publication_digest = None
     if publication_receipt is not None:
         if not _valid_publication_receipt(publication_receipt):
             raise RuntimeError("operation intent publication identity is invalid")
-        publication_id = publication_receipt.publication_id
-    if build_receipt is not None:
-        if not _valid_build_receipt(build_receipt, publication_receipt):
-            raise RuntimeError("operation intent build identity is invalid")
-        build_id = build_receipt.build_id
-    if operation in {"readback", "build", "events", "launch"} and publication_id is None:
+        publication_digest = publication_receipt.digest
+    if operation in {"readback", "build", "events", "launch"} and publication_digest is None:
         raise RuntimeError("operation intent requires immutable publication identity")
-    if operation == "events" and build_id is None:
-        raise RuntimeError("event intent requires immutable build identity")
     tree = _assert_exact_assembled_tree()
     resolved = Path(HERE) / f"{NAME}.resolved.json"
     now = time.time()
@@ -714,9 +687,8 @@ def _operation_intent_statement(operation, method, url, data, publication_receip
         "method": method,
         "url": url,
         "body_sha256": hashlib.sha256(data).hexdigest() if data is not None else None,
-        "template_ref": publication_receipt.template_ref if publication_receipt is not None else f"{NAMESPACE}/{NAME}@{VERSION}",
-        "publication_id": publication_id,
-        "build_id": build_id,
+        "template_ref": f"{NAMESPACE}/{NAME}@{VERSION}",
+        "publication_digest": publication_digest,
         "tree": tree,
         "artifact_sha256": hashlib.sha256(resolved.read_bytes()).hexdigest(),
         "publication_sha256": hashlib.sha256(publication_body_bytes()).hexdigest(),
@@ -735,7 +707,7 @@ def _write_private_exclusive(path, content):
         os.close(descriptor)
 
 
-def _await_signed_operation_intent(operation, method, url, data=None, publication_receipt=None, build_receipt=None):
+def _await_signed_operation_intent(operation, method, url, data=None, publication_receipt=None):
     directory_text = os.environ.get(OPERATION_INTENT_DIRECTORY_ENV, "")
     if not directory_text:
         raise RuntimeError(f"{OPERATION_INTENT_DIRECTORY_ENV} not set; externally signed operation intent required")
@@ -749,7 +721,7 @@ def _await_signed_operation_intent(operation, method, url, data=None, publicatio
     if not stat.S_ISDIR(info.st_mode) or stat.S_IMODE(info.st_mode) != 0o700 or info.st_uid != os.geteuid():
         raise RuntimeError("operation intent directory must be an owner-only non-symlink directory")
     nonce = secrets.token_hex(32)
-    statement = _operation_intent_statement(operation, method, url, data, publication_receipt, build_receipt, nonce)
+    statement = _operation_intent_statement(operation, method, url, data, publication_receipt, nonce)
     stem = f"{operation}-{nonce}"
     pending_path = directory / f"{stem}.pending.json"
     intent_path = directory / f"{stem}.intent.json"
@@ -815,7 +787,7 @@ def _verify_release_clearance(resolved_path):
 
 
 def require_release_clearance(
-    resolved_path, *, operation, workspace_id=None, publication_receipt=None, build_receipt=None
+    resolved_path, *, operation, workspace_id=None, publication_receipt=None
 ):
     tree = _verify_release_clearance(resolved_path)
     print(f"✓ two signed exact-tree CLEAR reviews bound to {tree}")
@@ -826,23 +798,19 @@ def require_release_clearance(
     if operation == "build":
         if not _valid_publication_receipt(publication_receipt):
             raise RuntimeError("build requires a bounded immutable publication identity")
-        assert isinstance(publication_receipt, _PublicationReceipt)
         return _ApprovedRequest(
-            operation, "POST", f"{API_BASE}/templates/{publication_receipt.publication_id}/build", None,
+            operation, "POST", f"{API_BASE}/templates/{NAMESPACE}/{NAME}/{VERSION}/build", None,
             publication_receipt,
         )
     if operation == "events":
-        if not _valid_build_receipt(build_receipt, publication_receipt):
-            raise RuntimeError("event streaming requires bounded immutable publication/build identities")
-        assert isinstance(publication_receipt, _PublicationReceipt)
-        assert isinstance(build_receipt, _BuildReceipt)
+        if not _valid_publication_receipt(publication_receipt):
+            raise RuntimeError("event streaming requires a bounded immutable publication identity")
         return _ApprovedRequest(
             operation,
             "GET",
-            f"{API_BASE}/templates/{publication_receipt.publication_id}/builds/{build_receipt.build_id}/events",
+            f"{API_BASE}/templates/{NAMESPACE}/{NAME}/{VERSION}/build/events",
             None,
             publication_receipt,
-            build_receipt,
         )
     if operation == "launch":
         if not isinstance(workspace_id, str) or not workspace_id or len(workspace_id) > 256:
@@ -852,8 +820,7 @@ def require_release_clearance(
         body = {
             "workspace_id": workspace_id,
             "name": "revenue-partner-smoke",
-            "template_ref": publication_receipt.template_ref,
-            "template_id": publication_receipt.publication_id,
+            "template_ref": publication_receipt.ref,
             "ram": 4,
             "cpu": 1,
         }
@@ -901,10 +868,6 @@ def _read_bounded_http_error(error, *, label="Orgo error response"):
         error.close()
 
 
-def _decode_orgo_response(response, *, label="Orgo response"):
-    return response.status, _read_bounded_response(response, label=label)
-
-
 def _json_object(text, label):
     try:
         parsed = json.loads(text)
@@ -915,67 +878,25 @@ def _json_object(text, label):
     return parsed
 
 
-def _strict_identity_object(payload, identity_keys, label):
-    matches = []
-
-    def visit(value):
-        if isinstance(value, dict):
-            if any(key in value for key in identity_keys):
-                matches.append(value)
-            for nested in value.values():
-                visit(nested)
-        elif isinstance(value, list):
-            for nested in value:
-                visit(nested)
-
-    visit(payload)
-    if len(matches) != 1:
-        raise RuntimeError(f"{label} must contain exactly one co-resident identity object")
-    return matches[0]
-
-
-def _strict_alias_value(identity, *names, required=True):
-    present = [(name, identity[name]) for name in names if name in identity and identity[name] not in (None, "")]
-    if len(present) > 1:
-        raise RuntimeError("duplicate identity aliases are prohibited")
-    if not present:
-        if required:
-            raise RuntimeError("required identity field is missing")
-        return None
-    return present[0][1]
-
-
 def _publication_receipt_from_response(status, body):
     if status < 200 or status >= 300:
         return None
     try:
         payload = _json_object(body, "publication response")
-        identity = _strict_identity_object(
-            payload,
-            {"publication_id", "template_id", "id", "template_ref", "ref", "namespace", "name", "version",
-             "publication_sha256", "sha256", "checksum"},
-            "publication response",
-        )
-        publication_id = _strict_alias_value(identity, "publication_id", "template_id", "id")
-        response_ref = _strict_alias_value(identity, "template_ref", "ref", required=False)
-        response_digest = _strict_alias_value(identity, "publication_sha256", "sha256", "checksum")
     except RuntimeError:
         return None
-    if not isinstance(publication_id, (str, int)) or not str(publication_id).strip():
+    ref = payload.get("ref")
+    digest = payload.get("digest")
+    published = payload.get("published")
+    if ref != f"{NAMESPACE}/{NAME}@{VERSION}":
         return None
-    publication_id = str(publication_id).strip()
-    if re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", publication_id) is None:
+    if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
         return None
-    expected_ref = f"{NAMESPACE}/{NAME}@{VERSION}"
-    if response_ref is None:
-        if (identity.get("namespace"), identity.get("name"), str(identity.get("version", ""))) == (NAMESPACE, NAME, VERSION):
-            response_ref = expected_ref
-    if response_ref != expected_ref:
+    if digest != hashlib.sha256(publication_body_bytes()).hexdigest():
         return None
-    expected_digest = hashlib.sha256(publication_body_bytes()).hexdigest()
-    if str(response_digest).lower().removeprefix("sha256:") != expected_digest:
+    if not isinstance(published, str) or not published:
         return None
-    return _PublicationReceipt(publication_id, expected_ref, expected_digest, payload)
+    return _PublicationReceipt(ref, digest, published, payload)
 
 
 def _build_receipt_from_response(status, body, publication_receipt):
@@ -983,26 +904,16 @@ def _build_receipt_from_response(status, body, publication_receipt):
         return None
     try:
         payload = _json_object(body, "build response")
-        identity = _strict_identity_object(
-            payload,
-            {"build_id", "job_id", "publication_id", "template_id", "publication_sha256", "sha256", "checksum"},
-            "build response",
-        )
-        build_id = _strict_alias_value(identity, "build_id", "job_id")
-        publication_id = _strict_alias_value(identity, "publication_id", "template_id")
-        response_digest = _strict_alias_value(identity, "publication_sha256", "sha256", "checksum")
     except RuntimeError:
         return None
-    if not isinstance(build_id, (str, int)) or not str(build_id).strip():
+    ref = payload.get("ref")
+    digest = payload.get("digest")
+    build_status = payload.get("status")
+    if ref != publication_receipt.ref or digest != publication_receipt.digest:
         return None
-    build_id = str(build_id).strip()
-    if re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", build_id) is None or str(publication_id) != publication_receipt.publication_id:
+    if build_status not in {"building", "ready"}:
         return None
-    if str(response_digest).lower().removeprefix("sha256:") != publication_receipt.publication_sha256:
-        return None
-    return _BuildReceipt(
-        build_id, publication_receipt.publication_id, publication_receipt.publication_sha256, payload
-    )
+    return _BuildReceipt(ref, digest, build_status, payload)
 
 
 def _broker_receipt_record(publication_receipt):
@@ -1010,26 +921,10 @@ def _broker_receipt_record(publication_receipt):
         return None
     if not _valid_publication_receipt(publication_receipt):
         raise RuntimeError("broker request requires a valid immutable publication receipt")
-    return {
-        "publication_id": publication_receipt.publication_id,
-        "template_ref": publication_receipt.template_ref,
-        "publication_sha256": publication_receipt.publication_sha256,
-    }
+    return {"ref": publication_receipt.ref, "digest": publication_receipt.digest}
 
 
-def _broker_build_record(build_receipt, publication_receipt):
-    if build_receipt is None:
-        return None
-    if not _valid_build_receipt(build_receipt, publication_receipt):
-        raise RuntimeError("broker request requires a valid immutable build receipt")
-    return {
-        "build_id": build_receipt.build_id,
-        "publication_id": build_receipt.publication_id,
-        "publication_sha256": build_receipt.publication_sha256,
-    }
-
-
-def _broker_exchange(operation, method, url, data, intent_path, publication_receipt=None, build_receipt=None):
+def _broker_exchange(operation, method, url, data, intent_path, publication_receipt=None):
     if "ORGO_API_KEY" in os.environ:
         raise RuntimeError("key-less builder must be launched through release_entry.py")
     fd_text = os.environ.get(BROKER_FD_ENV, "")
@@ -1044,7 +939,7 @@ def _broker_exchange(operation, method, url, data, intent_path, publication_rece
         "url": url,
         "body_b64": base64.b64encode(data).decode("ascii") if data is not None else None,
         "publication": _broker_receipt_record(publication_receipt),
-        "build": _broker_build_record(build_receipt, publication_receipt),
+        "build": None,
         "intent_path": intent_path,
         "key_sha256": key_sha256,
     }
@@ -1101,10 +996,9 @@ def _broker_exchange(operation, method, url, data, intent_path, publication_rece
 def _verify_remote_publication_receipt(publication_receipt, *, timeout=60):
     if not _valid_publication_receipt(publication_receipt):
         raise RuntimeError("bounded local publication identity required for remote readback")
-    assert isinstance(publication_receipt, _PublicationReceipt)
     _verify_release_clearance(os.path.join(HERE, f"{NAME}.resolved.json"))
-    url = f"{API_BASE}/templates/{publication_receipt.publication_id}"
-    intent_path = _await_signed_operation_intent("readback", "GET", url, None, publication_receipt, None)
+    url = f"{API_BASE}/templates/{NAMESPACE}/{NAME}/{VERSION}"
+    intent_path = _await_signed_operation_intent("readback", "GET", url, None, publication_receipt)
     try:
         status, body_bytes = _broker_exchange(
             "readback", "GET", url, None, intent_path, publication_receipt
@@ -1115,8 +1009,8 @@ def _verify_remote_publication_receipt(publication_receipt, *, timeout=60):
     if status < 200 or status >= 300:
         raise RuntimeError(f"immutable publication readback returned HTTP {status}: {body[:200]}")
     readback = _publication_receipt_from_response(status, body)
-    if readback is None or readback.publication_id != publication_receipt.publication_id:
-        raise RuntimeError("immutable publication readback did not match ID, reference, and signed digest")
+    if readback is None or readback.digest != publication_receipt.digest or readback.ref != publication_receipt.ref:
+        raise RuntimeError("immutable publication readback did not match reference and signed digest")
     return readback
 
 
@@ -1125,19 +1019,23 @@ def _validation_response_ok(status, body):
         return False
     try:
         payload = _json_object(body, "validation response")
-        identity = _strict_identity_object(
-            payload,
-            {"valid", "template_ref", "ref", "template_sha256", "sha256", "checksum"},
-            "validation response",
-        )
-        valid = _strict_alias_value(identity, "valid")
-        template_ref = _strict_alias_value(identity, "template_ref", "ref")
-        digest = _strict_alias_value(identity, "template_sha256", "sha256", "checksum")
     except RuntimeError:
         return False
-    expected_ref = f"{NAMESPACE}/{NAME}@{VERSION}"
-    expected_digest = hashlib.sha256(_json_body_bytes(template)).hexdigest()
-    return valid is True and template_ref == expected_ref and str(digest).lower().removeprefix("sha256:") == expected_digest
+    if payload.get("ok") is not True:
+        return False
+    echoed = payload.get("template")
+    if not isinstance(echoed, dict) or not isinstance(echoed.get("template"), dict):
+        return False
+    if echoed.get("api_version") != "orgo.ai/v1":
+        return False
+    if echoed["template"].get("name") != NAME or str(echoed["template"].get("version", "")) != VERSION:
+        return False
+    echoed_files = echoed.get("files")
+    if not isinstance(echoed_files, list) or len(echoed_files) != len(template["files"]):
+        return False
+    expected_targets = {entry["to"] for entry in template["files"]}
+    echoed_targets = {entry.get("to") for entry in echoed_files if isinstance(entry, dict)}
+    return echoed_targets == expected_targets
 
 
 def remote_validate(approved):
@@ -1164,8 +1062,7 @@ def _validate_transport_request(expected_operation, method, url, data, publicati
     if expected_operation == "build":
         if not _valid_publication_receipt(publication_receipt):
             raise RuntimeError("build request lacks a bounded publication identity")
-        assert isinstance(publication_receipt, _PublicationReceipt)
-        expected_url = f"{API_BASE}/templates/{publication_receipt.publication_id}/build"
+        expected_url = f"{API_BASE}/templates/{NAMESPACE}/{NAME}/{VERSION}/build"
         if url != expected_url or data is not None or not _valid_publication_receipt(publication_receipt):
             raise RuntimeError("build request does not match the readback-gated immutable publication identity")
         return
@@ -1176,7 +1073,7 @@ def _validate_transport_request(expected_operation, method, url, data, publicati
             body = _json_object(data.decode("utf-8"), "launch request")
         except (AttributeError, UnicodeError, RuntimeError) as exc:
             raise RuntimeError("launch request body is invalid") from exc
-        expected_keys = {"workspace_id", "name", "template_ref", "template_id", "ram", "cpu"}
+        expected_keys = {"workspace_id", "name", "template_ref", "ram", "cpu"}
         if set(body) != expected_keys:
             raise RuntimeError("launch request contains unexpected fields")
         workspace_id = body.get("workspace_id")
@@ -1185,8 +1082,7 @@ def _validate_transport_request(expected_operation, method, url, data, publicati
         if body != {
             "workspace_id": workspace_id,
             "name": "revenue-partner-smoke",
-            "template_ref": publication_receipt.template_ref,
-            "template_id": publication_receipt.publication_id,
+            "template_ref": publication_receipt.ref,
             "ram": 4,
             "cpu": 1,
         }:
@@ -1204,7 +1100,7 @@ def _send_approved(approved, expected_operation, publication_receipt=None, timeo
     if expected_operation in {"build", "launch"}:
         _verify_remote_publication_receipt(publication_receipt, timeout=timeout)
     intent_path = _await_signed_operation_intent(
-        expected_operation, method, url, data, publication_receipt, None
+        expected_operation, method, url, data, publication_receipt
     )
     status, body = _broker_exchange(
         expected_operation, method, url, data, intent_path, publication_receipt
@@ -1224,15 +1120,13 @@ def publish(approved):
         return None
     receipt = _publication_receipt_from_response(status, body)
     if receipt is None:
-        print("publication response lacked a matching immutable publication ID and template reference")
+        print("publication response lacked a matching reference, digest, and published timestamp")
         return None
-    print(f"validated publication receipt {receipt.publication_id} for {receipt.template_ref}")
+    print(f"validated publication receipt {receipt.ref} digest {receipt.digest[:12]}…")
     return receipt
 
 
-def _consume_build_events(response, build_receipt, *, deadline_seconds=ORGO_SSE_DEADLINE_SECONDS):
-    if not isinstance(build_receipt, _BuildReceipt):
-        raise RuntimeError("validated build receipt required for event streaming")
+def _consume_build_events(response, *, deadline_seconds=ORGO_SSE_DEADLINE_SECONDS):
     started = time.monotonic()
     total_bytes = 0
     event_count = 0
@@ -1263,50 +1157,34 @@ def _consume_build_events(response, build_receipt, *, deadline_seconds=ORGO_SSE_
             except json.JSONDecodeError:
                 event = {}
             if event.get("phase") == "ready" and event.get("level") == "success":
-                try:
-                    event_identity = _strict_identity_object(event, {"build_id", "job_id"}, "build ready event")
-                    event_build_id = _strict_alias_value(event_identity, "build_id", "job_id")
-                except RuntimeError:
-                    failed = True
-                else:
-                    if str(event_build_id) == build_receipt.build_id:
-                        ready = True
-                    else:
-                        failed = True
-            if event.get("phase") == "failed" or event.get("level") == "error":
+                ready = True
+            if event.get("phase") in {"failed", "cancel", "timeout"} or event.get("level") == "error":
                 failed = True
         if "build failed" in text.lower() or '"failed"' in text:
             failed = True
     return ready and not failed
 
 
-def _stream_build_events(approved, publication_receipt, build_receipt):
+def _stream_build_events(approved, publication_receipt):
     if not isinstance(approved, _ApprovedRequest):
         raise RuntimeError("signed one-use event capability required")
-    if not _valid_build_receipt(build_receipt, publication_receipt):
-        raise RuntimeError("validated immutable publication/build identities required for event streaming")
-    assert isinstance(publication_receipt, _PublicationReceipt)
-    assert isinstance(build_receipt, _BuildReceipt)
-    expected_url = (
-        f"{API_BASE}/templates/{publication_receipt.publication_id}"
-        f"/builds/{build_receipt.build_id}/events"
-    )
-    method, url, data = approved.consume("events", publication_receipt, build_receipt)
+    if not _valid_publication_receipt(publication_receipt):
+        raise RuntimeError("validated immutable publication identity required for event streaming")
+    expected_url = f"{API_BASE}/templates/{NAMESPACE}/{NAME}/{VERSION}/build/events"
+    method, url, data = approved.consume("events", publication_receipt)
     if method != "GET" or url != expected_url or data is not None:
-        raise RuntimeError("event capability does not match immutable publication/build identities")
+        raise RuntimeError("event capability does not match immutable publication identity")
     _verify_remote_publication_receipt(publication_receipt, timeout=60)
-    intent_path = _await_signed_operation_intent(
-        "events", "GET", url, None, publication_receipt, build_receipt
-    )
+    intent_path = _await_signed_operation_intent("events", "GET", url, None, publication_receipt)
     print("streaming build events (SSE):")
     try:
         status, body = _broker_exchange(
-            "events", "GET", url, None, intent_path, publication_receipt, build_receipt
+            "events", "GET", url, None, intent_path, publication_receipt
         )
         if status < 200 or status >= 300:
             print(f"build event stream returned HTTP {status}: {body[:200].decode('utf-8', errors='replace')}")
             return False
-        return _consume_build_events(io.BytesIO(body), build_receipt)
+        return _consume_build_events(io.BytesIO(body))
     except RuntimeError as exc:
         print(f"build event stream failed closed: {exc}")
         return False
@@ -1324,16 +1202,18 @@ def build_and_stream(approved, publication_receipt):
     print(f"POST …/build → {status}: {body[:200]}")
     build_receipt = _build_receipt_from_response(status, body, publication_receipt)
     if build_receipt is None:
-        print("build response lacked a matching build ID, publication ID, and publication digest")
+        print("build response lacked a matching reference, digest, and build status")
         return False
+    if build_receipt.status == "ready":
+        print("✓ build already ready (reused golden snapshot)")
+        return True
     try:
         event_capability = require_release_clearance(
             os.path.join(HERE, f"{NAME}.resolved.json"),
             operation="events",
             publication_receipt=publication_receipt,
-            build_receipt=build_receipt,
         )
-        return _stream_build_events(event_capability, publication_receipt, build_receipt)
+        return _stream_build_events(event_capability, publication_receipt)
     except RuntimeError as exc:
         print(f"build event stream refused: {exc}")
         return False
@@ -1354,29 +1234,16 @@ def launch(approved, publication_receipt):
         return False
     try:
         parsed = _json_object(response_text, "launch response")
-        identity = _strict_identity_object(
-            parsed,
-            {"computer_id", "id", "workspace_id", "template_ref", "publication_id", "template_id"},
-            "launch response",
-        )
-        computer_id = _strict_alias_value(identity, "computer_id", "id")
-        workspace_id = _strict_alias_value(identity, "workspace_id")
-        template_ref = _strict_alias_value(identity, "template_ref")
-        template_id = _strict_alias_value(identity, "publication_id", "template_id")
     except RuntimeError as exc:
         print(f"launch response rejected: {exc}")
         return False
+    computer_id = parsed.get("id")
+    workspace_id = parsed.get("workspace_id")
     if not isinstance(computer_id, (str, int)) or not str(computer_id).strip():
         print("launch response rejected: computer ID missing")
         return False
     if str(workspace_id) != request_body["workspace_id"]:
         print("launch response rejected: workspace identity mismatch")
-        return False
-    if template_ref != publication_receipt.template_ref:
-        print("launch response rejected: template reference mismatch")
-        return False
-    if str(template_id) != publication_receipt.publication_id:
-        print("launch response rejected: immutable publication identity mismatch")
         return False
     out = os.path.join(HERE, f"{NAME}.launch.json")
     with open(out, "w") as fh:

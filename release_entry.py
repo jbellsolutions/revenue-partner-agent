@@ -61,8 +61,6 @@ def main() -> int:
         raise SystemExit(f"caller-supplied {BROKER_SECRET_ENV} is prohibited")
     if BROKER_KEY_SHA256_ENV in os.environ:
         raise SystemExit(f"caller-supplied {BROKER_KEY_SHA256_ENV} is prohibited")
-    key = os.environ["ORGO_API_KEY"]
-    key_sha256 = broker_key_sha256(key)
     mac_secret = secrets.token_hex(32)
     builder_socket, broker_socket = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
     builder_socket.set_inheritable(True)
@@ -71,6 +69,7 @@ def main() -> int:
     if child == 0:
         builder_socket.close()
         broker_env = _scrubbed_child_environment()
+        key_sha256 = broker_key_sha256(broker_env["ORGO_API_KEY"])
         broker_env[BROKER_FD_ENV] = str(broker_socket.fileno())
         broker_env[BROKER_SECRET_ENV] = mac_secret
         broker_env[BROKER_KEY_SHA256_ENV] = key_sha256
@@ -83,6 +82,7 @@ def main() -> int:
 
     broker_socket.close()
     builder_env = _scrubbed_child_environment()
+    key_sha256 = broker_key_sha256(builder_env["ORGO_API_KEY"])
     builder_env.pop("ORGO_API_KEY", None)
     builder_env[BROKER_FD_ENV] = str(builder_socket.fileno())
     builder_env[BROKER_SECRET_ENV] = mac_secret

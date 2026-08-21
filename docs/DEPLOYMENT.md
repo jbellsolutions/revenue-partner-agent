@@ -4,7 +4,7 @@
 
 - Template namespace: `default`
 - Template name: `revenue-partner-agent`
-- Template version: `1.0.0`
+- Template version: `1.0.1`
 - Target runtime: Linux x86_64, Python 3.11
 
 Template versions are immutable. Change `VERSION` for any rebuilt release.
@@ -84,7 +84,7 @@ LOCKED_RELEASE_PY="$PWD/.artifacts/release-venv/bin/python"
     release_entry.py --remote-validate
 ```
 
-A successful response from `/api/templates/validate` is evidence of schema acceptance only. It is not publication, image readiness, launch, or live runtime proof. Because this endpoint is authenticated, remote validation requires the same two signed exact-tree reviews as publication. A 2xx status alone is rejected: the response must contain one unambiguous object with `valid: true`, the exact template reference, and the SHA-256 of the exact validated template object. `release_entry.py` forks an isolated broker that alone retains `ORGO_API_KEY`, removes the key before execing the builder, and permits transport only after the broker independently re-verifies signed current bytes and consumes the exact one-use validation intent.
+A successful response from `/api/templates/validate` is evidence of schema acceptance only. It is not publication, image readiness, launch, or live runtime proof. Because this endpoint is authenticated, remote validation requires the same two signed exact-tree reviews as publication. A 2xx status alone is rejected: the response must contain `ok: true` and an echoed template document binding the canonical `api_version`, template name/version, and the exact file inventory. `release_entry.py` forks an isolated broker that alone retains `ORGO_API_KEY`, removes the key before execing the builder, and permits transport only after the broker independently re-verifies signed current bytes and consumes the exact one-use validation intent.
 
 Before publication, the documentation and security reviewers must each return exactly `CLEAR` for the frozen tree. Each reviewer then signs a canonical statement containing that verdict, the exact Git tree, resolved-artifact SHA-256, and serialized-publication-envelope SHA-256 using their external Ed25519 key and the `revenue-partner-review` SSH signature namespace. The candidate declaration [`.github/reviewers.allowed_signers`](../.github/reviewers.allowed_signers) is not a trust root. An administrator must install identical bytes as the fixed root-owned external policy before any authenticated operation:
 
@@ -116,16 +116,16 @@ The builder rejects worktree/index drift and non-ignored untracked files. The br
 The builder:
 
 1. reassembles and validates the artifact;
-2. publishes `default/revenue-partner-agent@1.0.0`;
-3. requires a non-empty immutable publication ID, matching template reference, and server-returned digest matching the signed publication bytes;
+2. publishes `default/revenue-partner-agent@1.0.1`;
+3. requires the response to bind the exact template reference, a server-returned digest matching the signed publication bytes, and a published timestamp;
 4. refuses a version collision;
-5. reads the immutable publication ID back and requires the remote reference and digest to match immediately before build, then addresses build by that immutable ID;
-6. requires the build response to bind a build/job ID to that immutable publication ID and digest;
-7. repeats immutable publication readback, then requires a separate `release-operator` signature over a fresh 256-bit nonce, method `GET`, exact event URL, exact publication/build IDs, current tree, and both product digests; atomically consumes that nonce at the lowest SSE transport boundary before credential lookup, addresses the stream by those IDs, and accepts `ready` only from that exact job under fixed line, byte, event-count, socket-timeout, and wall-clock ceilings;
+5. reads the immutable `namespace/name@version` back and requires the remote reference and digest to match immediately before build, then addresses build by that immutable reference;
+6. requires the build response to bind the same reference and digest with a `building` or `ready` status;
+7. repeats immutable publication readback, then requires a separate `release-operator` signature over a fresh 256-bit nonce, method `GET`, exact event URL, current tree, and both product digests; atomically consumes that nonce at the lowest SSE transport boundary before credential lookup, addresses the canonical `…/build/events` stream, and accepts `ready` only from that exact reference under fixed line, byte, event-count, socket-timeout, and wall-clock ceilings;
 8. exits nonzero unless the build reaches `ready`;
-9. reads the immutable publication ID back again immediately before launch, submits that ID, and requires a matching computer ID, workspace ID, template reference, and publication ID in the response.
+9. reads the immutable publication reference back again immediately before launch, submits that reference, and requires a matching computer ID and workspace ID in the response.
 
-Publication, build, ready-event, and launch identities must be co-resident in exactly one operation-specific response object. Duplicate aliases, conflicting top-level/nested identities, and fields assembled from separate response objects are rejected.
+Publication, build, ready-event, and launch identities are bound to the immutable `namespace/name@version` reference and content digest; conflicting or missing fields are rejected.
 
 Every authenticated `HTTPError` body is read through the same bounded reader and closed in `finally`, including declared-size rejection, streamed overflow, JSON rejection, publication/build/launch failures, and SSE failures.
 
@@ -177,7 +177,7 @@ Ask the live agent to:
 6. draft locally without sending;
 7. require approval for launch, send, publish, CRM mutation, consent changes, or spend.
 
-## Current 1.0.0 deployment evidence
+## Current 1.0.1 deployment evidence
 
 - Local schema validation: passed.
 - Authenticated remote validation: not evidenced for this exact tree; source/clean-export matrices establish local schema acceptance only.
