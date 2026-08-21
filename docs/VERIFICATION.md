@@ -35,7 +35,7 @@ Older candidate hashes and artifact sizes are intentionally not presented as cur
 | Exact staged credential scan | 0 matches | Actual supplied values and credential-shape patterns |
 | Independent security/correctness review | Recorded in release notes | Exact immutable release candidate |
 | Orgo template publication | Blocked by account tier | `403 UPGRADE_REQUIRED`; no publication reference/digest. Publishing requires an Orgo **Scale** plan; the authenticated workspace is `hacker_v2`. Independently confirmed read-side: `GET /api/templates` returns `{"templates":[]}` and `GET /api/templates/default/revenue-partner-agent/1.0.1` returns `404 not found` |
-| Image build | Not run | Publication did not occur |
+| Image build | Not run | Publication did not occur. The install program itself was executed on a provisioned computer; see provisioned-runtime evidence, which is a separate and weaker gate |
 | Computer launch | Not run | No published template |
 | Live smoke | Not run | No live computer |
 
@@ -46,10 +46,10 @@ The transport was the exact assembled bytes, not a paraphrase.
 
 | Field | Value |
 |---|---|
-| Exact Git tree | `065ed69653b255b46e6c606d61fdbb6fdbcb60dc` |
-| Resolved artifact SHA-256 | `5b399ff50a0212c24298f22b4ccb6450b8a8b34a23a44a97916b4dc9af2495ea` |
-| Validation body SHA-256 | `31e318a57d758a47d726da83c23ea8a2a44cd156cbc59acd27e7003eefdb46da` (528,156 bytes) |
-| Publication body SHA-256 | `07bee3a939e38841c2a86cbe06b678b16a42e6240d3d20012ea6e81d6c109f46` (528,240 bytes) |
+| Exact Git tree | `12cdc24f45ebd7dce6be072da98d42e0e11e6db5` |
+| Resolved artifact SHA-256 | `44217c6ee2394ee19eaa6f7c65d0f199212e9a84ac13b8bad5573a1c873bfc64` |
+| Validation body SHA-256 | `5e738e916219273f7c7af0703d9f2f4ad54efee0af10a068fe71b41b11ebe031` (529,600 bytes) |
+| Publication body SHA-256 | `b441ae67929d71fa1b778c89b3a6ef03a5019ad34f895131be399d4faf9c3828` (529,684 bytes) |
 | Endpoint | `POST https://www.orgo.ai/api/templates/validate` |
 | Status | `200` |
 | Response | `ok: true`; `api_version: orgo.ai/v1`; `revenue-partner-agent@1.0.1`; 23-entry file inventory echoed |
@@ -61,6 +61,44 @@ rather than a stale build output.
 Scope boundary, stated explicitly so this gate is not read as more than it is: **schema acceptance
 only.** It is not publication, not a digest, not image readiness, not a launch, and not live runtime
 proof. Publication remains blocked by account tier, and the account holds no published template.
+
+## Provisioned-runtime evidence (1.0.1)
+
+The build-time install script and boot hooks were executed directly on a provisioned
+Linux x86_64 computer by staging the assembled `files[]` inventory and payload to their
+declared paths, then running `apps[].install`. This is **not** an Orgo template image
+build: no template was published, no image was built, and no golden snapshot exists. It
+is a separate, weaker gate that exercises the same install program the image build would
+run, and it is recorded separately for exactly that reason.
+
+| Step | Result |
+|---|---|
+| Deterministic payload + 23-file inventory staged to declared paths and modes | Passed |
+| Node, 1Password CLI, Obsidian, and all three Playwright archives | `sha256sum -c` passed for every pinned artifact |
+| Hermes runtime prune and CLI detach | `hermes_runtime_pruned 7`, `hermes_cli_detached 2` |
+| Hermes entrypoint | `Hermes Agent v0.18.0 (2026.7.1)` on Python 3.12.3 — note this differs from the stated Python 3.11 runtime target; the locked runtime resolved `cp312` wheels cleanly, but the image-build target remains 3.11 and is not evidenced by this run |
+| Super Browser runtime | `super_browser_import_ok 8 26` — eight providers, 26 resources |
+| Playwright runtime | `playwright_runtime_ok` — real Chromium launched headless |
+| Latitude telemetry registration | `latitude-telemetry-hermes 0.1.0+revenuepartner.1` |
+| Install completion | `revenue-partner-agent install complete` |
+| Supervised services | `hermes-gateway` and `agentphone-bridge` both `RUNNING` |
+| Allowlisted environment bridge | `bridged 10 allowlisted environment values` |
+| Model sign-in | Not completed — `Hermes is not logged into Nous Portal`; device-code OAuth is operator-interactive |
+| Telegram pairing | Not completed — QR pairing is operator-interactive |
+| Conversational smoke | Not run — depends on model sign-in |
+
+Two defects were found by this gate that every prior gate passed over, because no gate in
+this repository had ever executed the install program:
+
+1. The runtime pruner removed `hermes_cli/subcommands/slack.py` while `hermes_cli/main.py`
+   still imported and registered it at module scope, so every `hermes` invocation died on
+   `ModuleNotFoundError` and the install aborted under `set -e`.
+2. All three pinned Playwright digests were wrong and had never been computed from a real
+   download, so `sha256sum -c` failed closed on the first archive. Additionally the
+   telemetry patch defaulted to a core-loop path that omitted the venv `site-packages`
+   segment and could never resolve.
+
+Both are fixed and re-verified; see the changelog for exact digests and provenance.
 
 ## Reproduce locally
 
@@ -101,4 +139,4 @@ Allowed:
 - “Image ready” only after immutable-reference remote readback matches the signed reference/digest, the build response binds the same reference/digest with a `building` or `ready` status, and a second-readback-gated bounded event stream for that exact reference reaches explicit success/ready before the absolute deadline.
 - “Live deployment proven” only after another immutable-reference remote readback matches the signed bytes, launch submits that reference, and a matching computer ID, workspace ID, runtime, and conversational smoke tests pass.
 
-Current 1.0.1 status is **implemented, locally verified, and authenticated-schema-validated for the exact tree `065ed696`; exact GitHub publication/review evidence is release-bound; not yet published or live on Orgo**.
+Current 1.0.1 status is **implemented, locally verified, authenticated-schema-validated for the exact tree `12cdc24f`, and install-verified on a provisioned computer up to operator-interactive model sign-in; exact GitHub publication/review evidence is release-bound; not yet published, image-built, or live on Orgo**.
