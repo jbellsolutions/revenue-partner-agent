@@ -2205,6 +2205,12 @@ print("LATITUDE_HTTP_ERROR closed=True")
         }
         self.assertEqual(set(module.REMOVED_PATHS), expected)
         self.assertIn(f'"$VENV_PY" {self.builder.STAGE}/hermes/scripts/prune_hermes_runtime.py', self.builder.INSTALL)
+        # Removing a module that the CLI entry imports at module scope makes every
+        # `hermes` invocation die on ModuleNotFoundError, which only surfaces at
+        # image-build time. The pruner must detach the call sites in the same pass.
+        self.assertEqual(module.CLI_ENTRY, "hermes_cli/main.py")
+        self.assertEqual(module.CLI_DANGLING_NAMES, ("build_slack_parser",))
+        self.assertTrue(module.CLI_DETACHED_ANCHORS)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             wheel_dir = root / "wheel"
@@ -2236,7 +2242,10 @@ print("LATITUDE_HTTP_ERROR closed=True")
                  f"p={str(script_path)!r};s=importlib.util.spec_from_file_location('prune_verify',p);"
                  "m=importlib.util.module_from_spec(s);s.loader.exec_module(m);"
                  "d=m.importlib.metadata.distribution('hermes-agent');"
-                 "assert all(not m._surface_target(d,r).exists() for r in m.REMOVED_PATHS)"],
+                 "assert all(not m._surface_target(d,r).exists() for r in m.REMOVED_PATHS);"
+                 "e=m._surface_target(d,m.CLI_ENTRY);src=e.read_text(encoding='utf-8');"
+                 "assert all(n not in src for n in m.CLI_DANGLING_NAMES), 'pruned CLI reference survived';"
+                 "compile(src,str(e),'exec')"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
