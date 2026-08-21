@@ -91,12 +91,17 @@ OP_CLI_URL = "https://cache.agilebits.com/dist/1P/op2/pkg/v2.34.1/op_linux_amd64
 OP_CLI_SHA = "b13ed106335419ea0fb0ebd7ebbb3b48cf26a2f214eb4b2fd8d950548e7980ed"
 NODE_URL = "https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.xz"
 NODE_SHA = "14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647"
+# Playwright browser artifacts. Each digest below was computed from an actual
+# download and independently reconfirmed: the two Chrome-for-Testing archives were
+# hashed from the canonical `storage.googleapis.com/chrome-for-testing-public`
+# origin as well as the Playwright mirror, and every artifact was fetched over two
+# separate network paths with matching size and digest.
 PLAYWRIGHT_CHROMIUM_URL = "https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-linux64.zip"
-PLAYWRIGHT_CHROMIUM_SHA = "9d4956fe978e7d192e502159184eb28f9b28b107979020671e9f77466b19e195"
+PLAYWRIGHT_CHROMIUM_SHA = "ae8736ac28bc69278551500f219fc749575648263c43ec5990749eff43b9fcf8"
 PLAYWRIGHT_HEADLESS_URL = "https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-headless-shell-linux64.zip"
-PLAYWRIGHT_HEADLESS_SHA = "93cbdc2e6c7a674a44acef9a459590ae83a3fd01e83fa223f5877018af378935"
+PLAYWRIGHT_HEADLESS_SHA = "3cfc2bd00d1bafcf8a68dc74c9c92bb7150ddc8d26ade948a776316e1cec4f14"
 PLAYWRIGHT_FFMPEG_URL = "https://cdn.playwright.dev/builds/ffmpeg/1011/ffmpeg-linux.zip"
-PLAYWRIGHT_FFMPEG_SHA = "ed62ba9a9dd2754b843bc464608a4c7f9bbdc9f576eb1fcd090001d9bd8f8d6c"
+PLAYWRIGHT_FFMPEG_SHA = "ebc74fc5b94830176a3c2914ae96bd8bc7f6a91f4f33890230f84a172ee61ccc"
 
 
 

@@ -4,12 +4,17 @@ set -euo pipefail
 VENV_PY="${LATITUDE_TELEMETRY_VENV_PY:-/usr/local/lib/hermes-agent/venv/bin/python}"
 PKG_DIR="${LATITUDE_TELEMETRY_PACKAGE_DIR:-/root/.hermes/local-packages/latitude-telemetry-hermes}"
 VALIDATE="${LATITUDE_TELEMETRY_VALIDATE_SCRIPT:-/root/.hermes/scripts/latitude/dewey_observability_validate.py}"
-CORE_LOOP="${LATITUDE_TELEMETRY_CORE_LOOP:-/usr/local/lib/hermes-agent/agent/conversation_loop.py}"
 
 if [[ ! -x "$VENV_PY" ]]; then
   echo "Hermes venv Python not found: $VENV_PY" >&2
   exit 1
 fi
+
+# Resolve the core loop from the locked venv's own purelib rather than a fixed
+# path. Hermes installs into <venv>/lib/pythonX.Y/site-packages, so any hardcoded
+# default both omits that segment and pins an interpreter version; asking the venv
+# keeps this correct across Python minor versions.
+CORE_LOOP="${LATITUDE_TELEMETRY_CORE_LOOP:-$("$VENV_PY" -c 'import pathlib, sysconfig; print(pathlib.Path(sysconfig.get_paths()["purelib"]) / "agent" / "conversation_loop.py")')}"
 if [[ ! -f "$PKG_DIR/latitude_telemetry_hermes/__init__.py" ]]; then
   echo "Local telemetry package not found: $PKG_DIR" >&2
   exit 1
