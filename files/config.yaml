@@ -1,10 +1,10 @@
-# Default model: Nous gpt-5.5 (key-less OAuth via `hermes auth add nous --type oauth`).
-# Optional switch: run `hermes auth add openai-codex`, then set
-# default: gpt-5.6-sol / provider: openai-codex.
+# Default model: Claude Sonnet 5 via OpenRouter, added with
+# `hermes auth add openrouter --type api-key`. Chosen over the previous Nous
+# default because it needs no device-code OAuth, so the agent can be brought up
+# headlessly with no desktop session.
 model:
-  default: openai/gpt-5.5
-  provider: nous
-  base_url: https://inference-api.nousresearch.com/v1
+  default: anthropic/claude-sonnet-5
+  provider: openrouter
 providers:
   vercel-ai-gateway:
     name: Vercel AI Gateway
