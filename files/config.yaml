@@ -223,10 +223,6 @@ mcp_servers:
     enabled: true
     connect_timeout: 30.0
     tool_timeout: 300.0
-    # Super Browser answers an MCP ping with "Unsupported method: ping", which the
-    # client's method-not-found fallback does not match, so the keepalive would
-    # tear the session down every interval. Failures still reconnect on next call.
-    keepalive_interval: 86400
 image_gen:
   provider: openai-codex
   openai-codex:
