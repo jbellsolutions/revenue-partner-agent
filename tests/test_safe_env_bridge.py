@@ -135,7 +135,7 @@ class SafeEnvironmentBridgeTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             rendered = target.read_text()
-            for allowed in ("LATITUDE_API_KEY", "MODEL_API_KEY", "TELEGRAM_BOT_TOKEN"):
+            for allowed in ("LATITUDE_API_KEY", "MODEL_API_KEY", "TELEGRAM_BOT_TOKEN", "SLACK_BOT_TOKEN"):
                 self.assertIn(allowed, rendered)
             for blocked in (
                 "COMPOSIO_CONSUMER_KEY",
@@ -144,7 +144,6 @@ class SafeEnvironmentBridgeTests(unittest.TestCase):
                 "REVENUE_PARTNER_OPERATION_INTENT_DIRECTORY",
                 "REVENUE_PARTNER_NONCE_LEDGER",
                 "NOTION_API_KEY",
-                "SLACK_BOT_TOKEN",
                 "AGENTPHONE_API_KEY",
                 "AGENTMAIL_API_KEY",
                 "OP_SERVICE_ACCOUNT_TOKEN",

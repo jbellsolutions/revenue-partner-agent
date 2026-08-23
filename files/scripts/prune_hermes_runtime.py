@@ -11,11 +11,8 @@ import sys
 EXPECTED_VERSION = "0.18.0"
 REMOVED_PATHS = (
     "plugins/spotify",
-    "plugins/platforms/slack",
     "plugins/platforms/discord",
     "optional-mcps/linear",
-    "hermes_cli/slack_cli.py",
-    "hermes_cli/subcommands/slack.py",
     "tools/discord_tool.py",
 )
 PREFIX_DATA_PATHS = {"optional-mcps/linear"}
@@ -68,6 +65,11 @@ def _detach_pruned_cli_references(distribution) -> None:
     drift means the vendored CLI moved and the manifest needs review, so fail loudly
     rather than silently shipping a broken interpreter.
     """
+    if "hermes_cli/subcommands/slack.py" not in REMOVED_PATHS:
+        # Nothing was pruned out from under the CLI entry; leave it intact.
+        print("hermes_cli_detached 0 (slack subcommand retained)")
+        return
+
     entry = _surface_target(distribution, CLI_ENTRY)
     source = entry.read_text(encoding="utf-8")
 

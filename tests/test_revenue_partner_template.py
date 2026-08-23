@@ -2190,13 +2190,13 @@ print("LATITUDE_HTTP_ERROR closed=True")
             self.fail("cannot import Hermes runtime pruner")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+        # Slack is intentionally NOT pruned: it is an operator-connected inbound
+        # channel. What the agent may do when reached over Slack is bounded by
+        # platform_toolsets, not by removing the platform from the image.
         expected = {
             "plugins/spotify",
-            "plugins/platforms/slack",
             "plugins/platforms/discord",
             "optional-mcps/linear",
-            "hermes_cli/slack_cli.py",
-            "hermes_cli/subcommands/slack.py",
             "tools/discord_tool.py",
         }
         self.assertEqual(set(module.REMOVED_PATHS), expected)
@@ -2207,6 +2207,12 @@ print("LATITUDE_HTTP_ERROR closed=True")
         self.assertEqual(module.CLI_ENTRY, "hermes_cli/main.py")
         self.assertEqual(module.CLI_DANGLING_NAMES, ("build_slack_parser",))
         self.assertTrue(module.CLI_DETACHED_ANCHORS)
+        # The detach must fire only when the module it references was pruned.
+        # Retaining Slack while still stripping its parser would remove a CLI
+        # surface that works, which is the mirror image of the original defect.
+        self.assertNotIn("hermes_cli/subcommands/slack.py", module.REMOVED_PATHS)
+        source = (FILES / "scripts/prune_hermes_runtime.py").read_text()
+        self.assertIn('if "hermes_cli/subcommands/slack.py" not in REMOVED_PATHS:', source)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             wheel_dir = root / "wheel"
@@ -2240,7 +2246,14 @@ print("LATITUDE_HTTP_ERROR closed=True")
                  "d=m.importlib.metadata.distribution('hermes-agent');"
                  "assert all(not m._surface_target(d,r).exists() for r in m.REMOVED_PATHS);"
                  "e=m._surface_target(d,m.CLI_ENTRY);src=e.read_text(encoding='utf-8');"
-                 "assert all(n not in src for n in m.CLI_DANGLING_NAMES), 'pruned CLI reference survived';"
+                 # A dangling reference is only a defect when the module it names was
+                 # actually pruned. With Slack retained the parser call is valid and
+                 # must survive; either way the entry has to still compile.
+                 "pruned='hermes_cli/subcommands/slack.py' in m.REMOVED_PATHS;"
+                 "assert (not pruned) or all(n not in src for n in m.CLI_DANGLING_NAMES),"
+                 " 'pruned CLI reference survived';"
+                 "assert pruned or any(n in src for n in m.CLI_DANGLING_NAMES),"
+                 " 'retained Slack parser was stripped anyway';"
                  "compile(src,str(e),'exec')"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -2251,7 +2264,6 @@ print("LATITUDE_HTTP_ERROR closed=True")
         bridge = (FILES / "safe-env-bridge.py").read_text()
         for absent_credential in (
             "COMPOSIO_CONSUMER_KEY",
-            "SLACK_BOT_TOKEN",
             "AGENTPHONE_API_KEY",
             "AGENTMAIL_API_KEY",
             "HERMES_SPOTIFY_CLIENT_ID",
