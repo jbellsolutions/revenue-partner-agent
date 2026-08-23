@@ -78,7 +78,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         mcp_servers = config["mcp_servers"]
         enabled_mcp = sum(server.get("enabled", True) for server in mcp_servers.values())
         enabled_plugins = config["plugins"]["enabled"]
-        self.assertEqual((len(mcp_servers), enabled_mcp, len(enabled_plugins)), (1, 1, 9))
+        self.assertEqual((len(mcp_servers), enabled_mcp, len(enabled_plugins)), (2, 2, 9))
 
         readme = (ROOT / "README.md").read_text()
         app_description = self.builder.template["apps"][0]["description"]
@@ -3024,7 +3024,7 @@ print("direct_hosted_helpers_blocked")
         platform_toolsets = config["platform_toolsets"]
         self.assertEqual(
             set(platform_toolsets["cli"]),
-            {"session_search", "super-browser", "skills", "memory", "file", "todo"},
+            {"session_search", "super-browser", "scrape-creators", "skills", "memory", "file", "todo"},
         )
         for name, toolsets in platform_toolsets.items():
             if name == "cli":

@@ -177,6 +177,7 @@ platform_toolsets:
   cli:
     - session_search
     - super-browser
+    - scrape-creators
     - skills
     - memory
     - file
@@ -220,6 +221,18 @@ mcp_servers:
     url: ${SUPER_BROWSER_URL}/mcp
     headers:
       Authorization: Bearer ${SUPER_BROWSER_TOKEN}
+    enabled: true
+    connect_timeout: 30.0
+    tool_timeout: 300.0
+
+  # Scrape Creators — hosted MCP, 175 public routes across TikTok, Instagram,
+  # YouTube, LinkedIn, Facebook, Reddit and Threads, plus the Facebook, Google
+  # and TikTok ad libraries. Public data only: no login, no cookies, no
+  # authenticated profile. Attached by URL for the same reason as Super Browser.
+  scrape-creators:
+    url: https://api.scrapecreators.com/mcp
+    headers:
+      x-api-key: ${SCRAPECREATORS_API_KEY}
     enabled: true
     connect_timeout: 30.0
     tool_timeout: 300.0

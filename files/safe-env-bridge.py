@@ -17,6 +17,8 @@ import tempfile
 
 
 MANAGED_KEYS = (
+    # Scrape Creators hosted MCP transport (public-data routes; no login).
+    "SCRAPECREATORS_API_KEY",
     # Hosted Super Browser transport — the agent attaches by URL rather than
     # vendoring a local copy, so the endpoint and bearer token must survive
     # the bridge rebuild or the MCP server authenticates as anonymous.
@@ -61,6 +63,8 @@ MANAGED_KEYS = (
 # an explicit operator-authored ``--only`` release command; absent-connector
 # credentials are not accepted by either the default or explicit path.
 RUNTIME_MANAGED_KEYS = (
+    # Scrape Creators hosted MCP transport (public-data routes; no login).
+    "SCRAPECREATORS_API_KEY",
     # Hosted Super Browser transport — the agent attaches by URL rather than
     # vendoring a local copy, so the endpoint and bearer token must survive
     # the bridge rebuild or the MCP server authenticates as anonymous.
