@@ -3032,16 +3032,26 @@ print("direct_hosted_helpers_blocked")
         # `cli` is reached only through the authenticated Orgo API and needs a
         # working toolset for the agent to do anything. Every *inbound* chat
         # platform stays read-only; widening cli must never widen those.
+        # `cli` (authenticated Orgo API) and `slack` (operator-connected channel,
+        # trusted workspace) carry the working set. Every other inbound platform
+        # stays read-only, so widening these two cannot widen the rest.
         safe_remote_toolsets = {"session_search"}
+        working_toolsets = {
+            "session_search", "super-browser", "scrape-creators",
+            "skills", "memory", "file", "todo",
+        }
         platform_toolsets = config["platform_toolsets"]
-        self.assertEqual(
-            set(platform_toolsets["cli"]),
-            {"session_search", "super-browser", "scrape-creators", "skills", "memory", "file", "todo"},
-        )
+        operator_channels = {"cli", "slack"}
+        for name in operator_channels:
+            self.assertEqual(set(platform_toolsets[name]), working_toolsets, name)
         for name, toolsets in platform_toolsets.items():
-            if name == "cli":
+            if name in operator_channels:
                 continue
             self.assertEqual(set(toolsets), safe_remote_toolsets, name)
+        self.assertGreaterEqual(
+            len(platform_toolsets) - len(operator_channels), 8,
+            "most inbound platforms must remain read-only",
+        )
         # The dangerous surfaces stay off every platform, cli included.
         for platform, toolsets in platform_toolsets.items():
             for forbidden in ("terminal", "code_execution", "delegation", "computer_use"):

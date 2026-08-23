@@ -195,7 +195,19 @@ platform_toolsets:
     - session_search
   discord: *revenue_partner_readonly_toolsets
   whatsapp: *revenue_partner_readonly_toolsets
-  slack: *revenue_partner_readonly_toolsets
+  # Slack is a full operator channel by explicit choice: the workspace is
+  # trusted, so any member can drive the agent. It carries the same working set
+  # as `cli` and the same exclusions -- no terminal, code_execution, delegation
+  # or computer_use, and no built-in browser/web tools, so all web work still
+  # routes through Super Browser's policy layer.
+  slack:
+    - session_search
+    - super-browser
+    - scrape-creators
+    - skills
+    - memory
+    - file
+    - todo
   signal: *revenue_partner_readonly_toolsets
   homeassistant: *revenue_partner_readonly_toolsets
   qqbot: *revenue_partner_readonly_toolsets
