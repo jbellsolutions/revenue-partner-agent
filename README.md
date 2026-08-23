@@ -6,11 +6,11 @@
 
 **A source-grounded GTM operator that runs one Money Desk across reactivation, targeted outbound, affiliates, stages/sponsors, and coordinated content.**
 
-[![CI](https://img.shields.io/badge/CI-not_yet_run-lightgrey)](docs/VERIFICATION.md)
-[![Orgo](https://img.shields.io/badge/Orgo-local_schema_ok_not_live-f59e0b)](docs/DEPLOYMENT.md)
+[![CI](https://github.com/jbellsolutions/revenue-partner-agent/actions/workflows/ci.yml/badge.svg?branch=revenue-partner-gtm)](https://github.com/jbellsolutions/revenue-partner-agent/actions/workflows/ci.yml)
+[![Orgo](https://img.shields.io/badge/Orgo-schema_validated_not_published-f59e0b)](docs/VERIFICATION.md)
 [![Hermes](https://img.shields.io/badge/agent-Hermes_Agent-1f2937)](https://github.com/NousResearch/hermes-agent)
-[![MCP](https://img.shields.io/badge/MCP_configured-1-6366f1)](#-whats-in-the-box)
-[![Browser](https://img.shields.io/badge/Super_Browser-8_providers-0ea5e9)](files/local-packages/super-browser/UPSTREAM_SOURCE.md)
+[![MCP](https://img.shields.io/badge/MCP_configured-2_hosted-6366f1)](#-whats-in-the-box)
+[![Browser](https://img.shields.io/badge/Super_Browser-12_providers_hosted-0ea5e9)](docs/ARCHITECTURE.md)
 [![Secrets](https://img.shields.io/badge/baked_secrets-0-e11d48?logo=1password&logoColor=white)](#-your-keys-stay-yours)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -103,19 +103,21 @@ flowchart LR
         OBS["Obsidian · HermesVault"]
     end
 
-    subgraph mcp["🔌 1 configured/enabled local policy server"]
-        SB["Super Browser"]
+    subgraph mcp["🔌 2 hosted MCP servers (attached by URL)"]
+        SB["Super Browser<br/>12 providers · approval lifecycle"]
+        SC["Scrape Creators<br/>public social + ad libraries"]
     end
 
     OP["🔐 1Password<br/>op://Hermes/Hermes Agent Secrets<br/>allowlisted mappings resolved at every start"]
 
     TG --> GW
+    SL["Slack (socket mode)"] --> GW
     GW --> mcp
     GW --> OBS
     OP -. keys .-> GW
 ```
 
-The named production connectors in the capability table are absent, hard-stopped reference source, or removed by the exact-version image-build pruner. Their credentials are rejected and cannot activate them from a key, login, flag change, restart, approval record, chat request, or agent action. Operator-controlled source/configuration changes, complete verification, a fresh exact-tree review, a rebuilt image, and a new release are required. Enabled read/planning services remain key-less or dormant when unconfigured.
+Slack is retained and operator-enabled; what the agent may DO over Slack is bounded by `platform_toolsets`, not by removing the platform. The other named production connectors in the capability table are absent, hard-stopped reference source, or removed by the exact-version image-build pruner. Their credentials are rejected and cannot activate them from a key, login, flag change, restart, approval record, chat request, or agent action. Operator-controlled source/configuration changes, complete verification, a fresh exact-tree review, a rebuilt image, and a new release are required. Enabled read/planning services remain key-less or dormant when unconfigured.
 
 ---
 
@@ -124,7 +126,7 @@ The named production connectors in the capability table are absent, hard-stopped
 1. **Make an Orgo account** → [orgo.ai](https://orgo.ai).
 2. **Publish and launch your copy** using the verified workflow in [Deployment](docs/DEPLOYMENT.md). This repository does not currently claim a gallery entry.
 3. The **Revenue Partner Setup** window walks you through:
-   - **Connect Nous** — a quick device-code sign-in so `gpt-5.5` can think (it test-fires a 1-token call, so a zero-credit account fails loudly, not silently).
+   - **Connect a model** — `hermes auth add openrouter --type api-key` and you're done; the default is `anthropic/claude-sonnet-5` via OpenRouter. This is a plain API key, so the agent can be brought up headlessly with no desktop session. Nous device-code OAuth remains available but needs an interactive sign-in.
    - **Scan the QR** → tap **Create Bot** in Telegram → your personal bot is live. 🎉
    - **Optional: paste a 1Password service-account token** — it resolves only the narrow model, Telegram, and telemetry allowlist; absent/non-executable connector credentials are excluded.
 4. **Text your bot.** You're done.
@@ -134,6 +136,8 @@ The named production connectors in the capability table are absent, hard-stopped
 
 | Surface | Current release status |
 |---|---|
+| Slack | **Enabled** — socket mode, operator-connected. Workspace scopes govern visibility; `platform_toolsets` governs what the agent can do |
+| Scrape Creators | **Enabled** — hosted MCP, public-data routes only; no login, cookies, or authenticated profile |
 | 1Password secret transport | Optional operator setup; resolving a secret never activates a disabled connector |
 | Composio | Runtime registration and client absent; a separately reviewed integration/rebuild/release is required |
 | AgentMail | Runtime registration and client absent; a separately reviewed integration/rebuild/release is required |
@@ -155,9 +159,9 @@ The named production connectors in the capability table are absent, hard-stopped
 | | |
 |---|---|
 | **Agent** | Hermes Agent 0.18.0, installed from a hash-locked runtime; model setup remains operator-controlled |
-| **Chat** | Optional Telegram onboarding when configured by the operator |
+| **Chat** | Slack (socket mode) and optional Telegram QR onboarding, both operator-configured |
 | **Secrets** | Runtime-only environment/secret-manager inputs; no credential values are embedded in the template |
-| **Browser** | Pinned Super Browser bundle with eight provider records; Playwright executes only exact allowlisted local fixtures, while bounded direct raw HTTP executes only for public IP-literal targets. Public Playwright navigation and the other six providers are non-executable |
+| **Browser** | Hosted Super Browser MCP, **attached by URL, never vendored** — 12 providers (Playwright, Browser Use, Airtop, Hyperbrowser, Steel, Browserbase, Orgo desktop, Decodo, four Bright Data lanes) with Apify actor routing, persistent browser profiles, and the full approval lifecycle running server-side |
 | **Phone** | AgentPhone future-integration reference source only; all executable entrypoints and concrete network/send boundaries are hard-stopped |
 | **Tracing** | Optional Latitude telemetry when configured and verified |
 | **Skills** | Curated Revenue Partner operating skill and its source, campaign, acceptance, and Money Desk references |
@@ -198,7 +202,7 @@ Replace `'WORKSPACE_ID'` with the literal non-secret workspace ID. Omit `--launc
 <details>
 <summary><b>Make it yours — what's in <code>files/</code></b></summary>
 
-- `config.yaml` — the Hermes config (1 configured/enabled local policy MCP server, 9 enabled model/telemetry plugins, safe remote-platform toolsets, and the narrow 1Password map)
+- `config.yaml` — the Hermes config (2 configured/enabled hosted MCP servers — Super Browser and Scrape Creators — 9 enabled model/telemetry plugins, per-platform toolsets, and the narrow 1Password map)
 - `SOUL.md` — the agent's personality
 - `onboard.sh` / `telegram-pair.py` / `op-enable.py` — the first-boot setup
 - `agentphone-bridge/` — reviewed future-integration source; supervisor entrypoint and direct network helpers are hard-stopped
@@ -224,7 +228,7 @@ Only onto your own VM (or your own 1Password vault). This repo and the template 
 </details>
 
 <details><summary><b>The model says it needs access?</b></summary>
-<code>gpt-5.5</code> is a Nous model — make sure your Nous account has credits (the first-boot sign-in test-fires a call to check). Prefer ChatGPT? <code>hermes auth add openai-codex</code>, then set <code>model.default: gpt-5.6-sol</code> / <code>provider: openai-codex</code>.
+The default is <code>anthropic/claude-sonnet-5</code> through OpenRouter, so make sure that account has credit. Any OpenRouter-reachable model works — change <code>model.default</code> in <code>config.yaml</code>. Nous (<code>hermes auth add nous --type oauth</code>) and OpenAI (<code>hermes auth add openai-codex</code>) are still supported.
 </details>
 
 <details><summary><b>Why is 1Password off until I paste a token?</b></summary>

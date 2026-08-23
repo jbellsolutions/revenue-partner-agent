@@ -406,8 +406,8 @@ template = {
         {
             "name": "hermes-gateway",
             "title": "Hermes Gateway",
-            "description": ("Hermes gateway daemon — Telegram channel and 1 configured/enabled "
-                            "MCP connection: the local Super Browser policy server; "
+            "description": ("Hermes gateway daemon — Slack and Telegram channels, 2 configured/enabled "
+                            "MCP connections: the hosted Super Browser policy server and Scrape Creators; "
                             "model/telemetry plugins, with production-capable remote toolsets absent."),
             "install": INSTALL,
             "services": [

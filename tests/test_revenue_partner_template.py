@@ -82,23 +82,30 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
 
         readme = (ROOT / "README.md").read_text()
         app_description = self.builder.template["apps"][0]["description"]
-        self.assertIn("1 configured/enabled local policy server", readme)
-        self.assertIn("MCP_configured-1", readme)
+        self.assertIn("2 hosted MCP servers (attached by URL)", readme)
+        self.assertIn("MCP_configured-2_hosted", readme)
         self.assertIn("9 enabled model/telemetry plugins", readme)
-        self.assertIn("1 configured/enabled MCP connection", app_description)
+        self.assertIn("2 configured/enabled MCP connections", app_description)
 
     def test_readme_badges_do_not_overstate_or_link_to_missing_targets(self):
         readme = (ROOT / "README.md").read_text()
-        # CI has never run in the published repository: the badge must not
-        # link to a workflow URL that 404s or imply a green run.
-        self.assertNotIn("actions/workflows/ci.yml/badge.svg", readme)
-        self.assertIn("CI-not_yet_run", readme)
-        # Authenticated Orgo validation is not evidenced for this exact tree.
-        self.assertIn("local_schema_ok_not_live", readme)
-        self.assertNotIn("schema_validated_not_live", readme)
-        # The Super Browser badge must not link to a nonexistent repository.
+        # CI now runs and passes in the published repository, so the live badge
+        # is accurate rather than an overstatement. The placeholder must be gone.
+        self.assertIn("actions/workflows/ci.yml/badge.svg", readme)
+        self.assertNotIn("CI-not_yet_run", readme)
+        # Authenticated Orgo validation IS evidenced (HTTP 200 for the exact
+        # tree, digests in VERIFICATION.md) -- but publication, image build and
+        # launch are not. The badge must claim the first and not the rest.
+        self.assertIn("schema_validated_not_published", readme)
+        self.assertNotIn("local_schema_ok_not_live", readme)
+        for overclaim in ("Orgo-published", "Orgo-live", "image_ready", "deployed"):
+            self.assertNotIn(f"badge/{overclaim}", readme)
+        # The Super Browser badge must not link to a nonexistent repository, and
+        # must not point into the retired vendored tree either -- it now
+        # describes a hosted service, so it links to the architecture doc.
         self.assertNotIn("github.com/jbellsolutions/super-browser)", readme)
-        self.assertIn("files/local-packages/super-browser/UPSTREAM_SOURCE.md", readme)
+        self.assertNotIn("files/local-packages/super-browser/", readme)
+        self.assertIn("docs/ARCHITECTURE.md", readme)
 
     def test_release_evidence_matches_current_suites_and_remote_media_policy(self):
         changelog = (ROOT / "CHANGELOG.md").read_text()
