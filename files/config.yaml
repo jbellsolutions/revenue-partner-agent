@@ -176,7 +176,9 @@ platforms:
   slack:
     enabled: true
   telegram:
-    enabled: true
+    # No bot token is provisioned. Enabling it makes the gateway retry every 60s
+    # and log an error each time; first-boot QR onboarding flips this on.
+    enabled: false
 
 platform_toolsets:
   # Local/driven path (rp, hermes). Reached only via the authenticated Orgo API.

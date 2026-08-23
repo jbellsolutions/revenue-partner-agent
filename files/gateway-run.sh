@@ -25,5 +25,13 @@ until [ -f "$HERMES_HOME/config.yaml" ] && [ -s "$HERMES_HOME/auth.json" ]; do s
 # The safe bridge atomically refreshes ~/.hermes/.env, exports only allowlisted
 # parsed values into this process, and execs without shell evaluation.
 mkdir -p /var/lib/orgo
+# `flock` without a timeout parks forever behind a STALE holder, and supervisord
+# reports the parked process as RUNNING -- so a dead gateway looks healthy and
+# every restart is a silent no-op. Field-observed: an orphaned gateway held this
+# lock for two days while config changes appeared to deploy and never took
+# effect. Bound the wait so a stuck lock surfaces as a non-zero exit that
+# supervisord's backoff and status actually reflect. A genuine double-start
+# still loses the race and exits, which is the intended behaviour.
 exec /usr/local/bin/revenue-partner-env-bridge --exec \
-  flock /var/lib/orgo/hermes-gateway.lock hermes gateway run --replace --accept-hooks
+  flock -w 30 -E 75 /var/lib/orgo/hermes-gateway.lock \
+  hermes gateway run --replace --accept-hooks

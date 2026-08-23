@@ -17,6 +17,13 @@ import tempfile
 
 
 MANAGED_KEYS = (
+    # Slack authorization. The gateway denies unknown senders unless a
+    # platform allowlist reaches it, so these must survive the bridge
+    # rebuild or the bot connects and then silently ignores everyone.
+    "SLACK_ALLOW_ALL_USERS",
+    "SLACK_ALLOWED_USERS",
+    "SLACK_ALLOWED_CHANNELS",
+    "SLACK_FREE_RESPONSE_CHANNELS",
     # Slack socket-mode transport (bot + app-level token).
     "SLACK_BOT_TOKEN",
     "SLACK_APP_TOKEN",
@@ -67,6 +74,13 @@ MANAGED_KEYS = (
 # an explicit operator-authored ``--only`` release command; absent-connector
 # credentials are not accepted by either the default or explicit path.
 RUNTIME_MANAGED_KEYS = (
+    # Slack authorization. The gateway denies unknown senders unless a
+    # platform allowlist reaches it, so these must survive the bridge
+    # rebuild or the bot connects and then silently ignores everyone.
+    "SLACK_ALLOW_ALL_USERS",
+    "SLACK_ALLOWED_USERS",
+    "SLACK_ALLOWED_CHANNELS",
+    "SLACK_FREE_RESPONSE_CHANNELS",
     # Slack socket-mode transport (bot + app-level token).
     "SLACK_BOT_TOKEN",
     "SLACK_APP_TOKEN",

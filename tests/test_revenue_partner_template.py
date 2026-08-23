@@ -3401,3 +3401,36 @@ class RuntimeLockConsistencyTests(unittest.TestCase):
     def test_agent_runtime_pin_matches_the_declared_requirement(self):
         hermes = self._pins(FILES / "build-locks/hermes-runtime.lock")
         self.assertEqual(hermes.get("mcp"), "1.26.0", "hermes-agent 0.18.0 pins mcp==1.26.0 exactly")
+
+
+class GatewayLauncherTests(unittest.TestCase):
+    """The supervised launcher must never park silently on a stale lock.
+
+    `flock` with no timeout blocks forever behind an orphaned holder while
+    supervisord reports the parked process as RUNNING. Field-observed: an
+    orphaned gateway held the lock for two days, every restart was a silent
+    no-op, and config changes appeared to deploy while the live gateway never
+    saw them. A dead gateway must not look healthy.
+    """
+
+    def test_gateway_lock_wait_is_bounded_and_reports_failure(self):
+        launcher = (FILES / "gateway-run.sh").read_text()
+        self.assertIn("flock", launcher)
+        self.assertRegex(
+            launcher,
+            r"flock\s+-w\s+\d+",
+            "flock must use a bounded -w timeout; an unbounded wait parks forever "
+            "behind a stale holder and supervisord reports it as healthy",
+        )
+        self.assertRegex(
+            launcher, r"-E\s+\d+",
+            "flock needs a distinct conflict exit code so a stuck lock is "
+            "distinguishable from a gateway crash",
+        )
+
+    def test_gateway_launcher_still_serializes_starts(self):
+        """The boot-race guard must survive the timeout change."""
+        launcher = (FILES / "gateway-run.sh").read_text()
+        self.assertIn("/var/lib/orgo/hermes-gateway.lock", launcher)
+        self.assertIn("hermes gateway run", launcher)
+        self.assertIn("--replace", launcher)
