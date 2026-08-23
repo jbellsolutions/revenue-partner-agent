@@ -245,6 +245,20 @@ mcp_servers:
     enabled: true
     connect_timeout: 30.0
     tool_timeout: 300.0
+    # KNOWN COSMETIC ISSUE: the gateway logs "keepalive failed ... Unsupported
+    # method: ping" every 180s and reconnects. Tools keep working throughout --
+    # the agent lists and calls all 24 Super Browser tools -- so this is log
+    # noise, not an outage.
+    #
+    # Upstream super-browser 4ba5195 fixed bare JSON-RPC ping (verified live:
+    # returns an empty result, and unknown methods now return -32601). Hermes's
+    # session-attached keepalive still fails, so a second dispatch path is
+    # involved that the bare-POST fix does not reach.
+    #
+    # `keepalive_interval` is deliberately NOT set here: Hermes reads it from
+    # its own server-config dict and the value does not survive config.yaml, so
+    # the cadence stays pinned at the 180s default. Setting it looks like a fix
+    # and silently is not.
 
   # Scrape Creators — hosted MCP, 175 public routes across TikTok, Instagram,
   # YouTube, LinkedIn, Facebook, Reddit and Threads, plus the Facebook, Google
