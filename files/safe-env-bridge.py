@@ -17,6 +17,11 @@ import tempfile
 
 
 MANAGED_KEYS = (
+    # Hosted Super Browser transport — the agent attaches by URL rather than
+    # vendoring a local copy, so the endpoint and bearer token must survive
+    # the bridge rebuild or the MCP server authenticates as anonymous.
+    "SUPER_BROWSER_URL",
+    "SUPER_BROWSER_TOKEN",
     # Non-secret operational defaults.
     "AGENT_BROWSER_EXECUTABLE_PATH",
     "TERMINAL_TIMEOUT",
@@ -56,6 +61,11 @@ MANAGED_KEYS = (
 # an explicit operator-authored ``--only`` release command; absent-connector
 # credentials are not accepted by either the default or explicit path.
 RUNTIME_MANAGED_KEYS = (
+    # Hosted Super Browser transport — the agent attaches by URL rather than
+    # vendoring a local copy, so the endpoint and bearer token must survive
+    # the bridge rebuild or the MCP server authenticates as anonymous.
+    "SUPER_BROWSER_URL",
+    "SUPER_BROWSER_TOKEN",
     "AGENT_BROWSER_EXECUTABLE_PATH",
     "TERMINAL_TIMEOUT",
     "TERMINAL_LIFETIME_SECONDS",

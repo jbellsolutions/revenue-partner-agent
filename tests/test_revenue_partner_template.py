@@ -18,6 +18,7 @@ import tempfile
 import threading
 import time
 import tomllib
+import pathlib
 import unittest
 from unittest import mock
 import urllib.error
@@ -3301,3 +3302,49 @@ print("live_test_and_handoff_truth_ok")
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RuntimeLockConsistencyTests(unittest.TestCase):
+    """Locks installed into one venv must not disagree.
+
+    The install script pip-installs `build-locks/hermes-runtime.lock` and then
+    the packaged Super Browser's `requirements-runtime.lock` into the *same*
+    interpreter. Both are hash-locked, so each looks deterministic in isolation,
+    but the second install silently upgrades anything the first pinned lower --
+    last writer wins. That is how `mcp` reached 2.0.0 in a runtime whose agent
+    pins `mcp==1.26.0`, which broke every HTTP MCP connection at image-build
+    time and could not be seen by any test that reads a single lock.
+    """
+
+    @staticmethod
+    def _pins(path):
+        pins = {}
+        for line in pathlib.Path(path).read_text().splitlines():
+            match = re.match(r"^([A-Za-z0-9_.\-]+)==([^\s\\]+)", line.strip())
+            if match:
+                pins[match.group(1).lower().replace("_", "-")] = match.group(2)
+        return pins
+
+    @unittest.expectedFailure  # OPEN DEFECT — see docstring; clears when the
+    # packaged Super Browser is retired in favour of the hosted MCP server, which
+    # removes the second lock from the image entirely. Remove this marker then;
+    # unittest reports an unexpected success and fails if it is left behind.
+    def test_runtime_locks_sharing_one_venv_agree_on_every_shared_pin(self):
+        hermes = self._pins(FILES / "build-locks/hermes-runtime.lock")
+        packaged = self._pins(SB / "requirements-runtime.lock")
+        self.assertTrue(hermes and packaged, "both locks must parse")
+        conflicts = {
+            name: (hermes[name], packaged[name])
+            for name in sorted(set(hermes) & set(packaged))
+            if hermes[name] != packaged[name]
+        }
+        self.assertEqual(
+            conflicts,
+            {},
+            "locks installed into the same venv disagree; the later install wins "
+            f"and silently rewrites the agent runtime: {conflicts}",
+        )
+
+    def test_agent_runtime_pin_matches_the_declared_requirement(self):
+        hermes = self._pins(FILES / "build-locks/hermes-runtime.lock")
+        self.assertEqual(hermes.get("mcp"), "1.26.0", "hermes-agent 0.18.0 pins mcp==1.26.0 exactly")
