@@ -83,9 +83,34 @@ run, and it is recorded separately for exactly that reason.
 | Install completion | `revenue-partner-agent install complete` |
 | Supervised services | `hermes-gateway` and `agentphone-bridge` both `RUNNING` |
 | Allowlisted environment bridge | `bridged 10 allowlisted environment values` |
-| Model sign-in | Not completed — `Hermes is not logged into Nous Portal`; device-code OAuth is operator-interactive |
+| Model sign-in | Completed headlessly — OpenRouter via `hermes auth add openrouter --type api-key`; no device-code OAuth needed. Default model moved to `anthropic/claude-sonnet-5` |
 | Telegram pairing | Not completed — QR pairing is operator-interactive |
-| Conversational smoke | Not run — depends on model sign-in |
+| Conversational smoke | Passed — the agent answers correctly through OpenRouter (`anthropic/claude-sonnet-5`), naming all six outcome metrics separately and refusing to fabricate tool output |
+| **Runtime reproducibility after this run** | **Broken — read this before trusting the rows above.** The provisioned box was manually corrected post-install: `mcp` was pinned back to `1.26.0` with a direct `pip install`, outside `--require-hashes` and not derivable from any lock in this tree. Rebuilding from this tree installs `mcp 2.0.0` (see the runtime-lock conflict below) and every HTTP MCP connection fails. The live box therefore does **not** match what `build_template.py` produces, and will not until the packaged Super Browser is retired in favour of the hosted MCP server. |
+
+### Runtime-lock conflict (open)
+
+`apps[].install` installs `build-locks/hermes-runtime.lock` and then the packaged Super Browser's
+`requirements-runtime.lock` into the **same interpreter**. Both are hash-locked and deterministic in
+isolation; installed sequentially, the second silently upgrades six shared pins, and Super Browser
+installs last:
+
+| Package | hermes-runtime.lock | super-browser lock | effective |
+|---|---|---|---|
+| `cryptography` | 46.0.7 | 50.0.0 | 50.0.0 |
+| `idna` | 3.19 | 3.18 | 3.18 |
+| **`mcp`** | **1.26.0** | **2.0.0** | **2.0.0** |
+| `python-multipart` | 0.0.27 | 0.0.32 | 0.0.32 |
+| `starlette` | 1.0.1 | 1.6.0 | 1.6.0 |
+| `uvicorn` | 0.41.0 | 0.52.3 | 0.52.3 |
+
+`hermes-agent 0.18.0` pins `mcp==1.26.0` exactly. Against `mcp 2.0.0` the HTTP MCP transport fails
+three ways — the removed `streamablehttp_client` alias latches the availability flag to `False`;
+`streamable_http_client` yields two values where the client unpacks three; and `CallToolResult`
+exposes `is_error`, not `isError`. With `mcp==1.26.0` restored, **stock unpatched Hermes connects to
+the hosted Super Browser in 267 ms and discovers all 22 tools.**
+
+Detected by `RuntimeLockConsistencyTests`, marked `expectedFailure` while the defect is open.
 
 Two defects were found by this gate that every prior gate passed over, because no gate in
 this repository had ever executed the install program:
@@ -139,4 +164,4 @@ Allowed:
 - “Image ready” only after immutable-reference remote readback matches the signed reference/digest, the build response binds the same reference/digest with a `building` or `ready` status, and a second-readback-gated bounded event stream for that exact reference reaches explicit success/ready before the absolute deadline.
 - “Live deployment proven” only after another immutable-reference remote readback matches the signed bytes, launch submits that reference, and a matching computer ID, workspace ID, runtime, and conversational smoke tests pass.
 
-Current 1.0.1 status is **implemented, locally verified, authenticated-schema-validated for the exact tree `12cdc24f`, and install-verified on a provisioned computer up to operator-interactive model sign-in; exact GitHub publication/review evidence is release-bound; not yet published, image-built, or live on Orgo**.
+Current 1.0.1 status is **implemented, locally verified, authenticated-schema-validated for the exact tree `12cdc24f`, and install-verified on a provisioned computer whose runtime was then manually corrected and is not reproducible from this tree; exact GitHub publication/review evidence is release-bound; not yet published, image-built, or live on Orgo**.
