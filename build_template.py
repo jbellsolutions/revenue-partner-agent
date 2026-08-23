@@ -16,7 +16,7 @@
 # Revenue Partner release: source-grounded GTM behavior, tenant-neutral runtime,
 # approval-constrained production actions, and deterministic browser packaging:
 #   • 1Password secret plane (op CLI + narrow six-value allowlist)
-#   • 1 configured/enabled local policy MCP server (Super Browser)
+#   • 1 configured/enabled MCP server: hosted Super Browser, attached by URL
 #   • latitude-telemetry-hermes stdlib-registered plugin + core reasoning_config patch
 #   • AgentPhone future-integration source with immutable network hard stops
 #   • Curated Revenue Partner skill, SOUL.md persona, and operating defaults
@@ -91,17 +91,6 @@ OP_CLI_URL = "https://cache.agilebits.com/dist/1P/op2/pkg/v2.34.1/op_linux_amd64
 OP_CLI_SHA = "b13ed106335419ea0fb0ebd7ebbb3b48cf26a2f214eb4b2fd8d950548e7980ed"
 NODE_URL = "https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.xz"
 NODE_SHA = "14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647"
-# Playwright browser artifacts. Each digest below was computed from an actual
-# download and independently reconfirmed: the two Chrome-for-Testing archives were
-# hashed from the canonical `storage.googleapis.com/chrome-for-testing-public`
-# origin as well as the Playwright mirror, and every artifact was fetched over two
-# separate network paths with matching size and digest.
-PLAYWRIGHT_CHROMIUM_URL = "https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-linux64.zip"
-PLAYWRIGHT_CHROMIUM_SHA = "ae8736ac28bc69278551500f219fc749575648263c43ec5990749eff43b9fcf8"
-PLAYWRIGHT_HEADLESS_URL = "https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-headless-shell-linux64.zip"
-PLAYWRIGHT_HEADLESS_SHA = "3cfc2bd00d1bafcf8a68dc74c9c92bb7150ddc8d26ade948a776316e1cec4f14"
-PLAYWRIGHT_FFMPEG_URL = "https://cdn.playwright.dev/builds/ffmpeg/1011/ffmpeg-linux.zip"
-PLAYWRIGHT_FFMPEG_SHA = "ebc74fc5b94830176a3c2914ae96bd8bc7f6a91f4f33890230f84a172ee61ccc"
 
 
 
@@ -159,7 +148,8 @@ def payload_b64():
         ("build-locks", "build-locks"),
         ("skills/go-to-market/revenue-partner", "hermes/skills/go-to-market/revenue-partner"),
         ("scripts", "hermes/scripts"),
-        ("local-packages", "hermes/local-packages"),
+        ("local-packages/latitude-telemetry-hermes",
+         "hermes/local-packages/latitude-telemetry-hermes"),
         ("agent-knowledge", "agent-knowledge"),
     )
     pathspecs = [f"files/{rel_root}" for rel_root, _ in runtime_roots]
@@ -218,7 +208,6 @@ files = [
     F("/usr/local/bin/revenue-partner-onboard-launch.sh", rd("onboard-launch.sh"), "0755"),
     F("/usr/local/bin/revenue-partner-telegram-pair.py", rd("telegram-pair.py"), "0755"),
     F("/usr/local/bin/obsidian-launch", rd("obsidian-launch"), "0755"),
-    F("/usr/local/bin/super-browser-server", rd("super-browser-server"), "0755"),
     F("/usr/local/bin/revenue-partner-env-bridge", rd("safe-env-bridge.py"), "0755"),
     # --- desktop icons ---
     F("/root/Desktop/Obsidian.desktop", rd("Obsidian.desktop"), "0755"),
@@ -298,31 +287,11 @@ cp -rf {STAGE}/vault/.            /root/Documents/HermesVault/
 cp -f  {STAGE}/obsidian.json      /root/.config/obsidian/obsidian.json
 chmod 600 /root/.hermes/config.yaml /root/.hermes/.env
 
-# 9) Super Browser orchestration runtime + local Playwright. Hosted providers
-#    are planning-only. Python and browser archives are independently hash-locked.
-#    The build verifies eight provider records, MCP resources, and a real Chromium launch.
-SB_ROOT=/root/.hermes/local-packages/super-browser
-uv pip install --python "$VENV_PY" --require-hashes -r "$SB_ROOT/requirements-runtime.lock" \
-  || /root/.hermes/bin/uv pip install --python "$VENV_PY" --require-hashes -r "$SB_ROOT/requirements-runtime.lock"
-/root/.hermes/scripts/super-browser/install_local_super_browser.sh "$SB_ROOT" "$VENV_PY"
-PW_CACHE=/root/.cache/ms-playwright
-mkdir -p "$PW_CACHE/chromium-1234" "$PW_CACHE/chromium_headless_shell-1234" "$PW_CACHE/ffmpeg-1011"
-curl -fsSL "{PLAYWRIGHT_CHROMIUM_URL}" -o /tmp/playwright-chromium.zip
-echo "{PLAYWRIGHT_CHROMIUM_SHA}  /tmp/playwright-chromium.zip" | sha256sum -c -
-python3 -c "import zipfile; zipfile.ZipFile('/tmp/playwright-chromium.zip').extractall('$PW_CACHE/chromium-1234')"
-curl -fsSL "{PLAYWRIGHT_HEADLESS_URL}" -o /tmp/playwright-headless.zip
-echo "{PLAYWRIGHT_HEADLESS_SHA}  /tmp/playwright-headless.zip" | sha256sum -c -
-python3 -c "import zipfile; zipfile.ZipFile('/tmp/playwright-headless.zip').extractall('$PW_CACHE/chromium_headless_shell-1234')"
-curl -fsSL "{PLAYWRIGHT_FFMPEG_URL}" -o /tmp/playwright-ffmpeg.zip
-echo "{PLAYWRIGHT_FFMPEG_SHA}  /tmp/playwright-ffmpeg.zip" | sha256sum -c -
-python3 -c "import zipfile; zipfile.ZipFile('/tmp/playwright-ffmpeg.zip').extractall('$PW_CACHE/ffmpeg-1011')"
-chmod 0755 "$PW_CACHE/chromium-1234/chrome-linux64/chrome" \
-  "$PW_CACHE/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell" \
-  "$PW_CACHE/ffmpeg-1011/ffmpeg-linux"
-rm -f /tmp/playwright-chromium.zip /tmp/playwright-headless.zip /tmp/playwright-ffmpeg.zip
-ln -sf "$(dirname "$VENV_PY")/super-browser" /usr/local/bin/super-browser
-"$VENV_PY" -c "from super_browser.providers import PROVIDERS; assert len(PROVIDERS) == 8, PROVIDERS; from super_browser.mcp_server import list_resources; assert len(list_resources()) >= 20; print('super_browser_import_ok', len(PROVIDERS), len(list_resources()))"
-"$VENV_PY" -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.chromium.launch(headless=True); b.close(); p.stop(); print('playwright_runtime_ok')"
+# 9) Browser/computer orchestration is a hosted service. Super Browser is
+#    attached by URL as an MCP server (see config.yaml) rather than vendored:
+#    the providers, Playwright runtime, and approval lifecycle all live on the
+#    server. Vendoring a second copy also meant installing a second dependency
+#    lock into this venv, which silently rewrote six of the agent's own pins.
 
 # 10) AgentPhone bridge source (supervised entrypoint remains non-executable).
 cp -f {STAGE}/agentphone-bridge/agentphone_bridge.py /root/.hermes_agentphone_bridge/

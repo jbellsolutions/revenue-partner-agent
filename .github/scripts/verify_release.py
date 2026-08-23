@@ -31,7 +31,7 @@ STEP_NAMES = (
     "tracked and embedded shell syntax",
     "git diff checks",
     "template schema assembly",
-    "assembled super browser verifier",
+    "assembled hosted-attach verifier",
 )
 
 
@@ -97,7 +97,7 @@ def run_locked_matrix() -> None:
     run([GIT, "diff", "--check"], "working-tree diff check")
     run([GIT, "diff", "--cached", "--check"], "staged diff check")
     run([python, "build_template.py"], "template schema assembly")
-    run([python, ".github/scripts/verify_assembled_super_browser.py"], "assembled super browser verifier")
+    run([python, ".github/scripts/verify_assembled_super_browser.py"], "assembled hosted-attach verifier")
     assert_exact_candidate_tree()
 
 

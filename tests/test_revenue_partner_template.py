@@ -108,7 +108,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         self.assertIn("70/70 passed", verification)
         self.assertIn("7/7 passed", changelog)
         self.assertIn("7/7 passed", verification)
-        self.assertIn("109 files; passed", verification)
+        self.assertIn("33 files; passed", verification)
         self.assertNotIn("54/54", changelog + verification)
         self.assertNotIn("53/53", changelog + verification)
         self.assertNotIn("33/33", changelog + verification)
@@ -178,61 +178,56 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue(path.is_file(), str(path))
 
-    def test_config_wires_super_browser_stdio_mcp(self):
+    def test_config_attaches_hosted_super_browser_by_url(self):
+        """Super Browser is a hosted service attached by URL, never vendored.
+
+        A local copy diverges from the server and, worse, dragged a second
+        dependency lock into the agent's venv that silently rewrote six of its
+        own pins. The config must carry a URL and bearer header and must not
+        spawn a bundled stdio server.
+        """
         config = (FILES / "config.yaml").read_text()
         self.assertIn("super-browser:", config)
-        self.assertIn("/usr/local/bin/super-browser-server", config)
-        self.assertIn("SUPER_BROWSER_STATE_DIR", config)
+        self.assertIn("url: ${SUPER_BROWSER_URL}/mcp", config)
+        self.assertIn("Authorization: Bearer ${SUPER_BROWSER_TOKEN}", config)
+        self.assertNotIn("/usr/local/bin/super-browser-server", config)
+        self.assertNotIn("SUPER_BROWSER_STATE_DIR", config)
         self.assertNotIn("Buzz", config)
+        parsed = yaml.safe_load(config)
+        server = parsed["mcp_servers"]["super-browser"]
+        self.assertNotIn("command", server)
+        self.assertTrue(server["enabled"])
 
-    def test_builder_installs_and_validates_super_browser(self):
+    def test_builder_does_not_vendor_super_browser_or_a_browser_runtime(self):
+        """The image ships no second copy of Super Browser and no local browser.
+
+        Both belong to the hosted service. Vendoring them is what installed a
+        conflicting dependency lock into the agent venv; see
+        RuntimeLockConsistencyTests and docs/VERIFICATION.md.
+        """
         text = (ROOT / "build_template.py").read_text()
-        self.assertIn("local-packages/super-browser", text)
-        self.assertNotIn("playwright install chromium", text)
+        for absent in (
+            "local-packages/super-browser",
+            "install_local_super_browser.sh",
+            "super_browser.providers",
+            "super_browser.mcp_server",
+            "/usr/local/bin/super-browser-server",
+            "SB_ROOT",
+        ):
+            self.assertNotIn(absent, text, absent)
         for archive in ("CHROMIUM", "HEADLESS", "FFMPEG"):
-            self.assertRegex(text, rf'PLAYWRIGHT_{archive}_URL = "https://[^" ]+"')
-            self.assertRegex(text, rf'PLAYWRIGHT_{archive}_SHA = "[0-9a-f]{{64}}"')
-            self.assertIn(f'{{PLAYWRIGHT_{archive}_SHA}}', text)
-        self.assertIn("super_browser.providers", text)
-        self.assertIn("super_browser.mcp_server", text)
-        self.assertIn("revenue-partner-smoke", text)
-        self.assertIn("requirements-runtime.lock", text)
+            self.assertNotIn(f"PLAYWRIGHT_{archive}_URL", text)
+        self.assertNotIn("playwright install chromium", text)
+        # The latitude plugin is still vendored and still installs under hashes.
         self.assertIn("--require-hashes", text)
-        self.assertIn("list_resources", text)
+        self.assertIn("latitude-telemetry-hermes", text)
 
-    def test_super_browser_registration_avoids_unlocked_build_backends(self):
-        installer = FILES / "scripts/super-browser/install_local_super_browser.sh"
-        self.assertTrue(installer.exists())
+    def test_no_local_super_browser_registration_surface_remains(self):
+        """The vendored registration path is gone, not merely unused."""
         builder = (ROOT / "build_template.py").read_text()
+        self.assertNotIn("install_local_super_browser.sh", builder)
         self.assertNotIn('pip install --python "$VENV_PY" --no-deps -e "$SB_ROOT"', builder)
-        self.assertIn("install_local_super_browser.sh", builder)
-        with tempfile.TemporaryDirectory() as directory:
-            venv = Path(directory) / "venv"
-            subprocess.run([sys.executable, "-m", "venv", str(venv)], check=True)
-            python = venv / "bin/python"
-            for _ in range(2):
-                subprocess.run(["bash", str(installer), str(SB), str(python)], check=True)
-            result = subprocess.run(
-                [
-                    str(python),
-                    "-c",
-                    "import importlib.metadata as m; import pathlib,super_browser; "
-                    "assert m.version('super-browser') == '0.3.2'; "
-                    f"assert pathlib.Path(super_browser.__file__).resolve().is_relative_to(pathlib.Path({str(SB / 'src')!r}).resolve()); "
-                    "eps=[e for e in m.entry_points(group='console_scripts') if e.name == 'super-browser']; "
-                    "assert len(eps) == 1 and eps[0].load().__module__ == 'super_browser.cli'; "
-                    "print('super_browser_registration_ok')",
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            self.assertIn("super_browser_registration_ok", result.stdout)
-            cli = venv / "bin/super-browser"
-            self.assertTrue(cli.exists())
-            help_result = subprocess.run([str(cli), "--help"], capture_output=True, text=True, check=True)
-            self.assertNotIn("install-skill", help_result.stdout)
-            self.assertNotIn("init-mcp", help_result.stdout)
+
     def test_build_dependency_sources_are_immutable_and_verified(self):
         text = (ROOT / "build_template.py").read_text()
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -2773,7 +2768,17 @@ assert bounded.closed and not hasattr(bounded_result, "read")
                 setattr(self.builder, "FILES", previous)
             with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as payload:
                 names = payload.getnames()
-            self.assertIn("hermes/local-packages/super-browser/src/super_browser/runtime.py", names)
+            # Super Browser is no longer vendored; the latitude plugin is the
+            # remaining local package and carries the same exclusion contract.
+            self.assertFalse(
+                any(name.startswith("hermes/local-packages/super-browser/") for name in names),
+                "the vendored Super Browser must not reappear in the payload",
+            )
+            self.assertTrue(
+                any(name.startswith("hermes/local-packages/latitude-telemetry-hermes/")
+                    for name in names),
+                names,
+            )
             self.assertFalse(
                 any("/build/" in name or ".egg-info/" in name or "/node_modules/" in name for name in names),
                 names,
@@ -3012,9 +3017,23 @@ print("direct_hosted_helpers_blocked")
         self.assertNotIn("known_plugin_toolsets", config)
         self.assertNotIn("orgo-desktop-local", config["plugins"]["enabled"])
         self.assertNotIn("orgo_desktop", config_source)
+        # `cli` is reached only through the authenticated Orgo API and needs a
+        # working toolset for the agent to do anything. Every *inbound* chat
+        # platform stays read-only; widening cli must never widen those.
         safe_remote_toolsets = {"session_search"}
-        for toolsets in config["platform_toolsets"].values():
-            self.assertEqual(set(toolsets), safe_remote_toolsets)
+        platform_toolsets = config["platform_toolsets"]
+        self.assertEqual(
+            set(platform_toolsets["cli"]),
+            {"session_search", "super-browser", "skills", "memory", "file", "todo"},
+        )
+        for name, toolsets in platform_toolsets.items():
+            if name == "cli":
+                continue
+            self.assertEqual(set(toolsets), safe_remote_toolsets, name)
+        # The dangerous surfaces stay off every platform, cli included.
+        for platform, toolsets in platform_toolsets.items():
+            for forbidden in ("terminal", "code_execution", "delegation", "computer_use"):
+                self.assertNotIn(forbidden, toolsets, f"{platform}/{forbidden}")
         self.assertNotIn("browser-browser-use", config["plugins"]["enabled"])
         self.assertNotIn("browser-firecrawl", config["plugins"]["enabled"])
         self.assertIn("browser-browser-use", config["plugins"]["disabled"])
@@ -3305,6 +3324,10 @@ if __name__ == "__main__":
 
 
 class RuntimeLockConsistencyTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.builder = load_builder()
+
     """Locks installed into one venv must not disagree.
 
     The install script pip-installs `build-locks/hermes-runtime.lock` and then
@@ -3325,24 +3348,32 @@ class RuntimeLockConsistencyTests(unittest.TestCase):
                 pins[match.group(1).lower().replace("_", "-")] = match.group(2)
         return pins
 
-    @unittest.expectedFailure  # OPEN DEFECT — see docstring; clears when the
-    # packaged Super Browser is retired in favour of the hosted MCP server, which
-    # removes the second lock from the image entirely. Remove this marker then;
-    # unittest reports an unexpected success and fails if it is left behind.
-    def test_runtime_locks_sharing_one_venv_agree_on_every_shared_pin(self):
-        hermes = self._pins(FILES / "build-locks/hermes-runtime.lock")
-        packaged = self._pins(SB / "requirements-runtime.lock")
-        self.assertTrue(hermes and packaged, "both locks must parse")
-        conflicts = {
-            name: (hermes[name], packaged[name])
-            for name in sorted(set(hermes) & set(packaged))
-            if hermes[name] != packaged[name]
-        }
+    def test_install_program_installs_exactly_one_runtime_lock(self):
+        """Only one dependency lock may be installed into the agent's venv.
+
+        Two hash-locked files each look deterministic alone; installed
+        sequentially into one interpreter the second silently upgrades whatever
+        the first pinned lower. That is how `mcp` reached 2.0.0 in a runtime
+        whose agent pins `mcp==1.26.0`, breaking every HTTP MCP connection at
+        image-build time -- invisible to any check that reads a single lock.
+        """
+        install = self.builder.INSTALL
+        installed = set(re.findall(r"--require-hashes -r ([^\s\\]+)", install))
         self.assertEqual(
-            conflicts,
-            {},
-            "locks installed into the same venv disagree; the later install wins "
-            f"and silently rewrites the agent runtime: {conflicts}",
+            {name.rsplit("/", 1)[-1] for name in installed},
+            {"hermes-runtime.lock"},
+            f"exactly one runtime lock may reach the venv; found {sorted(installed)}",
+        )
+        self.assertNotIn("requirements-runtime.lock", install)
+
+    def test_retired_vendored_locks_are_not_shipped(self):
+        """A lock that is no longer installed must also not ride in the payload."""
+        archive = base64.b64decode(self.builder.payload_b64())
+        with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as payload:
+            names = payload.getnames()
+        self.assertFalse(
+            [n for n in names if n.endswith("requirements-runtime.lock")],
+            "the vendored Super Browser lock must not ship in the payload",
         )
 
     def test_agent_runtime_pin_matches_the_declared_requirement(self):

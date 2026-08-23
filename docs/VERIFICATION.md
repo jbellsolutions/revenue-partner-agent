@@ -21,7 +21,7 @@ Older candidate hashes and artifact sizes are intentionally not presented as cur
 | Revenue Partner test suite | 70/70 passed | Builder, behavior, exact Git-index credential scan, exact serialized publication-body evidence, payload, safe env, unconditional hash-locked bootstrap with forged-marker rejection, exact packaged Super Browser verifier execution, local-production fail-closed policy, direct hosted factory/HTTP hard stops, authenticated/unknown-intent gating, truthful live-test exit status, exact-loopback fixture policy and wiring, non-resumable approval handoffs, caller-proxy rejection, public Playwright pre-construction denial, bodyless GET/HEAD enforcement, JavaScript/download denial, bounded browser artifacts, streamed raw-response and `Content-Length` ceilings, version-bound pruning of named upstream connector plugin/CLI/catalog surfaces, explicit absent-credential rejection, safe remote-platform toolsets, planning-only council labeling, telemetry opt-in/redaction/idempotent registration, shell syntax, and immutable dependency evidence; real Chromium fixture execution remains an image-build live-smoke gate |
 | Latitude telemetry suite | 7/7 passed | Reasoning metadata, canonical fixed ingest origin, environment override rejection, no-proxy/no-redirect transport, and thread-safe repeat registration |
 | Serialized publication request | Passed below endpoint ceiling | Canonical publish serializer enforces `< 1,000,000` bytes on the default CI builder path; exact post-freeze bytes belong in the release manifest |
-| Deterministic payload inventory | 109 files; passed | Generated `build/`, `dist/`, `node_modules/`, cache, and `*.egg-info` paths excluded; model-callable Orgo Desktop plugin/client paths are absent |
+| Deterministic payload inventory | 33 files; passed | Dropped from 109 to 33 files when the vendored Super Browser left the image. Generated `build/`, `dist/`, `node_modules/`, cache, and `*.egg-info` paths excluded; model-callable Orgo Desktop plugin/client paths are absent |
 | AgentPhone ordering/media/webhook boundary | 17/17 passed | Immutable network/tunnel/main hard stops plus event ordering, direct-audience binding, signed group-webhook rejection before job creation, retained exact-origin/no-redirect defense-in-depth, approved-root, arbitrary-path, traversal, symlink, private-cache, arbitrary remote attachment rejection, and pre-read webhook-size controls |
 
 | Python compilation | Passed | Builder, tests, bridges, packaged source |
@@ -30,7 +30,7 @@ Older candidate hashes and artifact sizes are intentionally not presented as cur
 | Markdown/HTML local links and assets | 43 resolved | Count derived by `.github/scripts/check_markdown_links.py`; Markdown links/images plus HTML `src`/`href` references |
 | Exact candidate export | Passed | Non-Python launcher rejects tracked/index differences and non-ignored untracked files, captures `git write-tree`, verifies archive parity, and runs all tests/builds inside that export |
 | Local JSON Schema | Passed | Disposable environment populated from `requirements-ci.lock` under `--require-hashes` |
-| Authenticated Orgo validation | Passed for this exact tree | `POST /api/templates/validate` returned HTTP `200` with `ok: true`, `api_version: orgo.ai/v1`, the echoed `revenue-partner-agent@1.0.1` identity, and the bound 23-entry file inventory. Exact bytes below. Schema acceptance only — not publication, image readiness, launch, or live runtime |
+| Authenticated Orgo validation | Passed for this exact tree | `POST /api/templates/validate` returned HTTP `200` with `ok: true`, `api_version: orgo.ai/v1`, the echoed `revenue-partner-agent@1.0.1` identity, and the bound 22-entry file inventory. Exact bytes below. Schema acceptance only — not publication, image readiness, launch, or live runtime |
 | Resolved body | Recorded in release notes | Exact final candidate output |
 | Exact staged credential scan | 0 matches | Actual supplied values and credential-shape patterns |
 | Independent security/correctness review | Recorded in release notes | Exact immutable release candidate |
@@ -46,13 +46,13 @@ The transport was the exact assembled bytes, not a paraphrase.
 
 | Field | Value |
 |---|---|
-| Exact Git tree | `12cdc24f45ebd7dce6be072da98d42e0e11e6db5` |
-| Resolved artifact SHA-256 | `44217c6ee2394ee19eaa6f7c65d0f199212e9a84ac13b8bad5573a1c873bfc64` |
-| Validation body SHA-256 | `5e738e916219273f7c7af0703d9f2f4ad54efee0af10a068fe71b41b11ebe031` (529,600 bytes) |
-| Publication body SHA-256 | `b441ae67929d71fa1b778c89b3a6ef03a5019ad34f895131be399d4faf9c3828` (529,684 bytes) |
+| Exact Git tree | `e1cba9051ea09b74635ce5d8ce09aa5c388034b2` |
+| Resolved artifact SHA-256 | `ec5953b59e7bbd7423f2db6d72ed9abe11e5114388777f88ee8a9d1a6012498e` |
+| Validation body SHA-256 | `dfebb8007ab9fcc2ca6271fdf272bd967eef2663c236a4176498380b440aa077` (314,356 bytes) |
+| Publication body SHA-256 | `39d6178fe8ee59120845c096890d255f9e5125c2bdd1f37608a785fd19e05ef5` (314,440 bytes) |
 | Endpoint | `POST https://www.orgo.ai/api/templates/validate` |
 | Status | `200` |
-| Response | `ok: true`; `api_version: orgo.ai/v1`; `revenue-partner-agent@1.0.1`; 23-entry file inventory echoed |
+| Response | `ok: true`; `api_version: orgo.ai/v1`; `revenue-partner-agent@1.0.1`; 22-entry file inventory echoed |
 
 The artifact was regenerated from the exact Git index immediately after the call and compared
 byte-for-byte against the transmitted bytes; the digests are identical, so the `200` binds this tree
@@ -110,7 +110,9 @@ three ways — the removed `streamablehttp_client` alias latches the availabilit
 exposes `is_error`, not `isError`. With `mcp==1.26.0` restored, **stock unpatched Hermes connects to
 the hosted Super Browser in 267 ms and discovers all 22 tools.**
 
-Detected by `RuntimeLockConsistencyTests`, marked `expectedFailure` while the defect is open.
+**Resolved** by retiring the packaged Super Browser: the install program now consumes exactly one
+runtime lock. `RuntimeLockConsistencyTests` enforces that, and the assembled-artifact gate
+(`verify_assembled_super_browser.py`) rejects any payload that reintroduces a second lock.
 
 Two defects were found by this gate that every prior gate passed over, because no gate in
 this repository had ever executed the install program:
@@ -164,4 +166,4 @@ Allowed:
 - “Image ready” only after immutable-reference remote readback matches the signed reference/digest, the build response binds the same reference/digest with a `building` or `ready` status, and a second-readback-gated bounded event stream for that exact reference reaches explicit success/ready before the absolute deadline.
 - “Live deployment proven” only after another immutable-reference remote readback matches the signed bytes, launch submits that reference, and a matching computer ID, workspace ID, runtime, and conversational smoke tests pass.
 
-Current 1.0.1 status is **implemented, locally verified, authenticated-schema-validated for the exact tree `12cdc24f`, and install-verified on a provisioned computer whose runtime was then manually corrected and is not reproducible from this tree; exact GitHub publication/review evidence is release-bound; not yet published, image-built, or live on Orgo**.
+Current 1.0.1 status is **implemented, locally verified, authenticated-schema-validated for the exact tree `e1cba905`, and install-verified on a provisioned computer whose runtime was then manually corrected and is not reproducible from this tree; exact GitHub publication/review evidence is release-bound; not yet published, image-built, or live on Orgo**.

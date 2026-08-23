@@ -170,9 +170,19 @@ session_reset:
   at_hour: 4
 group_sessions_per_user: true
 platform_toolsets:
-  cli: &revenue_partner_readonly_toolsets
+  # Local/driven path (rp, hermes). Reached only via the authenticated Orgo API.
+  # Deliberately excludes terminal, code_execution, delegation, computer_use, and
+  # the built-in browser/web tools so all web work routes through Super Browser's
+  # policy layer rather than around it.
+  cli:
     - session_search
-  telegram: *revenue_partner_readonly_toolsets
+    - super-browser
+    - skills
+    - memory
+    - file
+    - todo
+  telegram: &revenue_partner_readonly_toolsets
+    - session_search
   discord: *revenue_partner_readonly_toolsets
   whatsapp: *revenue_partner_readonly_toolsets
   slack: *revenue_partner_readonly_toolsets
@@ -202,19 +212,21 @@ plugins:
     - novita-provider
   entries: {}
 mcp_servers:
-  # Provider-neutral browser/research orchestration front door. The bundled
-  # server owns plan/run/status/deny/verify and routes across eight provider
-  # lanes. Approval-required work remains stopped in this image.
+  # Hosted Super Browser. ATTACH BY URL — never vendor a local copy. The tools,
+  # all providers, and the approval lifecycle run on the server. Vendoring a copy
+  # also meant installing a second dependency lock into this venv, which silently
+  # rewrote six of the agent's own pins (see docs/VERIFICATION.md).
   super-browser:
-    command: /usr/local/bin/super-browser-server
-    args: []
-    cwd: /root/.hermes/local-packages/super-browser
-    env:
-      SUPER_BROWSER_REPO_ROOT: /root/.hermes/local-packages/super-browser
-      SUPER_BROWSER_STATE_DIR: /root/.super-browser
+    url: ${SUPER_BROWSER_URL}/mcp
+    headers:
+      Authorization: Bearer ${SUPER_BROWSER_TOKEN}
     enabled: true
     connect_timeout: 30.0
     tool_timeout: 300.0
+    # Super Browser answers an MCP ping with "Unsupported method: ping", which the
+    # client's method-not-found fallback does not match, so the keepalive would
+    # tear the session down every interval. Failures still reconnect on next call.
+    keepalive_interval: 86400
 image_gen:
   provider: openai-codex
   openai-codex:
