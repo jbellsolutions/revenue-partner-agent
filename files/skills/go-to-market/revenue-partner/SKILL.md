@@ -38,7 +38,7 @@ Every engagement moves through:
 
 `FIT_ASSESSMENT -> MAPPING -> ARCHITECTURE -> INFRASTRUCTURE_READY -> LAUNCH -> OPERATE_AND_OPTIMIZE`
 
-Do not skip a gate. Read `references/operating-system.md` before designing a channel plan. Channel launch is non-executable in this image.
+Do not skip a gate. Read `references/operating-system.md` before designing a channel plan. Channel launch executes through Super Browser's approval lifecycle — see Campaign Approval.
 
 ### Fit assessment
 
@@ -72,6 +72,62 @@ When the offer being presented is the Revenue Partner program, use **Book a Fit 
 
 The four channel systems are **Affiliates and partners**, **Direct outbound**, **Reactivation**, and **Social and content**. Use shared positioning and proof across them.
 
+## Operating Surfaces — the concrete work
+
+These are the actual jobs, the platform each runs on, and the tool that performs
+it. Route through the named tool; do not improvise a different path.
+
+### Affiliate and influencer sourcing → recruiting
+
+| Job | Platform | Tool |
+|---|---|---|
+| Find affiliate/influencer candidates | Instagram, TikTok, YouTube, LinkedIn, Reddit | `scrape-creators` public routes; `super-browser` (Apify / Bright Data lanes) |
+| Pull a candidate's most-engaged recent posts | same | `scrape-creators` profile/post routes |
+| Extract who commented on those posts | Instagram, Reddit | `scrape-creators` `post_comments`, `post_comment_replies` |
+| Score and dedupe candidates into a lead list | local | vault + `03.Campaigns/<id>/sources.csv` |
+| Recruit candidates and run the affiliate program | email / DM | `affiliate-manager` (Instantly + SmartLead, reply daemons) |
+
+Commenters on an affiliate's post are themselves warm leads: they self-selected
+into the topic. Capture them with provenance, never as anonymous volume.
+
+### Social engagement
+
+| Job | Platform | Tool |
+|---|---|---|
+| Comment on a candidate's post to earn attention | Instagram, LinkedIn, Reddit, X | `super-browser` (Airtop / Browser Use on a logged-in profile) |
+| DM / outreach to a candidate | X, LinkedIn | `super-browser` on a logged-in profile |
+
+**Comments disclose affiliation.** Undisclosed promotional comments are FTC
+Endorsement Guides exposure, separate from any platform ToS question — and a
+disclosed comment from someone with a stake converts better than anonymous
+praise. Write comments that add something a reader would value even if they never
+click. Never post generic filler.
+
+### Classified and marketplace posting
+
+| Job | Platform | Tool |
+|---|---|---|
+| Post an ad | Craigslist, Facebook Marketplace | local Chrome profile first; Orgo desktop as fallback when the local machine is unavailable |
+| Post into groups | Facebook groups | `super-browser` (Browser Use / Hyperbrowser) on a saved-cookie profile |
+| Scrape listings for leads | Craigslist | `super-browser` (Playwright / Bright Data unlocker) — no login |
+| Poll replies to posted ads | Craigslist, Marketplace, groups | same profile that posted |
+
+These platforms have no API by design. Posting runs on the operator's own
+logged-in profiles, with immutable audit records and idempotency keys so a retry
+never double-posts. **No detection evasion** — no proxy rotation, fingerprint
+spoofing, or CAPTCHA solving.
+
+### Email
+
+| Job | Tool |
+|---|---|
+| Launch a cold campaign | `affiliate-manager` (Instantly / SmartLead) |
+| Classify and draft replies to responses | `affiliate-manager` reply daemons |
+| Read a specific inbox thread | Composio Gmail, behind the connector gate |
+
+Campaign launch and Gmail send stay approval-gated: email reputation and domain
+health are not recoverable the way a re-post is.
+
 ## Four Pillars Readiness Check
 
 For every proposed channel, score:
@@ -79,7 +135,7 @@ For every proposed channel, score:
 1. Architecture.
 2. Data.
 3. Infrastructure.
-4. Execution design and local drafts; external execution remains unavailable in this image.
+4. Execution: the named tool for the job, the account or profile it runs on, the volume and cadence, and the stop rule.
 
 A channel stays blocked until its required owner, story, source data, exclusions, sender/infrastructure, tracking, approvals, and success/stop rules are explicit.
 
@@ -105,7 +161,16 @@ Autonomous by default when logged:
 - Analysis and recommendations.
 - Internal drafts and reports.
 
-Campaign approval is audit evidence only in this immutable image; it cannot activate sends, writes, scheduling, spend, authenticated actions, consent actions, or sensitive-data actions. Keep approved work as local drafts and plans. Production execution requires a separately reviewed implementation, rebuilt image, and new release.
+External writes execute through Super Browser's approval lifecycle: an
+approval id, stage, action fingerprint and plan fingerprint, a 30-minute
+freshness window, atomic execution claim, and duplicate-write retry protection.
+An approval authorizes one exact action; a changed plan invalidates it.
+
+Standing approval covers repetitive posting on the operator's own profiles —
+Craigslist, Marketplace, and Facebook groups — where a mistake costs a re-post.
+Per-action approval is still required for anything whose blast radius is not
+recoverable: cold-email campaign launch, Gmail send, paid placement or spend,
+bulk CRM mutation, and any commitment on pricing, contract, or affiliate terms.
 
 ## Super Browser and Production-Scale Data
 
