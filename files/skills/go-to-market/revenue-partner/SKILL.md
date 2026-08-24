@@ -77,6 +77,68 @@ The four channel systems are **Affiliates and partners**, **Direct outbound**, *
 These are the actual jobs, the platform each runs on, and the tool that performs
 it. Route through the named tool; do not improvise a different path.
 
+### Lead mining — the core job
+
+This system began as a lead-mining and posting system and that is still its
+purpose. Everything else is downstream: mine candidates from communities and
+platforms, qualify them on real signals, enrich contacts off-platform, and post
+back into those sources under approval.
+
+Pipeline: **discover → normalize/dedupe → qualify → enrich → export → post.**
+Oversample 3–5× the target at discovery; filtering attrition is large. No single
+source has everything — merge and deduplicate across sources.
+
+| Source | What is minable | Route |
+|---|---|---|
+| **Skool groups** | Group lists, members, posts, comments, engagement | Primary community source — see invariants |
+| Facebook groups | Posts, commenters, member activity | `super-browser` on a saved-cookie profile |
+| LinkedIn | Posts, post commenters, company/profile | Public routes first; account only as last resort |
+| Instagram / TikTok / YouTube | Creators, popular posts, commenters | `scrape-creators` public routes, no login |
+| Reddit | Subreddit posts and commenters | `scrape-creators` |
+| Craigslist / Marketplace | Listings as lead sources | `super-browser`, no login for reads |
+| Circle / Mighty Networks / Discord / Slack / Telegram | Members, activity | Same email invariant as Skool |
+
+#### Skool invariants — established, do not relitigate
+
+- **Skool never exposes member emails.** Not by DOM, not by API, not to an
+  authenticated member viewing a group they belong to — every member returns
+  `email: ""`. This is a privacy invariant, not a scrape-depth problem. Actors
+  advertising "Skool member scraper with email" return an empty `email` field;
+  their own output schemas say so. Do not spend on them.
+- **Qualify on engagement; capture email off-platform.** Post count, last-active,
+  classroom activity and comments are real and minable — qualify on those. Email
+  comes from the member's own linked website/socials, or from opt-in capture
+  (connect → lead magnet → email) over weeks. There is no one-shot path to
+  thousands of Skool emails, and pretending otherwise wastes budget.
+- **`lastOffline` is MICROSECONDS**, as are `approvedAt` and `requestedAt`. The
+  wrong divisor still lands in 2026 and looks correct — sanity-check every parsed
+  date; year 1970 or 56,000+ means the power of ten is wrong.
+- **The active window is 9 days**, not the 90-day cold-outreach default. Confirm
+  the window on every new request rather than assuming either number.
+- **`/users/<UID>/groups` paginates with `?offset=N`**, not a cursor; the response
+  is `{groups, has_more, members: null}` — stop when `has_more` is false. The
+  public `/-/members?p=N` is different: 1-indexed, 30 per page.
+- **`user_id` lives in the `auth_token` JWT**, not the HTML — the page carries
+  several 32-hex values and scraping it grabs the wrong one. Skool has no `/me`.
+- **Owner socials are snake_case on the public page, camelCase on the authed API**
+  (`link_website` vs `linkWebsite`). Probe the keys on one record before writing a
+  worker, or the batch returns blank and has to be re-scraped.
+
+#### Rate limits and blocks are a stop signal
+
+If a source rate-limits, challenges, or blocks, **stop and report it**. Do not
+retry harder, and do not route around the block. Circumventing an access control
+after a platform has refused is where ToS violation becomes CFAA exposure, and it
+is out of scope for this agent regardless of what a scraper library makes
+possible. Prefer a documented API, a lower rate, or a source that permits the
+access.
+
+#### Paid-actor rule
+
+Never run a paid marketplace actor on its title and description. Open the README
+and read the actual output schema, read the 1- and 2-star reviews, and run a
+free-tier test first. Actors routinely advertise fields they return empty.
+
 ### Affiliate and influencer sourcing → recruiting
 
 | Job | Platform | Tool |

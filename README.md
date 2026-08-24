@@ -35,6 +35,13 @@ The template does not just rename the base agent. It adds a GTM execution contra
 
 The model above is the frame. These are the jobs, and the tool that runs each one.
 
+**Lead mining — the core job.** This began as a lead-mining and posting system and
+still is one. Mine candidates from communities and platforms, qualify on real
+engagement signals, enrich contacts off-platform, post back under approval.
+Primary sources: **Skool groups**, Facebook groups, LinkedIn, Instagram, TikTok,
+YouTube, Reddit, Craigslist and Marketplace. Oversample 3–5×; no single source
+has everything, so merge and deduplicate across them.
+
 **Affiliates and influencers**
 - Find affiliate/influencer candidates across Instagram, TikTok, YouTube, LinkedIn and Reddit
 - Pull each candidate's most-engaged recent posts
