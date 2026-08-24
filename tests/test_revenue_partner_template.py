@@ -3441,3 +3441,28 @@ class GatewayLauncherTests(unittest.TestCase):
         self.assertIn("/var/lib/orgo/hermes-gateway.lock", launcher)
         self.assertIn("hermes gateway run", launcher)
         self.assertIn("--replace", launcher)
+
+    def test_gateway_launcher_reaps_orphaned_gateways(self):
+        """A gateway orphaned by a previous supervisor cycle must be reaped.
+
+        `flock` forks rather than execs, so the gateway runs as its child and
+        inherits the lock fd. If the wrapper dies and the gateway does not, the
+        orphan holds a lock that supervisord no longer owns and every
+        subsequent start blocks behind it. Only PPID 1 is reaped: a gateway
+        still parented to a live supervisord is a legitimate sibling that
+        `--replace` should handle.
+        """
+        launcher = (FILES / "gateway-run.sh").read_text()
+        self.assertIn("pgrep -f 'hermes gateway run'", launcher)
+        self.assertRegex(launcher, r"ppid=\$\(ps -o ppid= -p", "must read the parent pid")
+        self.assertIn('"$ppid" = "1"', launcher)
+        self.assertIn("kill -9", launcher)
+        # The reaper must run BEFORE the lock is contended, or it cannot help.
+        # Anchor on the actual invocation, not the word "flock" in the comments
+        # that explain it.
+        invocation = launcher.index("exec /usr/local/bin/revenue-partner-env-bridge")
+        self.assertLess(
+            launcher.index("pgrep -f 'hermes gateway run'"),
+            invocation,
+            "the orphan reaper must run before flock contends for the lock",
+        )

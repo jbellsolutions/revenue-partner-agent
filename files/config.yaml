@@ -175,6 +175,15 @@ group_sessions_per_user: true
 platforms:
   slack:
     enabled: true
+    # Keep every reply chunk attached to the thread the operator started, so a
+    # long multi-part answer stays one conversation instead of spraying the
+    # channel. `first` (the default) only threads the opening chunk.
+    reply_to_mode: all
+    extra:
+      # Reply inside a thread on the operator's message. This is the library
+      # default, declared explicitly so a future default flip cannot silently
+      # change the channel's behaviour.
+      reply_in_thread: true
   telegram:
     # No bot token is provisioned. Enabling it makes the gateway retry every 60s
     # and log an error each time; first-boot QR onboarding flips this on.
