@@ -271,10 +271,21 @@ mcp_servers:
     # the cadence stays pinned at the 180s default. Setting it looks like a fix
     # and silently is not.
 
-  # Scrape Creators — hosted MCP, 175 public routes across TikTok, Instagram,
-  # YouTube, LinkedIn, Facebook, Reddit and Threads, plus the Facebook, Google
-  # and TikTok ad libraries. Public data only: no login, no cookies, no
-  # authenticated profile. Attached by URL for the same reason as Super Browser.
+  # Scrape Creators — vendor DATA PLANE. 180 public routes across TikTok,
+  # Instagram, YouTube, LinkedIn, Facebook, Reddit and Threads plus the Facebook,
+  # Google and TikTok ad libraries. Public data only: no login, no cookies, no
+  # authenticated profile.
+  #
+  # This is the lower half of a two-plane architecture. The CONTROL PLANE is the
+  # owned `lead-mining-posting` MCP, which wraps this provider behind ten typed
+  # tools with provenance, dedupe and qualification boundaries, and keeps the
+  # provider interchangeable. Lead work belongs there; this entry is for the
+  # cases that genuinely need a specific provider endpoint.
+  #
+  # The control plane is NOT yet attached: its repo documents a seven-step
+  # deployment gate (authenticated HTTPS, 0700 dirs, health checks, budgets,
+  # audit logs, durable artifacts) before it becomes a shared endpoint, and
+  # "do not expose an unauthenticated MCP port directly to the Internet".
   scrape-creators:
     url: https://api.scrapecreators.com/mcp
     headers:

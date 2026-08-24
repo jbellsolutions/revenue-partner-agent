@@ -88,6 +88,63 @@ Pipeline: **discover → normalize/dedupe → qualify → enrich → export → 
 Oversample 3–5× the target at discovery; filtering attrition is large. No single
 source has everything — merge and deduplicate across sources.
 
+#### Two planes — do not confuse them
+
+```text
+agent
+  ↓
+lead-mining-posting MCP        ← CONTROL PLANE (ours)
+  ├─ bounded strategies, provenance records
+  ├─ dedupe / qualification boundary
+  ├─ no posting, no CRM writes
+  └─ Scrape Creators adapter   ← DATA PLANE (vendor)
+       └─ scrape-creators hosted MCP / REST
+```
+
+**Route lead work through the control plane, not the vendor MCP.** The owned
+server exposes ten typed tools — `provider_status`, `list_sources`,
+`list_workflows`, `lead_strategy`, `youtube_search_creators`,
+`youtube_channel_profile`, `youtube_creator_prospect`,
+`link_in_bio_contact_surface`, plus bounded `scrape_public_route` /
+`scrape_public_path` escape hatches that reach the whole provider surface. Unknown
+routes, write methods and unbounded pagination fail closed.
+
+Go direct to the vendor `scrape-creators` MCP only when a specific provider
+endpoint is genuinely needed. The control plane keeps the provider interchangeable;
+binding the agent to vendor endpoints throws that away.
+
+#### Contact evidence — three outcomes, never collapsed
+
+A creator search does not produce emails. Keep these distinct and never merge them:
+
+- `public_email_returned`
+- `public_contact_surface_found`
+- `no_public_contact_found`
+
+**Never turn `no_public_contact_found` into a guessed address.** The provider's
+YouTube channel route frequently returns `email: null`; channel metadata alone
+does not guarantee an email. The reliable path is: creator → channel profile →
+public/social links → Linktree/Komi/Pillar/Linkbio/Linkme → public contact
+surface → optional separate enrichment. A published address is **contact
+evidence, not consent to outreach.**
+
+#### Posting safety contract
+
+Discovery and enrichment never imply a post. Every external action requires all
+five: an exact draft and target scope; an unexpired explicit approval; a durable
+one-use execution record; evidence of the submitted action or an explicit
+ambiguous outcome; and reconciliation rather than blind retry when the outcome is
+uncertain.
+
+#### Export evidence
+
+A production export carries: requested target and achieved unique count;
+source/coverage ledger with provider run or dataset IDs; schema and field
+definitions; canonicalization and dedupe rules; contact evidence URLs and
+verification statuses; known gaps, blocked lanes and cost summary; and local
+artifacts with a manifest. **A pilot is a preflight, not the deliverable.** Do not
+invent missing fields or silently downscope a requested list.
+
 | Source | What is minable | Route |
 |---|---|---|
 | **Skool groups** | Group lists, members, posts, comments, engagement | Primary community source — see invariants |
