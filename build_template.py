@@ -212,6 +212,7 @@ files = [
     # --- desktop icons ---
     F("/root/Desktop/Obsidian.desktop", rd("Obsidian.desktop"), "0755"),
     F("/root/Desktop/RevenuePartnerSetup.desktop", rd("RevenuePartnerSetup.desktop"), "0755"),
+    F("/root/.hermes/daily-brief.prompt", rd("daily-brief.prompt"), "0644"),
 ]
 
 # --------------------------------------------------------------------------
@@ -343,7 +344,33 @@ supervisorctl restart hermes-gateway 2>/dev/null || true
 """.strip()
 
 ON_EVERY_BOOT = """
-# Reserved for idempotent boot checks; supervised services start independently.
+# Idempotent boot checks; supervised services start independently.
+#
+# Recreate the daily brief if it is absent. The schedule is part of the image,
+# not a manual post-install step -- a rebuilt box that boots without its daily
+# loop is a silently inert agent, which is the failure this template keeps
+# guarding against. Jobs are matched by name so a resume never duplicates one,
+# and jobs.json is deliberately NOT baked into the payload: it carries run
+# state, ids and next-run timestamps that must not ship.
+#
+# Delivery follows SLACK_HOME_CHANNEL. With no home channel there is nowhere to
+# report, so the job is skipped rather than created to deliver into the void.
+set +e
+export HOME=/root HERMES_HOME=/root/.hermes
+export PATH=/usr/local/bin:/root/.hermes/bin:/usr/bin:/bin:$PATH
+
+BRIEF_NAME="Revenue Partner Daily Brief"
+BRIEF_PROMPT=/root/.hermes/daily-brief.prompt
+HOME_CHANNEL="$(grep -m1 '^SLACK_HOME_CHANNEL=' /root/.hermes/.env 2>/dev/null | cut -d= -f2-)"
+
+if [ -s "$BRIEF_PROMPT" ] && [ -n "$HOME_CHANNEL" ] && command -v hermes >/dev/null 2>&1; then
+  if ! hermes cron list 2>/dev/null | grep -qF "$BRIEF_NAME"; then
+    hermes cron create '0 13 * * *' "$(cat "$BRIEF_PROMPT")" \
+      --name "$BRIEF_NAME" --deliver "slack:${HOME_CHANNEL}" >/dev/null 2>&1 \
+      && echo "daily_brief_scheduled" || echo "daily_brief_schedule_failed"
+  fi
+fi
+
 exit 0
 """.strip()
 
