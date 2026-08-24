@@ -30,6 +30,35 @@ The template does not just rename the base agent. It adds a GTM execution contra
 - **Four readiness pillars:** architecture, data, infrastructure, and execution.
 - **Phased execution:** fit/map → architecture/story → infrastructure/data → launch → run/report/optimize.
 - **Money Desk reporting:** booked, attended, qualified, opportunity, pipeline, and closed revenue stay separate.
+
+### What it actually does
+
+The model above is the frame. These are the jobs, and the tool that runs each one.
+
+**Affiliates and influencers**
+- Find affiliate/influencer candidates across Instagram, TikTok, YouTube, LinkedIn and Reddit
+- Pull each candidate's most-engaged recent posts
+- Extract the people commenting on those posts — self-selected warm leads, captured with provenance
+- Comment on candidate posts to earn attention, and DM/outreach to recruit them
+- Run the affiliate program itself through the cold-email stack
+
+**Classifieds and marketplace**
+- Post ads to Craigslist and Facebook Marketplace from the operator's own logged-in profile
+- Post into Facebook groups on a saved-cookie profile
+- Scrape Craigslist listings for leads without logging in
+- Poll replies to every posted ad from the same profile that posted it
+
+**Email**
+- Launch cold campaigns, classify incoming replies, and draft responses for approval
+
+Sourcing and scraping run on public routes with no login. Posting runs on the
+operator's own accounts with immutable audit records and idempotency keys, so a
+retry never double-posts. Comments disclose affiliation. There is no detection
+evasion anywhere — no proxy rotation, fingerprint spoofing, or CAPTCHA solving.
+
+Campaign launch, Gmail send, paid spend and bulk CRM mutation stay
+approval-gated, because those are the actions whose blast radius is not
+recoverable by re-posting.
 - **SpeakerAgent Riley:** discovers/scores podcasts, stages, conferences, seminars, and sponsor opportunities; a human owns relationships and closing.
 - **Human approval policy:** SOUL.md and the Revenue Partner skill require an approved campaign contract covering audience, source, sender, claims, volume, schedule, spend, suppression, CRM, pause, and stop bounds. Hard runtime gating is implemented in Super Browser and the AgentPhone bridge; other integrations remain governed by operator/tool permissions rather than a claimed universal campaign-record gate.
 - **Source integrity:** the `2–4 booked meetings/day` statement is represented as a target, never a guarantee or typical result.
