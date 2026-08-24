@@ -1,7 +1,7 @@
 ---
 name: revenue-partner
 description: "Use when operating a unified Revenue Partner GTM system."
-version: 1.0.0
+version: 1.0.1
 platforms: [linux, macos, windows]
 metadata:
   hermes:

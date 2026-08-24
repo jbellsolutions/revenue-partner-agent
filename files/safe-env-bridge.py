@@ -17,6 +17,24 @@ import tempfile
 
 
 MANAGED_KEYS = (
+    # Slack authorization. The gateway denies unknown senders unless a
+    # platform allowlist reaches it, so these must survive the bridge
+    # rebuild or the bot connects and then silently ignores everyone.
+    "SLACK_ALLOW_ALL_USERS",
+    "SLACK_ALLOWED_USERS",
+    "SLACK_ALLOWED_CHANNELS",
+    "SLACK_FREE_RESPONSE_CHANNELS",
+    # Slack socket-mode transport (bot + app-level token).
+    "SLACK_BOT_TOKEN",
+    "SLACK_APP_TOKEN",
+    "SLACK_HOME_CHANNEL",
+    # Scrape Creators hosted MCP transport (public-data routes; no login).
+    "SCRAPECREATORS_API_KEY",
+    # Hosted Super Browser transport — the agent attaches by URL rather than
+    # vendoring a local copy, so the endpoint and bearer token must survive
+    # the bridge rebuild or the MCP server authenticates as anonymous.
+    "SUPER_BROWSER_URL",
+    "SUPER_BROWSER_TOKEN",
     # Non-secret operational defaults.
     "AGENT_BROWSER_EXECUTABLE_PATH",
     "TERMINAL_TIMEOUT",
@@ -56,6 +74,24 @@ MANAGED_KEYS = (
 # an explicit operator-authored ``--only`` release command; absent-connector
 # credentials are not accepted by either the default or explicit path.
 RUNTIME_MANAGED_KEYS = (
+    # Slack authorization. The gateway denies unknown senders unless a
+    # platform allowlist reaches it, so these must survive the bridge
+    # rebuild or the bot connects and then silently ignores everyone.
+    "SLACK_ALLOW_ALL_USERS",
+    "SLACK_ALLOWED_USERS",
+    "SLACK_ALLOWED_CHANNELS",
+    "SLACK_FREE_RESPONSE_CHANNELS",
+    # Slack socket-mode transport (bot + app-level token).
+    "SLACK_BOT_TOKEN",
+    "SLACK_APP_TOKEN",
+    "SLACK_HOME_CHANNEL",
+    # Scrape Creators hosted MCP transport (public-data routes; no login).
+    "SCRAPECREATORS_API_KEY",
+    # Hosted Super Browser transport — the agent attaches by URL rather than
+    # vendoring a local copy, so the endpoint and bearer token must survive
+    # the bridge rebuild or the MCP server authenticates as anonymous.
+    "SUPER_BROWSER_URL",
+    "SUPER_BROWSER_TOKEN",
     "AGENT_BROWSER_EXECUTABLE_PATH",
     "TERMINAL_TIMEOUT",
     "TERMINAL_LIFETIME_SECONDS",

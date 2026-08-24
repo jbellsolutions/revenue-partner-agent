@@ -18,6 +18,7 @@ import tempfile
 import threading
 import time
 import tomllib
+import pathlib
 import unittest
 from unittest import mock
 import urllib.error
@@ -77,27 +78,34 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         mcp_servers = config["mcp_servers"]
         enabled_mcp = sum(server.get("enabled", True) for server in mcp_servers.values())
         enabled_plugins = config["plugins"]["enabled"]
-        self.assertEqual((len(mcp_servers), enabled_mcp, len(enabled_plugins)), (1, 1, 9))
+        self.assertEqual((len(mcp_servers), enabled_mcp, len(enabled_plugins)), (2, 2, 9))
 
         readme = (ROOT / "README.md").read_text()
         app_description = self.builder.template["apps"][0]["description"]
-        self.assertIn("1 configured/enabled local policy server", readme)
-        self.assertIn("MCP_configured-1", readme)
+        self.assertIn("2 hosted MCP servers (attached by URL)", readme)
+        self.assertIn("MCP_configured-2_hosted", readme)
         self.assertIn("9 enabled model/telemetry plugins", readme)
-        self.assertIn("1 configured/enabled MCP connection", app_description)
+        self.assertIn("2 configured/enabled MCP connections", app_description)
 
     def test_readme_badges_do_not_overstate_or_link_to_missing_targets(self):
         readme = (ROOT / "README.md").read_text()
-        # CI has never run in the published repository: the badge must not
-        # link to a workflow URL that 404s or imply a green run.
-        self.assertNotIn("actions/workflows/ci.yml/badge.svg", readme)
-        self.assertIn("CI-not_yet_run", readme)
-        # Authenticated Orgo validation is not evidenced for this exact tree.
-        self.assertIn("local_schema_ok_not_live", readme)
-        self.assertNotIn("schema_validated_not_live", readme)
-        # The Super Browser badge must not link to a nonexistent repository.
+        # CI now runs and passes in the published repository, so the live badge
+        # is accurate rather than an overstatement. The placeholder must be gone.
+        self.assertIn("actions/workflows/ci.yml/badge.svg", readme)
+        self.assertNotIn("CI-not_yet_run", readme)
+        # Authenticated Orgo validation IS evidenced (HTTP 200 for the exact
+        # tree, digests in VERIFICATION.md) -- but publication, image build and
+        # launch are not. The badge must claim the first and not the rest.
+        self.assertIn("schema_validated_not_published", readme)
+        self.assertNotIn("local_schema_ok_not_live", readme)
+        for overclaim in ("Orgo-published", "Orgo-live", "image_ready", "deployed"):
+            self.assertNotIn(f"badge/{overclaim}", readme)
+        # The Super Browser badge must not link to a nonexistent repository, and
+        # must not point into the retired vendored tree either -- it now
+        # describes a hosted service, so it links to the architecture doc.
         self.assertNotIn("github.com/jbellsolutions/super-browser)", readme)
-        self.assertIn("files/local-packages/super-browser/UPSTREAM_SOURCE.md", readme)
+        self.assertNotIn("files/local-packages/super-browser/", readme)
+        self.assertIn("docs/ARCHITECTURE.md", readme)
 
     def test_release_evidence_matches_current_suites_and_remote_media_policy(self):
         changelog = (ROOT / "CHANGELOG.md").read_text()
@@ -107,7 +115,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         self.assertIn("70/70 passed", verification)
         self.assertIn("7/7 passed", changelog)
         self.assertIn("7/7 passed", verification)
-        self.assertIn("109 files; passed", verification)
+        self.assertIn("33 files; passed", verification)
         self.assertNotIn("54/54", changelog + verification)
         self.assertNotIn("53/53", changelog + verification)
         self.assertNotIn("33/33", changelog + verification)
@@ -177,61 +185,56 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue(path.is_file(), str(path))
 
-    def test_config_wires_super_browser_stdio_mcp(self):
+    def test_config_attaches_hosted_super_browser_by_url(self):
+        """Super Browser is a hosted service attached by URL, never vendored.
+
+        A local copy diverges from the server and, worse, dragged a second
+        dependency lock into the agent's venv that silently rewrote six of its
+        own pins. The config must carry a URL and bearer header and must not
+        spawn a bundled stdio server.
+        """
         config = (FILES / "config.yaml").read_text()
         self.assertIn("super-browser:", config)
-        self.assertIn("/usr/local/bin/super-browser-server", config)
-        self.assertIn("SUPER_BROWSER_STATE_DIR", config)
+        self.assertIn("url: ${SUPER_BROWSER_URL}/mcp", config)
+        self.assertIn("Authorization: Bearer ${SUPER_BROWSER_TOKEN}", config)
+        self.assertNotIn("/usr/local/bin/super-browser-server", config)
+        self.assertNotIn("SUPER_BROWSER_STATE_DIR", config)
         self.assertNotIn("Buzz", config)
+        parsed = yaml.safe_load(config)
+        server = parsed["mcp_servers"]["super-browser"]
+        self.assertNotIn("command", server)
+        self.assertTrue(server["enabled"])
 
-    def test_builder_installs_and_validates_super_browser(self):
+    def test_builder_does_not_vendor_super_browser_or_a_browser_runtime(self):
+        """The image ships no second copy of Super Browser and no local browser.
+
+        Both belong to the hosted service. Vendoring them is what installed a
+        conflicting dependency lock into the agent venv; see
+        RuntimeLockConsistencyTests and docs/VERIFICATION.md.
+        """
         text = (ROOT / "build_template.py").read_text()
-        self.assertIn("local-packages/super-browser", text)
-        self.assertNotIn("playwright install chromium", text)
+        for absent in (
+            "local-packages/super-browser",
+            "install_local_super_browser.sh",
+            "super_browser.providers",
+            "super_browser.mcp_server",
+            "/usr/local/bin/super-browser-server",
+            "SB_ROOT",
+        ):
+            self.assertNotIn(absent, text, absent)
         for archive in ("CHROMIUM", "HEADLESS", "FFMPEG"):
-            self.assertRegex(text, rf'PLAYWRIGHT_{archive}_URL = "https://[^" ]+"')
-            self.assertRegex(text, rf'PLAYWRIGHT_{archive}_SHA = "[0-9a-f]{{64}}"')
-            self.assertIn(f'{{PLAYWRIGHT_{archive}_SHA}}', text)
-        self.assertIn("super_browser.providers", text)
-        self.assertIn("super_browser.mcp_server", text)
-        self.assertIn("revenue-partner-smoke", text)
-        self.assertIn("requirements-runtime.lock", text)
+            self.assertNotIn(f"PLAYWRIGHT_{archive}_URL", text)
+        self.assertNotIn("playwright install chromium", text)
+        # The latitude plugin is still vendored and still installs under hashes.
         self.assertIn("--require-hashes", text)
-        self.assertIn("list_resources", text)
+        self.assertIn("latitude-telemetry-hermes", text)
 
-    def test_super_browser_registration_avoids_unlocked_build_backends(self):
-        installer = FILES / "scripts/super-browser/install_local_super_browser.sh"
-        self.assertTrue(installer.exists())
+    def test_no_local_super_browser_registration_surface_remains(self):
+        """The vendored registration path is gone, not merely unused."""
         builder = (ROOT / "build_template.py").read_text()
+        self.assertNotIn("install_local_super_browser.sh", builder)
         self.assertNotIn('pip install --python "$VENV_PY" --no-deps -e "$SB_ROOT"', builder)
-        self.assertIn("install_local_super_browser.sh", builder)
-        with tempfile.TemporaryDirectory() as directory:
-            venv = Path(directory) / "venv"
-            subprocess.run([sys.executable, "-m", "venv", str(venv)], check=True)
-            python = venv / "bin/python"
-            for _ in range(2):
-                subprocess.run(["bash", str(installer), str(SB), str(python)], check=True)
-            result = subprocess.run(
-                [
-                    str(python),
-                    "-c",
-                    "import importlib.metadata as m; import pathlib,super_browser; "
-                    "assert m.version('super-browser') == '0.3.2'; "
-                    f"assert pathlib.Path(super_browser.__file__).resolve().is_relative_to(pathlib.Path({str(SB / 'src')!r}).resolve()); "
-                    "eps=[e for e in m.entry_points(group='console_scripts') if e.name == 'super-browser']; "
-                    "assert len(eps) == 1 and eps[0].load().__module__ == 'super_browser.cli'; "
-                    "print('super_browser_registration_ok')",
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            self.assertIn("super_browser_registration_ok", result.stdout)
-            cli = venv / "bin/super-browser"
-            self.assertTrue(cli.exists())
-            help_result = subprocess.run([str(cli), "--help"], capture_output=True, text=True, check=True)
-            self.assertNotIn("install-skill", help_result.stdout)
-            self.assertNotIn("init-mcp", help_result.stdout)
+
     def test_build_dependency_sources_are_immutable_and_verified(self):
         text = (ROOT / "build_template.py").read_text()
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -833,20 +836,17 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
                     self.builder.template["template"]["name"] = original_name
 
                 publication_receipt = self.builder._PublicationReceipt(
-                    "pub-1", f"{self.builder.NAMESPACE}/{self.builder.NAME}@{self.builder.VERSION}",
-                    expected["publication_sha256"], {},
+                    f"{self.builder.NAMESPACE}/{self.builder.NAME}@{self.builder.VERSION}",
+                    expected["publication_sha256"], "2026-08-19T00:00:00Z", {},
                 )
-                build_receipt = self.builder._BuildReceipt(
-                    "build-1", "pub-1", publication_receipt.publication_sha256, {},
-                )
-                event_url = f"{self.builder.API_BASE}/templates/pub-1/builds/build-1/events"
+                event_url = f"{self.builder.API_BASE}/templates/{self.builder.NAMESPACE}/{self.builder.NAME}/{self.builder.VERSION}/build/events"
                 nonce = "ab" * 32
                 with (
                     mock.patch.object(self.builder, "HERE", str(directory_path)),
                     mock.patch.object(self.builder, "_assert_exact_assembled_tree", return_value=tree),
                 ):
                     event_statement = self.builder._operation_intent_statement(
-                        "events", "GET", event_url, None, publication_receipt, build_receipt, nonce
+                        "events", "GET", event_url, None, publication_receipt, nonce
                     )
                 event_signature = directory_path / "event.sig"
                 signed_event = subprocess.run(
@@ -876,9 +876,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
                     "method": "GET",
                     "url": event_url,
                     "body": None,
-                    "publication_id": publication_receipt.publication_id,
-                    "publication_sha256": publication_receipt.publication_sha256,
-                    "build_id": build_receipt.build_id,
+                    "publication_digest": publication_receipt.digest,
                     "intent_path": str(event_intent),
                 }
                 with (
@@ -942,7 +940,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
 
     def test_http_failures_are_not_reported_as_success(self):
         self.assertEqual(self.builder.API_BASE, "https://www.orgo.ai/api")
-        self.assertEqual(self.builder.VERSION, "1.0.0")
+        self.assertEqual(self.builder.VERSION, "1.0.1")
         self.assertFalse(hasattr(self.builder, "_ORGO_OPENER"))
         self.assertFalse(hasattr(self.builder, "_orgo_api_key"))
         entry_source = (ROOT / "release_entry.py").read_text()
@@ -1033,14 +1031,16 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             broker_exchange.assert_not_called()
         with mock.patch.object(self.builder, "_send_approved", return_value=(200, "{}")):
             self.assertFalse(self.builder.remote_validate(object()))
-        validation_digest = hashlib.sha256(self.builder._json_body_bytes(self.builder.template)).hexdigest()
         validation_body = json.dumps({
-            "valid": True,
-            "template_ref": f"{self.builder.NAMESPACE}/{self.builder.NAME}@{self.builder.VERSION}",
-            "template_sha256": validation_digest,
+            "ok": True,
+            "template": self.builder.template,
         })
         with mock.patch.object(self.builder, "_send_approved", return_value=(200, validation_body)):
             self.assertTrue(self.builder.remote_validate(object()))
+        with mock.patch.object(self.builder, "_send_approved", return_value=(200, json.dumps({"ok": True, "template": {"api_version": "orgo.ai/v1", "template": {"name": "wrong", "version": "9.9.9"}}}))):
+            self.assertFalse(self.builder.remote_validate(object()))
+        with mock.patch.object(self.builder, "_send_approved", return_value=(200, json.dumps({"ok": False, "errors": []}))):
+            self.assertFalse(self.builder.remote_validate(object()))
         with mock.patch.object(self.builder, "_send_approved", return_value=(409, "collision")):
             self.assertFalse(self.builder.publish(object()))
         with mock.patch.object(self.builder, "_send_approved", return_value=(500, "failed")):
@@ -1049,23 +1049,17 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         expected_ref = f"{self.builder.NAMESPACE}/{self.builder.NAME}@{self.builder.VERSION}"
         expected_digest = hashlib.sha256(self.builder.publication_body_bytes()).hexdigest()
         valid_publication = json.dumps(
-            {"publication_id": "pub-1", "template_ref": expected_ref, "publication_sha256": expected_digest}
+            {"ref": expected_ref, "digest": expected_digest, "published": "2026-08-19T00:00:00Z"}
         )
         receipt = self.builder._publication_receipt_from_response(200, valid_publication)
         self.assertTrue(self.builder._valid_publication_receipt(receipt))
         for body in (
             "{}",
             "[]",
-            json.dumps({"publication_id": "pub-1", "template_ref": "default/wrong@1.0.0"}),
-            json.dumps({"publication_id": "pub-1", "template_ref": expected_ref}),
-            json.dumps({"publication_id": "pub-1", "template_ref": expected_ref, "sha256": "0" * 64}),
-            json.dumps({
-                "publication_id": "pub-stale",
-                "data": {"publication_id": "pub-other", "template_ref": expected_ref,
-                         "publication_sha256": expected_digest},
-            }),
-            json.dumps({"publication_id": "pub-1", "template_id": "pub-1", "template_ref": expected_ref,
-                        "publication_sha256": expected_digest}),
+            json.dumps({"ref": "default/wrong@1.0.0", "digest": expected_digest, "published": "2026-08-19T00:00:00Z"}),
+            json.dumps({"ref": expected_ref, "digest": expected_digest}),
+            json.dumps({"ref": expected_ref, "digest": "0" * 64, "published": "2026-08-19T00:00:00Z"}),
+            json.dumps({"ref": expected_ref, "digest": expected_digest, "published": ""}),
         ):
             self.assertIsNone(self.builder._publication_receipt_from_response(200, body), body)
 
@@ -1093,7 +1087,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
                     self.builder._verify_remote_publication_receipt(receipt)
                 broker_exchange.assert_not_called()
         mismatched_readback = json.dumps(
-            {"publication_id": "pub-1", "template_ref": expected_ref, "publication_sha256": "0" * 64}
+            {"ref": expected_ref, "digest": "0" * 64, "published": "2026-08-19T00:00:00Z"}
         ).encode()
         with (
             mock.patch.object(self.builder, "_verify_release_clearance", return_value="a" * 40),
@@ -1108,7 +1102,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             mock.patch.object(self.builder, "_await_signed_operation_intent", return_value="/intent"),
             mock.patch.object(self.builder, "_broker_exchange", return_value=(200, mismatched_readback)),
         ):
-            with self.assertRaisesRegex(RuntimeError, "did not match ID, reference, and signed digest"):
+            with self.assertRaisesRegex(RuntimeError, "did not match reference and signed digest"):
                 self.builder._verify_remote_publication_receipt(receipt)
         with (
             mock.patch.object(self.builder, "_verify_release_clearance", return_value="a" * 40),
@@ -1118,10 +1112,12 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             ) as broker_exchange,
         ):
             readback = self.builder._verify_remote_publication_receipt(receipt)
-            self.assertEqual(readback.publication_id, "pub-1")
+            self.assertEqual(readback.digest, expected_digest)
             requested = broker_exchange.call_args.args
             self.assertEqual(requested[:4], (
-                "readback", "GET", f"{self.builder.API_BASE}/templates/pub-1", None
+                "readback", "GET",
+                f"{self.builder.API_BASE}/templates/{self.builder.NAMESPACE}/{self.builder.NAME}/{self.builder.VERSION}",
+                None,
             ))
         with mock.patch.object(self.builder, "_verify_release_clearance", return_value="a" * 40):
             build_request = self.builder.require_release_clearance(
@@ -1129,7 +1125,10 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
                 operation="build",
                 publication_receipt=receipt,
             )
-        self.assertEqual(build_request.url, f"{self.builder.API_BASE}/templates/pub-1/build")
+        self.assertEqual(
+            build_request.url,
+            f"{self.builder.API_BASE}/templates/{self.builder.NAMESPACE}/{self.builder.NAME}/{self.builder.VERSION}/build",
+        )
 
         with self.assertRaisesRegex(RuntimeError, "exceeds"):
             self.builder._read_bounded_response(
@@ -1184,7 +1183,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
 
         generic_ready_line = b'data: {"phase":"ready","level":"success"}\n'
         valid_build_response = json.dumps(
-            {"build_id": "build-1", "template_id": "pub-1", "publication_sha256": expected_digest}
+            {"ref": expected_ref, "digest": expected_digest, "status": "building"}
         )
         build_receipt = self.builder._build_receipt_from_response(200, valid_build_response, receipt)
         self.assertIsNotNone(build_receipt)
@@ -1192,18 +1191,14 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         self.assertIsNone(
             self.builder._build_receipt_from_response(
                 200,
-                json.dumps({"build_id": "build-1", "template_id": "wrong", "publication_sha256": expected_digest}),
+                json.dumps({"ref": "default/wrong@1.0.0", "digest": expected_digest, "status": "building"}),
                 receipt,
             )
         )
         self.assertIsNone(
             self.builder._build_receipt_from_response(
                 200,
-                json.dumps({
-                    "build_id": "build-stale",
-                    "data": {"build_id": "build-other", "template_id": "pub-1",
-                             "publication_sha256": expected_digest},
-                }),
+                json.dumps({"ref": expected_ref, "digest": expected_digest, "status": "failed"}),
                 receipt,
             )
         )
@@ -1218,28 +1213,26 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             self.assertFalse(self.builder.build_and_stream(build_capability, receipt))
         with mock.patch.object(self.builder, "_broker_exchange") as broker_exchange:
             with self.assertRaisesRegex(RuntimeError, "signed one-use event capability"):
-                self.builder._stream_build_events(None, receipt, build_receipt)
+                self.builder._stream_build_events(None, receipt)
             broker_exchange.assert_not_called()
         event_capability = self.builder._ApprovedRequest(
             "events",
             "GET",
-            f"{self.builder.API_BASE}/templates/pub-1/builds/build-1/events",
+            f"{self.builder.API_BASE}/templates/{self.builder.NAMESPACE}/{self.builder.NAME}/{self.builder.VERSION}/build/events",
             None,
             receipt,
-            build_receipt,
         )
         with mock.patch.dict(os.environ, {self.builder.REVIEW_ATTESTATIONS_ENV: ""}, clear=False):
             with mock.patch.object(self.builder, "_broker_exchange") as broker_exchange:
                 with self.assertRaisesRegex(RuntimeError, "REVENUE_PARTNER_REVIEW_ATTESTATIONS"):
-                    self.builder._stream_build_events(event_capability, receipt, build_receipt)
+                    self.builder._stream_build_events(event_capability, receipt)
                 broker_exchange.assert_not_called()
         event_capability = self.builder._ApprovedRequest(
             "events",
             "GET",
-            f"{self.builder.API_BASE}/templates/pub-1/builds/build-1/events",
+            f"{self.builder.API_BASE}/templates/{self.builder.NAMESPACE}/{self.builder.NAME}/{self.builder.VERSION}/build/events",
             None,
             receipt,
-            build_receipt,
         )
         with (
             mock.patch.object(self.builder, "_verify_remote_publication_receipt", return_value=receipt),
@@ -1247,43 +1240,42 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             mock.patch.object(self.builder, "_broker_exchange") as broker_exchange,
         ):
             with self.assertRaisesRegex(RuntimeError, "externally signed operation intent"):
-                self.builder._stream_build_events(event_capability, receipt, build_receipt)
+                self.builder._stream_build_events(event_capability, receipt)
             broker_exchange.assert_not_called()
         sse_error = TrackingHTTPError(b"event failure")
         event_capability = self.builder._ApprovedRequest(
             "events",
             "GET",
-            f"{self.builder.API_BASE}/templates/pub-1/builds/build-1/events",
+            f"{self.builder.API_BASE}/templates/{self.builder.NAMESPACE}/{self.builder.NAME}/{self.builder.VERSION}/build/events",
             None,
             receipt,
-            build_receipt,
         )
         with (
             mock.patch.object(self.builder, "_verify_remote_publication_receipt", return_value=receipt),
             mock.patch.object(self.builder, "_await_signed_operation_intent", return_value="/intent"),
             mock.patch.object(self.builder, "_broker_exchange", side_effect=RuntimeError("event failure")),
         ):
-            self.assertFalse(self.builder._stream_build_events(event_capability, receipt, build_receipt))
-        ready_line = b'data: {"phase":"ready","level":"success","build_id":"build-1"}\n'
-        self.assertFalse(self.builder._consume_build_events(EventResponse([generic_ready_line]), build_receipt))
-        self.assertTrue(self.builder._consume_build_events(EventResponse([ready_line]), build_receipt))
+            self.assertFalse(self.builder._stream_build_events(event_capability, receipt))
+        ready_line = b'data: {"phase":"ready","level":"success"}\n'
+        self.assertTrue(self.builder._consume_build_events(EventResponse([generic_ready_line])))
+        self.assertTrue(self.builder._consume_build_events(EventResponse([ready_line])))
         with self.assertRaisesRegex(RuntimeError, "line exceeded"):
             self.builder._consume_build_events(
-                EventResponse([b"x" * (self.builder.MAX_ORGO_SSE_LINE_BYTES + 1)]), build_receipt
+                EventResponse([b"x" * (self.builder.MAX_ORGO_SSE_LINE_BYTES + 1)])
             )
         with mock.patch.object(self.builder, "MAX_ORGO_SSE_TOTAL_BYTES", 4):
             with self.assertRaisesRegex(RuntimeError, "cumulative byte"):
-                self.builder._consume_build_events(EventResponse([b"abc\n", b"d\n"]), build_receipt)
+                self.builder._consume_build_events(EventResponse([b"abc\n", b"d\n"]))
         with mock.patch.object(self.builder, "MAX_ORGO_SSE_EVENTS", 1):
             with self.assertRaisesRegex(RuntimeError, "event-count"):
-                self.builder._consume_build_events(EventResponse([ready_line, ready_line]), build_receipt)
+                self.builder._consume_build_events(EventResponse([ready_line, ready_line]))
         with mock.patch.object(self.builder.time, "monotonic", side_effect=[0.0, 2.0]):
             with self.assertRaisesRegex(RuntimeError, "absolute deadline"):
-                self.builder._consume_build_events(EventResponse([]), build_receipt, deadline_seconds=1)
+                self.builder._consume_build_events(EventResponse([]), deadline_seconds=1)
 
         launch_body = self.builder._json_body_bytes(
             {"workspace_id": "workspace-1", "name": "revenue-partner-smoke", "template_ref": expected_ref,
-             "template_id": "pub-1", "ram": 4, "cpu": 1}
+             "ram": 4, "cpu": 1}
         )
         launch_capability = self.builder._ApprovedRequest(
             "launch", "POST", f"{self.builder.API_BASE}/computers", launch_body, receipt
@@ -1291,7 +1283,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         with mock.patch.object(self.builder, "_send_approved", return_value=(200, "{}")):
             self.assertFalse(self.builder.launch(launch_capability, receipt))
         launch_without_publication_id = json.dumps(
-            {"computer_id": "computer-1", "workspace_id": "workspace-1", "template_ref": expected_ref}
+            {"id": "computer-1", "workspace_id": "workspace-1"}
         )
         launch_capability = self.builder._ApprovedRequest(
             "launch", "POST", f"{self.builder.API_BASE}/computers", launch_body, receipt
@@ -1299,10 +1291,21 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         with mock.patch.object(
             self.builder, "_send_approved", return_value=(200, launch_without_publication_id)
         ):
+            self.assertTrue(self.builder.launch(launch_capability, receipt))
+        launch_path = ROOT / f"{self.builder.NAME}.launch.json"
+        launch_path.unlink(missing_ok=True)
+        wrong_workspace = json.dumps(
+            {"id": "computer-1", "workspace_id": "other-workspace"}
+        )
+        launch_capability = self.builder._ApprovedRequest(
+            "launch", "POST", f"{self.builder.API_BASE}/computers", launch_body, receipt
+        )
+        with mock.patch.object(
+            self.builder, "_send_approved", return_value=(200, wrong_workspace)
+        ):
             self.assertFalse(self.builder.launch(launch_capability, receipt))
         valid_launch = json.dumps(
-            {"computer_id": "computer-1", "workspace_id": "workspace-1", "template_ref": expected_ref,
-             "template_id": "pub-1"}
+            {"id": "computer-1", "workspace_id": "workspace-1", "status": "running"}
         )
         launch_capability = self.builder._ApprovedRequest(
             "launch", "POST", f"{self.builder.API_BASE}/computers", launch_body, receipt
@@ -1314,7 +1317,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         finally:
             launch_path.unlink(missing_ok=True)
 
-        mismatched_receipt = self.builder._PublicationReceipt("pub-2", expected_ref, expected_digest, {})
+        mismatched_receipt = self.builder._PublicationReceipt(expected_ref, "0" * 64, "2026-08-19T00:00:00Z", {})
         build_capability = self.builder._ApprovedRequest(
             "build", "POST", f"{self.builder.API_BASE}/templates/x/build", None, receipt
         )
@@ -1437,9 +1440,9 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
 
         broker_side, client_side = socket.socketpair()
         publish_response_body = json.dumps({
-            "publication_id": "pub-1",
-            "template_ref": f"{broker.NAMESPACE}/{broker.NAME}@{broker.VERSION}",
-            "publication_sha256": publication_digest,
+            "ref": f"{broker.NAMESPACE}/{broker.NAME}@{broker.VERSION}",
+            "digest": publication_digest,
+            "published": "2026-08-19T00:00:00Z",
         }).encode()
         response = TrackingResponse(publish_response_body)
         order = []
@@ -1449,9 +1452,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             "method": "POST",
             "url": f"{broker.API_BASE}/templates",
             "body": publication_bytes,
-            "publication_id": None,
-            "publication_sha256": None,
-            "build_id": None,
+            "publication_digest": None,
             "intent_path": "/intent",
             "key_sha256": broker.broker_key_sha256(placeholder_key),
             "workspace_id": None,
@@ -1528,18 +1529,18 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         artifact_digest = hashlib.sha256(self.builder.resolved_artifact_bytes()).hexdigest()
         publication_digest = hashlib.sha256(publication_bytes).hexdigest()
         sse_body = (
-            b'data: {"phase":"building","level":"info","build_id":"build-1"}\n\n'
-            b'data: {"phase":"ready","level":"success","build_id":"build-1"}\n\n'
+            b'data: {"phase":"building","level":"info"}\n\n'
+            b'data: {"phase":"ready","level":"success"}\n\n'
         )
         # Direct semantic validation must skip JSON parsing for events.
         broker.validate_response_semantics(
-            {"operation": "events", "build_id": "build-1", "publication_id": "pub-1"},
+            {"operation": "events", "publication_digest": publication_digest},
             200,
             sse_body,
             publication_digest,
-            "d" * 64,
+            json.loads(self.builder.resolved_artifact_bytes()),
         )
-        ready, failed = broker.parse_sse_events(sse_body, "build-1")
+        ready, failed = broker.parse_sse_events(sse_body)
         self.assertTrue(ready)
         self.assertFalse(failed)
 
@@ -1578,11 +1579,9 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         canonical_request = {
             "operation": "events",
             "method": "GET",
-            "url": f"{broker.API_BASE}/builds/build-1/events",
+            "url": f"{broker.API_BASE}/templates/{broker.NAMESPACE}/{broker.NAME}/{broker.VERSION}/build/events",
             "body": None,
-            "publication_id": "pub-1",
-            "publication_sha256": publication_digest,
-            "build_id": "build-1",
+            "publication_digest": publication_digest,
             "intent_path": "/intent",
             "key_sha256": broker.broker_key_sha256(placeholder_key),
             "workspace_id": None,
@@ -1590,10 +1589,10 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         events_message = {
             "operation": "events",
             "method": "GET",
-            "url": f"{broker.API_BASE}/builds/build-1/events",
+            "url": f"{broker.API_BASE}/templates/{broker.NAMESPACE}/{broker.NAME}/{broker.VERSION}/build/events",
             "body_b64": None,
-            "publication": {"publication_id": "pub-1", "publication_sha256": publication_digest},
-            "build": {"build_id": "build-1", "publication_id": "pub-1", "publication_sha256": publication_digest},
+            "publication": {"ref": f"{broker.NAMESPACE}/{broker.NAME}@{broker.VERSION}", "digest": publication_digest},
+            "build": None,
             "intent_path": "/intent",
             "key_sha256": broker.broker_key_sha256(placeholder_key),
         }
@@ -1651,7 +1650,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         self.assertEqual(order[:2], ["reviews", "intent"])
         self.assertEqual(
             order[2],
-            ("open", f"{broker.API_BASE}/builds/build-1/events", "GET", None),
+            ("open", f"{broker.API_BASE}/templates/{broker.NAMESPACE}/{broker.NAME}/{broker.VERSION}/build/events", "GET", None),
         )
         json_line, mac_line = reply.split(b"\n", 1)
         record = json.loads(json_line)
@@ -1659,6 +1658,50 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         self.assertEqual(base64.b64decode(record["body_b64"]), sse_body)
         expected_mac = hmac.new(b"ef" * 32, json_line + b"\n", hashlib.sha256).hexdigest()
         self.assertEqual(mac_line.decode("ascii").strip(), expected_mac)
+
+    def test_broker_validate_response_binds_exact_template_inventory(self):
+        # Regression for the P1 where the validate branch referenced an
+        # undefined `template` name and deterministically raised NameError.
+        broker_spec = importlib.util.spec_from_file_location(
+            "orgo_release_broker_validate_test", ROOT / ".github/scripts/orgo_release_broker.py"
+        )
+        assert broker_spec and broker_spec.loader
+        broker = importlib.util.module_from_spec(broker_spec)
+        broker_spec.loader.exec_module(broker)
+        template = json.loads(self.builder.resolved_artifact_bytes())
+        publication_digest = hashlib.sha256(self.builder.publication_body_bytes()).hexdigest()
+        request = {"operation": "validate", "publication_digest": publication_digest}
+        echoed = {
+            "ok": True,
+            "template": {
+                "api_version": "orgo.ai/v1",
+                "template": {"name": broker.NAME, "version": broker.VERSION},
+                "files": [{"to": entry["to"]} for entry in template["files"]],
+            },
+        }
+        # A correctly-shaped live response must pass without raising.
+        broker.validate_response_semantics(
+            request, 200, json.dumps(echoed).encode(), publication_digest, template
+        )
+        # A file inventory that does not match the exact template bytes must fail closed.
+        wrong_inventory = json.loads(json.dumps(echoed))
+        wrong_inventory["template"]["files"] = wrong_inventory["template"]["files"][:-1]
+        with self.assertRaisesRegex(RuntimeError, "file inventory"):
+            broker.validate_response_semantics(
+                request, 200, json.dumps(wrong_inventory).encode(), publication_digest, template
+            )
+        # A wrong name/version binding must fail closed.
+        wrong_reference = json.loads(json.dumps(echoed))
+        wrong_reference["template"]["template"]["version"] = "9.9.9"
+        with self.assertRaisesRegex(RuntimeError, "canonical template reference"):
+            broker.validate_response_semantics(
+                request, 200, json.dumps(wrong_reference).encode(), publication_digest, template
+            )
+        # A 2xx without `ok: true` must fail closed.
+        with self.assertRaisesRegex(RuntimeError, "bound acceptance"):
+            broker.validate_response_semantics(
+                request, 200, json.dumps({"ok": False}).encode(), publication_digest, template
+            )
 
     def test_release_path_scrubs_home_and_git_config_from_subprocesses(self):
         broker_spec = importlib.util.spec_from_file_location(
@@ -2058,8 +2101,7 @@ print("LATITUDE_HTTP_ERROR closed=True")
                 "url": f"{broker.API_BASE}/templates",
                 "body_sha256": hashlib.sha256(b"x").hexdigest(),
                 "template_ref": broker.CANONICAL_REF,
-                "publication_id": None,
-                "build_id": None,
+                "publication_digest": None,
                 "tree": "a" * 40,
                 "artifact_sha256": "b" * 64,
                 "publication_sha256": "c" * 64,
@@ -2074,9 +2116,7 @@ print("LATITUDE_HTTP_ERROR closed=True")
                 "method": "POST",
                 "url": f"{broker.API_BASE}/templates",
                 "body": b"x",
-                "publication_id": None,
-                "publication_sha256": None,
-                "build_id": None,
+                "publication_digest": None,
                 "intent_path": str(intent),
             }
             marker = ledger / nonce
@@ -2157,17 +2197,29 @@ print("LATITUDE_HTTP_ERROR closed=True")
             self.fail("cannot import Hermes runtime pruner")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+        # Slack is intentionally NOT pruned: it is an operator-connected inbound
+        # channel. What the agent may do when reached over Slack is bounded by
+        # platform_toolsets, not by removing the platform from the image.
         expected = {
             "plugins/spotify",
-            "plugins/platforms/slack",
             "plugins/platforms/discord",
             "optional-mcps/linear",
-            "hermes_cli/slack_cli.py",
-            "hermes_cli/subcommands/slack.py",
             "tools/discord_tool.py",
         }
         self.assertEqual(set(module.REMOVED_PATHS), expected)
         self.assertIn(f'"$VENV_PY" {self.builder.STAGE}/hermes/scripts/prune_hermes_runtime.py', self.builder.INSTALL)
+        # Removing a module that the CLI entry imports at module scope makes every
+        # `hermes` invocation die on ModuleNotFoundError, which only surfaces at
+        # image-build time. The pruner must detach the call sites in the same pass.
+        self.assertEqual(module.CLI_ENTRY, "hermes_cli/main.py")
+        self.assertEqual(module.CLI_DANGLING_NAMES, ("build_slack_parser",))
+        self.assertTrue(module.CLI_DETACHED_ANCHORS)
+        # The detach must fire only when the module it references was pruned.
+        # Retaining Slack while still stripping its parser would remove a CLI
+        # surface that works, which is the mirror image of the original defect.
+        self.assertNotIn("hermes_cli/subcommands/slack.py", module.REMOVED_PATHS)
+        source = (FILES / "scripts/prune_hermes_runtime.py").read_text()
+        self.assertIn('if "hermes_cli/subcommands/slack.py" not in REMOVED_PATHS:', source)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             wheel_dir = root / "wheel"
@@ -2199,7 +2251,17 @@ print("LATITUDE_HTTP_ERROR closed=True")
                  f"p={str(script_path)!r};s=importlib.util.spec_from_file_location('prune_verify',p);"
                  "m=importlib.util.module_from_spec(s);s.loader.exec_module(m);"
                  "d=m.importlib.metadata.distribution('hermes-agent');"
-                 "assert all(not m._surface_target(d,r).exists() for r in m.REMOVED_PATHS)"],
+                 "assert all(not m._surface_target(d,r).exists() for r in m.REMOVED_PATHS);"
+                 "e=m._surface_target(d,m.CLI_ENTRY);src=e.read_text(encoding='utf-8');"
+                 # A dangling reference is only a defect when the module it names was
+                 # actually pruned. With Slack retained the parser call is valid and
+                 # must survive; either way the entry has to still compile.
+                 "pruned='hermes_cli/subcommands/slack.py' in m.REMOVED_PATHS;"
+                 "assert (not pruned) or all(n not in src for n in m.CLI_DANGLING_NAMES),"
+                 " 'pruned CLI reference survived';"
+                 "assert pruned or any(n in src for n in m.CLI_DANGLING_NAMES),"
+                 " 'retained Slack parser was stripped anyway';"
+                 "compile(src,str(e),'exec')"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -2209,7 +2271,6 @@ print("LATITUDE_HTTP_ERROR closed=True")
         bridge = (FILES / "safe-env-bridge.py").read_text()
         for absent_credential in (
             "COMPOSIO_CONSUMER_KEY",
-            "SLACK_BOT_TOKEN",
             "AGENTPHONE_API_KEY",
             "AGENTMAIL_API_KEY",
             "HERMES_SPOTIFY_CLIENT_ID",
@@ -2726,7 +2787,17 @@ assert bounded.closed and not hasattr(bounded_result, "read")
                 setattr(self.builder, "FILES", previous)
             with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as payload:
                 names = payload.getnames()
-            self.assertIn("hermes/local-packages/super-browser/src/super_browser/runtime.py", names)
+            # Super Browser is no longer vendored; the latitude plugin is the
+            # remaining local package and carries the same exclusion contract.
+            self.assertFalse(
+                any(name.startswith("hermes/local-packages/super-browser/") for name in names),
+                "the vendored Super Browser must not reappear in the payload",
+            )
+            self.assertTrue(
+                any(name.startswith("hermes/local-packages/latitude-telemetry-hermes/")
+                    for name in names),
+                names,
+            )
             self.assertFalse(
                 any("/build/" in name or ".egg-info/" in name or "/node_modules/" in name for name in names),
                 names,
@@ -2965,9 +3036,33 @@ print("direct_hosted_helpers_blocked")
         self.assertNotIn("known_plugin_toolsets", config)
         self.assertNotIn("orgo-desktop-local", config["plugins"]["enabled"])
         self.assertNotIn("orgo_desktop", config_source)
+        # `cli` is reached only through the authenticated Orgo API and needs a
+        # working toolset for the agent to do anything. Every *inbound* chat
+        # platform stays read-only; widening cli must never widen those.
+        # `cli` (authenticated Orgo API) and `slack` (operator-connected channel,
+        # trusted workspace) carry the working set. Every other inbound platform
+        # stays read-only, so widening these two cannot widen the rest.
         safe_remote_toolsets = {"session_search"}
-        for toolsets in config["platform_toolsets"].values():
-            self.assertEqual(set(toolsets), safe_remote_toolsets)
+        working_toolsets = {
+            "session_search", "super-browser", "scrape-creators",
+            "skills", "memory", "file", "todo",
+        }
+        platform_toolsets = config["platform_toolsets"]
+        operator_channels = {"cli", "slack"}
+        for name in operator_channels:
+            self.assertEqual(set(platform_toolsets[name]), working_toolsets, name)
+        for name, toolsets in platform_toolsets.items():
+            if name in operator_channels:
+                continue
+            self.assertEqual(set(toolsets), safe_remote_toolsets, name)
+        self.assertGreaterEqual(
+            len(platform_toolsets) - len(operator_channels), 8,
+            "most inbound platforms must remain read-only",
+        )
+        # The dangerous surfaces stay off every platform, cli included.
+        for platform, toolsets in platform_toolsets.items():
+            for forbidden in ("terminal", "code_execution", "delegation", "computer_use"):
+                self.assertNotIn(forbidden, toolsets, f"{platform}/{forbidden}")
         self.assertNotIn("browser-browser-use", config["plugins"]["enabled"])
         self.assertNotIn("browser-firecrawl", config["plugins"]["enabled"])
         self.assertIn("browser-browser-use", config["plugins"]["disabled"])
@@ -3255,3 +3350,119 @@ print("live_test_and_handoff_truth_ok")
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RuntimeLockConsistencyTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.builder = load_builder()
+
+    """Locks installed into one venv must not disagree.
+
+    The install script pip-installs `build-locks/hermes-runtime.lock` and then
+    the packaged Super Browser's `requirements-runtime.lock` into the *same*
+    interpreter. Both are hash-locked, so each looks deterministic in isolation,
+    but the second install silently upgrades anything the first pinned lower --
+    last writer wins. That is how `mcp` reached 2.0.0 in a runtime whose agent
+    pins `mcp==1.26.0`, which broke every HTTP MCP connection at image-build
+    time and could not be seen by any test that reads a single lock.
+    """
+
+    @staticmethod
+    def _pins(path):
+        pins = {}
+        for line in pathlib.Path(path).read_text().splitlines():
+            match = re.match(r"^([A-Za-z0-9_.\-]+)==([^\s\\]+)", line.strip())
+            if match:
+                pins[match.group(1).lower().replace("_", "-")] = match.group(2)
+        return pins
+
+    def test_install_program_installs_exactly_one_runtime_lock(self):
+        """Only one dependency lock may be installed into the agent's venv.
+
+        Two hash-locked files each look deterministic alone; installed
+        sequentially into one interpreter the second silently upgrades whatever
+        the first pinned lower. That is how `mcp` reached 2.0.0 in a runtime
+        whose agent pins `mcp==1.26.0`, breaking every HTTP MCP connection at
+        image-build time -- invisible to any check that reads a single lock.
+        """
+        install = self.builder.INSTALL
+        installed = set(re.findall(r"--require-hashes -r ([^\s\\]+)", install))
+        self.assertEqual(
+            {name.rsplit("/", 1)[-1] for name in installed},
+            {"hermes-runtime.lock"},
+            f"exactly one runtime lock may reach the venv; found {sorted(installed)}",
+        )
+        self.assertNotIn("requirements-runtime.lock", install)
+
+    def test_retired_vendored_locks_are_not_shipped(self):
+        """A lock that is no longer installed must also not ride in the payload."""
+        archive = base64.b64decode(self.builder.payload_b64())
+        with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as payload:
+            names = payload.getnames()
+        self.assertFalse(
+            [n for n in names if n.endswith("requirements-runtime.lock")],
+            "the vendored Super Browser lock must not ship in the payload",
+        )
+
+    def test_agent_runtime_pin_matches_the_declared_requirement(self):
+        hermes = self._pins(FILES / "build-locks/hermes-runtime.lock")
+        self.assertEqual(hermes.get("mcp"), "1.26.0", "hermes-agent 0.18.0 pins mcp==1.26.0 exactly")
+
+
+class GatewayLauncherTests(unittest.TestCase):
+    """The supervised launcher must never park silently on a stale lock.
+
+    `flock` with no timeout blocks forever behind an orphaned holder while
+    supervisord reports the parked process as RUNNING. Field-observed: an
+    orphaned gateway held the lock for two days, every restart was a silent
+    no-op, and config changes appeared to deploy while the live gateway never
+    saw them. A dead gateway must not look healthy.
+    """
+
+    def test_gateway_lock_wait_is_bounded_and_reports_failure(self):
+        launcher = (FILES / "gateway-run.sh").read_text()
+        self.assertIn("flock", launcher)
+        self.assertRegex(
+            launcher,
+            r"flock\s+-w\s+\d+",
+            "flock must use a bounded -w timeout; an unbounded wait parks forever "
+            "behind a stale holder and supervisord reports it as healthy",
+        )
+        self.assertRegex(
+            launcher, r"-E\s+\d+",
+            "flock needs a distinct conflict exit code so a stuck lock is "
+            "distinguishable from a gateway crash",
+        )
+
+    def test_gateway_launcher_still_serializes_starts(self):
+        """The boot-race guard must survive the timeout change."""
+        launcher = (FILES / "gateway-run.sh").read_text()
+        self.assertIn("/var/lib/orgo/hermes-gateway.lock", launcher)
+        self.assertIn("hermes gateway run", launcher)
+        self.assertIn("--replace", launcher)
+
+    def test_gateway_launcher_reaps_orphaned_gateways(self):
+        """A gateway orphaned by a previous supervisor cycle must be reaped.
+
+        `flock` forks rather than execs, so the gateway runs as its child and
+        inherits the lock fd. If the wrapper dies and the gateway does not, the
+        orphan holds a lock that supervisord no longer owns and every
+        subsequent start blocks behind it. Only PPID 1 is reaped: a gateway
+        still parented to a live supervisord is a legitimate sibling that
+        `--replace` should handle.
+        """
+        launcher = (FILES / "gateway-run.sh").read_text()
+        self.assertIn("pgrep -f 'hermes gateway run'", launcher)
+        self.assertRegex(launcher, r"ppid=\$\(ps -o ppid= -p", "must read the parent pid")
+        self.assertIn('"$ppid" = "1"', launcher)
+        self.assertIn("kill -9", launcher)
+        # The reaper must run BEFORE the lock is contended, or it cannot help.
+        # Anchor on the actual invocation, not the word "flock" in the comments
+        # that explain it.
+        invocation = launcher.index("exec /usr/local/bin/revenue-partner-env-bridge")
+        self.assertLess(
+            launcher.index("pgrep -f 'hermes gateway run'"),
+            invocation,
+            "the orphan reaper must run before flock contends for the lock",
+        )

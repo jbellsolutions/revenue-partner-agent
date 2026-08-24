@@ -4,6 +4,23 @@ All notable changes to Revenue Partner Agent are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and releases use semantic versioning.
 
+## [1.0.1] - Live API contract remediation
+
+### Fixed
+
+- Release transport response contracts aligned with the live Orgo API: validation accepts `{ok, template}` with a bound file inventory; publication/readback bind `{ref, digest, published}`; build binds `{ref, digest, status}`; build events use the canonical `…/build/events` SSE endpoint; launch binds the computer `id` and `workspace_id` from the live response shape.
+- Publication digest is re-verified against the signed publication bytes in both the builder and the isolated broker.
+- Removed the fabricated publication-ID/build-ID identity model; the immutable `namespace/name@version` reference plus content digest is the binding identity.
+- The broker validate response parser now binds the echoed file inventory against the exact template bytes instead of referencing an undefined name.
+- `release_entry.py` now forks before inspecting any credential value; each child computes the credential digest from its own environment copy and the builder child drops the key before `execve`.
+
+### Verification
+
+- **Validation contract confirmed against the live API.** `POST /api/templates/validate` returned HTTP `200` for the exact tree `065ed696` with `ok: true`, `api_version: orgo.ai/v1`, the echoed `revenue-partner-agent@1.0.1` identity, and the bound 23-entry file inventory — the precise shape this release implements. The transmitted artifact was regenerated from the Git index and compared byte-for-byte afterward, so the response binds this tree and not a stale build output. Exact digests are recorded in `docs/VERIFICATION.md`.
+- **Validation is not tier-gated.** It succeeds on a `hacker_v2` workspace. Publication is the gated operation and requires an Orgo **Scale** plan.
+- **The publication, readback, build, build-event, and launch contracts remain unvalidated.** They are implemented from the published API documentation and cannot be exercised until the account carries template-publishing entitlement. This release does not claim they are confirmed; only the validation contract has been observed against the live API.
+- Read-side confirmation that nothing is published: `GET /api/templates` returns `{"templates":[]}` and `GET /api/templates/default/revenue-partner-agent/1.0.1` returns `404 not found`.
+
 ## [1.0.0] - Release candidate
 
 ### Added
@@ -49,4 +66,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - GitHub publication and CI are tracked separately from Orgo deployment.
 - Orgo template publication was not completed because the authenticated workspace tier lacked template-publishing entitlement.
-- No Orgo publication ID, image-ready event, computer ID, live endpoint, or live smoke result is claimed for 1.0.0 yet.
+- No Orgo publication reference/digest, image-ready event, computer ID, live endpoint, or live smoke result is claimed for 1.0.1 yet.

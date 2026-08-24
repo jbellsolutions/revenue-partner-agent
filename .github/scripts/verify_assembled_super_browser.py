@@ -1,63 +1,74 @@
 #!/usr/bin/env python3
-"""Execute the Super Browser verifier from the exact assembled template payload."""
+"""Assert the assembled template attaches Super Browser by URL and vendors nothing.
+
+This gate previously executed the packaged Super Browser's own verifier out of
+the assembled payload. That package is no longer shipped: Super Browser is a
+hosted MCP server the agent attaches to by URL, so a second copy in the image
+could only drift from the server.
+
+Vendoring it also carried a concrete cost. The install program pip-installed the
+packaged copy's `requirements-runtime.lock` into the *same* interpreter as
+`build-locks/hermes-runtime.lock`. Both are hash-locked and deterministic in
+isolation; installed in sequence the second silently upgraded six shared pins,
+including `mcp` 1.26.0 -> 2.0.0 against an agent that pins `mcp==1.26.0` exactly.
+That broke every HTTP MCP connection and was invisible to every gate here,
+because each one reads a single lock.
+
+The check therefore runs at the same altitude as before -- the exact assembled
+artifact, not the source tree -- but asserts the inverse property.
+"""
 
 from __future__ import annotations
 
 import base64
 import io
 import json
-import os
-from pathlib import Path, PurePosixPath
-import subprocess
+from pathlib import Path
 import sys
 import tarfile
-import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 RESOLVED = ROOT / "revenue-partner-agent.resolved.json"
 PAYLOAD_DESTINATION = "/opt/revenue-partner/payload.tgz.b64"
-VERIFY_RELATIVE = PurePosixPath("hermes/local-packages/super-browser/scripts/verify-super-browser")
 
 
-def _safe_members(archive: tarfile.TarFile) -> list[tarfile.TarInfo]:
-    members = archive.getmembers()
-    for member in members:
-        path = PurePosixPath(member.name)
-        if path.is_absolute() or ".." in path.parts:
-            raise RuntimeError(f"unsafe archive path: {member.name}")
-        if member.issym() or member.islnk() or member.isdev():
-            raise RuntimeError(f"unsupported archive entry: {member.name}")
-    return members
+def fail(message: str) -> None:
+    print(f"assembled_super_browser_verifier FAILED: {message}", file=sys.stderr)
+    raise SystemExit(1)
 
 
 def main() -> int:
-    payload = json.loads(RESOLVED.read_text(encoding="utf-8"))
-    entries = [item for item in payload.get("files", []) if item.get("to") == PAYLOAD_DESTINATION]
-    if len(entries) != 1:
-        raise RuntimeError(f"expected one assembled payload entry, found {len(entries)}")
-    encoded = entries[0].get("inline")
-    if not isinstance(encoded, str):
-        raise RuntimeError("assembled payload is not inline base64 text")
-    compressed = base64.b64decode(encoded, validate=True)
+    if not RESOLVED.exists():
+        fail(f"missing assembled artifact: {RESOLVED}")
+    template = json.loads(RESOLVED.read_text())
 
-    with tempfile.TemporaryDirectory(prefix="revenue-partner-assembled-") as directory:
-        root = Path(directory).resolve()
-        with tarfile.open(fileobj=io.BytesIO(compressed), mode="r:gz") as archive:
-            members = _safe_members(archive)
-            if str(VERIFY_RELATIVE) not in {member.name for member in members}:
-                raise RuntimeError("assembled payload is missing the Super Browser verifier")
-            archive.extractall(root, members=members)
+    servers = template.get("files", [])
+    payload = next((f for f in servers if f.get("to") == PAYLOAD_DESTINATION), None)
+    if payload is None:
+        fail(f"assembled template has no payload at {PAYLOAD_DESTINATION}")
 
-        verifier = root.joinpath(*VERIFY_RELATIVE.parts)
-        package_root = verifier.parent.parent
-        env = os.environ.copy()
-        env["PYTHON_BIN"] = sys.executable
-        env["SUPER_BROWSER_REPO_ROOT"] = str(package_root)
-        env["SUPER_BROWSER_VERIFY_TMP_DIR"] = str(root / "verify-state")
-        env["SUPER_BROWSER_VERIFY_PYCACHE_DIR"] = str(root / "pycache")
-        subprocess.run(["bash", str(verifier)], cwd=package_root, env=env, check=True)
+    archive = base64.b64decode(payload["inline"])
+    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as tar:
+        names = tar.getnames()
 
-    print("assembled_super_browser_verifier_ok")
+    vendored = [n for n in names if "local-packages/super-browser" in n]
+    if vendored:
+        fail(f"payload still vendors Super Browser ({len(vendored)} entries)")
+
+    extra_locks = [n for n in names if n.endswith("requirements-runtime.lock")]
+    if extra_locks:
+        fail(f"payload ships a second dependency lock: {extra_locks}")
+
+    install = template["apps"][0]["install"]
+    locks = {line.rsplit("/", 1)[-1] for line in install.split() if line.endswith(".lock")}
+    if locks != {"hermes-runtime.lock"}:
+        fail(f"install program must consume exactly one runtime lock; found {sorted(locks)}")
+
+    for absent in ("super-browser-server", "install_local_super_browser.sh", "SB_ROOT"):
+        if absent in install:
+            fail(f"install program still references the vendored copy: {absent}")
+
+    print(f"assembled_super_browser_verifier_ok hosted-attach payload_files={len(names)}")
     return 0
 
 
