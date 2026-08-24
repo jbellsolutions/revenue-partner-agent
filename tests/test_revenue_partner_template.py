@@ -3512,3 +3512,50 @@ class ScheduledWorkTests(unittest.TestCase):
         self.assertIn("never infer", prompt)
         self.assertIn("Do not fabricate", prompt)
         self.assertIn("If you did no work, say so", prompt)
+
+
+class ModelChainTests(unittest.TestCase):
+    """The model chain must be declared, ordered, and reachable.
+
+    `fallback_providers` is Hermes's primary source of truth for failover and is
+    walked in order. A typo'd model id here fails only at the moment the primary
+    is already down, which is the worst time to discover it.
+    """
+
+    EXPECTED_CHAIN = [
+        "deepseek/deepseek-v4-pro",
+        "openai/gpt-5.6-luna",
+        "minimax/minimax-m3",
+    ]
+
+    def setUp(self):
+        self.config = yaml.safe_load((FILES / "config.yaml").read_text())
+
+    def test_primary_is_glm_52_on_openrouter(self):
+        self.assertEqual(self.config["model"]["default"], "z-ai/glm-5.2")
+        self.assertEqual(self.config["model"]["provider"], "openrouter")
+
+    def test_fallback_chain_is_ordered_as_configured(self):
+        chain = [f["model"] for f in self.config["fallback_providers"]]
+        self.assertEqual(chain, self.EXPECTED_CHAIN)
+
+    def test_every_chain_entry_uses_openrouter_and_the_bridged_key(self):
+        for entry in self.config["fallback_providers"]:
+            self.assertEqual(entry["base_url"], "https://openrouter.ai/api/v1", entry)
+            self.assertEqual(entry["key_env"], "OPENROUTER_API_KEY", entry)
+
+    def test_no_unpublished_model_snapshot_is_used(self):
+        """`deepseek-v4-pro-0423` was requested but does not exist on OpenRouter.
+
+        Pinning a snapshot that was never published breaks failover silently, at
+        the moment the primary is already down. The id may appear in a comment
+        explaining its absence -- it must never appear as a model VALUE.
+        """
+        values = [self.config["model"]["default"]]
+        values += [f["model"] for f in self.config["fallback_providers"]]
+        for value in values:
+            self.assertNotIn("0423", value, f"unpublished snapshot pinned: {value}")
+
+    def test_transport_key_survives_the_bridge(self):
+        bridge = (FILES / "safe-env-bridge.py").read_text()
+        self.assertIn("OPENROUTER_API_KEY", bridge)
