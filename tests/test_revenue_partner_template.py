@@ -663,7 +663,7 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             trusted_env["PATH"] = f"{fake_bin_dir}:{trusted_env.get('PATH', '')}"
             trusted_env["REVENUE_PARTNER_VERIFY_GIT"] = "/usr/bin/git"
             expected_inventory = {
-                scanner: "candidate_credentials_ok 170",
+                scanner: "candidate_credentials_ok 171",
                 yaml_scanner: "candidate_yaml_ok 3",
                 ROOT / ".github/scripts/check_skill_frontmatter.py": "candidate_skill_frontmatter_ok 17",
                 ROOT / ".github/scripts/check_shell_syntax.py": "shell_syntax_ok 16",
@@ -3466,3 +3466,49 @@ class GatewayLauncherTests(unittest.TestCase):
             invocation,
             "the orphan reaper must run before flock contends for the lock",
         )
+
+
+class ScheduledWorkTests(unittest.TestCase):
+    """The daily loop must ship with the image, not be a manual post-install step.
+
+    A rebuilt box that boots without its daily brief is a silently inert agent:
+    it answers when spoken to and never initiates anything. That is the failure
+    this template keeps guarding against, so the schedule belongs in the boot
+    hook rather than in an operator's runbook.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.builder = load_builder()
+
+    def test_daily_brief_is_scheduled_at_boot_and_is_idempotent(self):
+        hook = self.builder.ON_EVERY_BOOT
+        self.assertIn("hermes cron create", hook)
+        self.assertIn("Revenue Partner Daily Brief", hook)
+        # Matched by name so a resume cannot duplicate the job.
+        self.assertIn("hermes cron list", hook)
+        self.assertRegex(hook, r"grep -qF .*BRIEF_NAME")
+
+    def test_daily_brief_delivers_to_the_configured_home_channel(self):
+        hook = self.builder.ON_EVERY_BOOT
+        self.assertIn("SLACK_HOME_CHANNEL", hook)
+        self.assertIn("slack:${HOME_CHANNEL}", hook)
+        # With no home channel there is nowhere to report, so skip rather than
+        # create a job that delivers into the void.
+        self.assertIn('[ -n "$HOME_CHANNEL" ]', hook)
+
+    def test_cron_state_is_never_baked_into_the_payload(self):
+        """jobs.json carries ids, run state and next-run timestamps."""
+        archive = base64.b64decode(self.builder.payload_b64())
+        with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as payload:
+            names = payload.getnames()
+        self.assertFalse(
+            [n for n in names if n.endswith("jobs.json")],
+            "cron run state must not ship in the image",
+        )
+
+    def test_daily_brief_prompt_forbids_fabrication(self):
+        prompt = (FILES / "daily-brief.prompt").read_text()
+        self.assertIn("never infer", prompt)
+        self.assertIn("Do not fabricate", prompt)
+        self.assertIn("If you did no work, say so", prompt)
