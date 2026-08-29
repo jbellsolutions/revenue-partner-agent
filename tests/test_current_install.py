@@ -43,12 +43,43 @@ class CurrentInstallTests(unittest.TestCase):
         start = (ROOT / "START-HERE.md").read_text()
         slack = (ROOT / "docs/SLACK-SETUP.md").read_text()
         skills = (ROOT / "docs/SKILLS.md").read_text()
+        tools = (ROOT / "docs/TOOLS.md").read_text()
         for required in ("deploy/setup.sh", "Slack Member ID", "real Slack message"):
             self.assertIn(required, start)
         for required in ("xoxb-", "xapp-", "connections:write", "Agent view", "@Revenue Partner"):
             self.assertIn(required, slack)
         for required in ("Hermes Skills Hub", "skills audit", "!skills approval on", "revenue-partner"):
             self.assertIn(required, skills)
+        for required in ("Composio Connect", "PandaDoc MCP", "read-only", "untrusted"):
+            self.assertIn(required, tools)
+
+    def test_fresh_install_enables_full_tools_and_reviewed_skill_writes(self) -> None:
+        setup = (ROOT / "deploy/setup.sh").read_text()
+        for required in (
+            'platform_toolsets.cli=["hermes-cli"]',
+            'platform_toolsets.slack=["hermes-slack"]',
+            'skills.write_approval=true',
+            'skills.guard_agent_created=true',
+            'compression.tail_mode=lean',
+        ):
+            self.assertIn(required, setup)
+        self.assertIn('if [ "$FRESH_INSTALL" = true ]', setup)
+        self.assertIn("Existing owner tool choices and approval settings were preserved", setup)
+
+    def test_business_tool_helper_uses_secret_refs_and_untrusted_mcp(self) -> None:
+        helper = (ROOT / "deploy/connect-tools.sh").read_text()
+        for required in (
+            "https://connect.composio.dev/mcp",
+            "x-consumer-api-key",
+            "${COMPOSIO_API_KEY}",
+            "mcp_servers.composio.trust untrusted",
+            "https://mcp.pandadoc.com/v1/mcp",
+            "https://mcp.pandadoc.eu/v1/mcp",
+            "mcp_servers.pandadoc.auth oauth",
+            "mcp_servers.pandadoc.trust untrusted",
+        ):
+            self.assertIn(required, helper)
+        self.assertNotIn("set -x", helper)
 
     def test_seed_sync_preserves_owner_edits(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -663,10 +663,10 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             trusted_env["PATH"] = f"{fake_bin_dir}:{trusted_env.get('PATH', '')}"
             trusted_env["REVENUE_PARTNER_VERIFY_GIT"] = "/usr/bin/git"
             expected_inventory = {
-                scanner: "candidate_credentials_ok 181",
+                scanner: "candidate_credentials_ok 183",
                 yaml_scanner: "candidate_yaml_ok 4",
                 ROOT / ".github/scripts/check_skill_frontmatter.py": "candidate_skill_frontmatter_ok 17",
-                ROOT / ".github/scripts/check_shell_syntax.py": "shell_syntax_ok 18",
+                ROOT / ".github/scripts/check_shell_syntax.py": "shell_syntax_ok 19",
             }
             for checker, expected in expected_inventory.items():
                 result = subprocess.run(

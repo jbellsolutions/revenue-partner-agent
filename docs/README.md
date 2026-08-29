@@ -9,6 +9,7 @@ This directory documents the public operating, security, deployment, evidence, a
 | [Beginner installation](../START-HERE.md) | Launch the current Revenue Partner on a private VPS and connect Slack |
 | [Slack setup](SLACK-SETUP.md) | Create the Slack Agent-view app, tokens, allowlists, channels, and tests |
 | [Skills](SKILLS.md) | Included skills, Skills Hub, approvals, audits, and updates |
+| [Tools](TOOLS.md) | Full Hermes toolset plus guided Calendar, inbox, app, and PandaDoc connections |
 | [Updates](UPDATES.md) | Current image pin, reviewed features, and update procedure |
 | [Architecture](ARCHITECTURE.md) | Components, trust boundaries, runtime flow, and extension points |
 | [Operator guide](OPERATOR_GUIDE.md) | Configure the offer, assess fit, run the Money Desk, approve campaigns, and report results |

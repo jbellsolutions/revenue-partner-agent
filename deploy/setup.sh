@@ -60,22 +60,43 @@ fi
 "${ELEVATE[@]}" mkdir -p "$DATA_DIR"
 "${ELEVATE[@]}" chown -R "$(id -u):$(id -g)" "$BASE_DIR"
 
+FRESH_INSTALL=false
 if [ ! -f "$DATA_DIR/config.yaml" ]; then
-  say "Step 1 of 6 — Connect the model"
+  FRESH_INSTALL=true
+  say "Step 1 of 7 — Connect the model"
   echo "The official Hermes setup screen opens now. Choose the model account"
   echo "you want to use. Messaging can be skipped there; Slack is the next step."
   "${DOCKER[@]}" run -it --rm \
     -v "$DATA_DIR:/opt/data" \
     "$HERMES_IMAGE" setup
 else
-  say "Step 1 of 6 — The model is already configured"
+  say "Step 1 of 7 — The model is already configured"
 fi
 
-say "Step 2 of 6 — Install the Revenue Partner skill set"
+say "Step 2 of 7 — Install the skill set and current tool defaults"
 python3 "$REPO_DIR/deploy/sync_seed.py" "$REPO_DIR" "$DATA_DIR"
 chmod 600 "$DATA_DIR/.env" 2>/dev/null || true
+if [ "$FRESH_INSTALL" = true ]; then
+  for setting in \
+    'platform_toolsets.cli=["hermes-cli"]' \
+    'platform_toolsets.slack=["hermes-slack"]' \
+    'agent.disabled_toolsets=[]' \
+    'skills.creation_nudge_interval=15' \
+    'skills.write_approval=true' \
+    'skills.guard_agent_created=true' \
+    'compression.tail_mode=lean'; do
+    key=${setting%%=*}
+    value=${setting#*=}
+    "${DOCKER[@]}" run --rm -v "$DATA_DIR:/opt/data" "$HERMES_IMAGE" \
+      config set "$key" "$value" >/dev/null
+  done
+  echo "Full Hermes toolsets enabled for the private CLI and approved Slack owners."
+  echo "Agent-created skill changes will wait for owner review."
+else
+  echo "Existing owner tool choices and approval settings were preserved."
+fi
 
-say "Step 3 of 6 — Create the complete Slack manifest"
+say "Step 3 of 7 — Create the complete Slack manifest"
 "${DOCKER[@]}" run --rm \
   -v "$DATA_DIR:/opt/data" \
   "$HERMES_IMAGE" slack manifest \
@@ -89,7 +110,7 @@ echo "  Create New App → From an app manifest → your workspace"
 echo "Paste that JSON, review it, and click Create. Agent view is the current"
 echo "Slack experience and cannot be changed back after Slack applies it."
 
-say "Step 4 of 6 — Install the Slack app and collect three values"
+say "Step 4 of 7 — Install the Slack app and collect three values"
 echo "In Slack App Settings, choose Install App → Install to Workspace."
 echo "Copy the Bot User OAuth Token beginning xoxb-."
 slack_bot_value="$(secret "Paste the xoxb- Bot Token")"
@@ -112,7 +133,7 @@ upsert_env SLACK_ALLOWED_USERS "$SLACK_ALLOWED_USERS"
 upsert_env SLACK_HOME_CHANNEL "$SLACK_HOME_CHANNEL"
 unset slack_bot_value slack_app_value
 
-say "Step 5 of 6 — Start Revenue Partner"
+say "Step 5 of 7 — Start Revenue Partner"
 cp "$REPO_DIR/deploy/compose.yml" "$BASE_DIR/compose.yml"
 cat > "$BASE_DIR/compose.env" <<EOF
 REVENUE_PARTNER_DATA_DIR=$DATA_DIR
@@ -133,7 +154,10 @@ state="$("${DOCKER[@]}" inspect revenue-partner --format '{{.State.Status}}' 2>/
   fail "the container did not stay running"
 }
 
-say "Step 6 of 6 — Prove Slack works"
+say "Step 6 of 7 — Connect business tools"
+"$REPO_DIR/deploy/connect-tools.sh"
+
+say "Step 7 of 7 — Prove Slack works"
 echo "In Slack, open Revenue Partner under Apps and send: hello"
 echo "In a channel, first run /invite @Revenue Partner, then start with:"
 echo "  @Revenue Partner give me a one-sentence status"
@@ -143,6 +167,7 @@ echo "Useful checks:"
 echo "  docker logs --tail 100 revenue-partner"
 echo "  docker exec revenue-partner hermes skills list"
 echo "  docker exec revenue-partner hermes skills audit"
+echo "  ./deploy/connect-tools.sh"
 echo
 echo "Private dashboard tunnel:"
 echo "  ssh -L 8642:127.0.0.1:8642 <your-server>"

@@ -39,11 +39,13 @@ cd revenue-partner-agent
 
 The installer walks through the model, complete Slack manifest, `xoxb-` bot
 token, `xapp-` Socket Mode token, allowed Slack Member ID, home channel, skill
-inventory, and real-message proof one step at a time.
+inventory, full Hermes toolset, Calendar/inbox connections, PandaDoc proposals,
+and real-message proof one step at a time.
 
 - [Beginner installation](START-HERE.md)
 - [Exact Slack screen-by-screen walkthrough](docs/SLACK-SETUP.md)
 - [Included and optional skills](docs/SKILLS.md)
+- [Tools and business connections](docs/TOOLS.md)
 - [Current features and safe updates](docs/UPDATES.md)
 - [Ready-to-paste Slack Agent-view manifest](slack-manifest.json)
 
@@ -118,6 +120,7 @@ Canonical files:
 | [Beginner installation](START-HERE.md) | Current VPS and Slack setup from a single repository link |
 | [Slack setup](docs/SLACK-SETUP.md) | Exact app-manifest, token, allowlist, channel, and test sequence |
 | [Skills](docs/SKILLS.md) | Included Revenue Partner skills, Hermes Skills Hub, approvals, audits, and updates |
+| [Tools](docs/TOOLS.md) | Full current toolset and guided Calendar, inbox, app, and proposal connections |
 | [Updates](docs/UPDATES.md) | Reviewed runtime pin, current features, and safe container/manifest refresh |
 | [Documentation index](docs/README.md) | Complete public documentation map |
 | [Architecture](docs/ARCHITECTURE.md) | Components, data flow, trust boundaries, and extension rules |

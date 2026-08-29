@@ -28,6 +28,11 @@ The reviewed 0.20.6 baseline adds or carries forward:
 - result caching, lean-tail context compression, improved tool search, gateway
   update coordination, Docker identity improvements, and remote MCP expansion.
 
+Fresh installs also select the full Hermes CLI and Slack toolsets, enable lean
+tail compression, and stage agent-created skill changes for owner review. The
+guided `deploy/connect-tools.sh` path adds current Composio Connect and regional
+PandaDoc MCP configuration without changing the legacy Orgo release.
+
 ## Update the container
 
 For Docker installations, do not run an in-place source updater inside the
