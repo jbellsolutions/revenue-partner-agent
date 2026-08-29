@@ -1,0 +1,81 @@
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import tempfile
+import unittest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+IMAGE = (
+    "nousresearch/hermes-agent:v2026.8.27@"
+    "sha256:e0df6adebddf29b91112aefc999d4aaf6846c9eb544faca5672a16a13590ff79"
+)
+
+
+class CurrentInstallTests(unittest.TestCase):
+    def test_current_image_is_release_and_digest_pinned(self) -> None:
+        for relative in ("deploy/compose.yml", "deploy/setup.sh", "deploy/update.sh"):
+            text = (ROOT / relative).read_text()
+            self.assertIn(IMAGE, text, relative)
+            self.assertNotIn("hermes-agent:latest", text, relative)
+
+    def test_slack_agent_manifest_is_complete(self) -> None:
+        manifest = json.loads((ROOT / "slack-manifest.json").read_text())
+        self.assertEqual("Revenue Partner", manifest["display_information"]["name"])
+        self.assertIn("agent_view", manifest["features"])
+        scopes = manifest["oauth_config"]["scopes"]["bot"]
+        events = manifest["settings"]["event_subscriptions"]["bot_events"]
+        self.assertIn("assistant:write", scopes)
+        self.assertIn("app_context_changed", events)
+        self.assertIn("app_home_opened", events)
+        self.assertTrue(manifest["settings"]["socket_mode_enabled"])
+        commands = {
+            row["command"] for row in manifest["features"]["slash_commands"]
+        }
+        self.assertEqual(50, len(commands))
+        for command in ("/hermes", "/btw", "/goal", "/reload-skills", "/approve", "/stop"):
+            self.assertIn(command, commands)
+
+    def test_beginner_guides_cover_security_and_skills(self) -> None:
+        start = (ROOT / "START-HERE.md").read_text()
+        slack = (ROOT / "docs/SLACK-SETUP.md").read_text()
+        skills = (ROOT / "docs/SKILLS.md").read_text()
+        for required in ("deploy/setup.sh", "Slack Member ID", "real Slack message"):
+            self.assertIn(required, start)
+        for required in ("xoxb-", "xapp-", "connections:write", "Agent view", "@Revenue Partner"):
+            self.assertIn(required, slack)
+        for required in ("Hermes Skills Hub", "skills audit", "!skills approval on", "revenue-partner"):
+            self.assertIn(required, skills)
+
+    def test_seed_sync_preserves_owner_edits(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            data = Path(directory) / "data"
+            subprocess.run(
+                ["python3", str(ROOT / "deploy/sync_seed.py"), str(ROOT), str(data)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            skill = data / "skills/go-to-market/revenue-partner/SKILL.md"
+            original_hash = hashlib.sha256(skill.read_bytes()).hexdigest()
+            self.assertEqual(
+                hashlib.sha256(
+                    (ROOT / "files/skills/go-to-market/revenue-partner/SKILL.md").read_bytes()
+                ).hexdigest(),
+                original_hash,
+            )
+            skill.write_text(skill.read_text() + "\nOwner customization.\n")
+            subprocess.run(
+                ["python3", str(ROOT / "deploy/sync_seed.py"), str(ROOT), str(data)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertIn("Owner customization.", skill.read_text())
+
+
+if __name__ == "__main__":
+    unittest.main()

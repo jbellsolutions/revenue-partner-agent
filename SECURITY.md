@@ -36,6 +36,8 @@ Review changes especially carefully in:
 - `files/gateway-run.sh`
 - `files/agentphone-bridge/`
 - `build_template.py`
+- `deploy/setup.sh`, `deploy/update.sh`, and `deploy/compose.yml`
+- `slack-manifest.json` and Slack user/channel allowlists
 - template lifecycle and secret-manager configuration
 
 ## Disclosure expectations

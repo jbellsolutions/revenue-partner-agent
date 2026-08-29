@@ -21,6 +21,37 @@
 
 ---
 
+## Install Revenue Partner in Slack
+
+The recommended new installation is a private Ubuntu VPS running the reviewed
+Hermes Agent 0.20.6 Docker image. It keeps the Revenue Partner persona, Money
+Desk knowledge, campaign controls, and existing specialist skills, while adding
+the current Slack Agent experience and Hermes Skills Hub lifecycle.
+
+Give the repository link to Claude Code or Codex and use the copyable prompt in
+[`START-HERE.md`](START-HERE.md), or run this on the VPS:
+
+```bash
+git clone https://github.com/jbellsolutions/revenue-partner-agent.git
+cd revenue-partner-agent
+./deploy/setup.sh
+```
+
+The installer walks through the model, complete Slack manifest, `xoxb-` bot
+token, `xapp-` Socket Mode token, allowed Slack Member ID, home channel, skill
+inventory, and real-message proof one step at a time.
+
+- [Beginner installation](START-HERE.md)
+- [Exact Slack screen-by-screen walkthrough](docs/SLACK-SETUP.md)
+- [Included and optional skills](docs/SKILLS.md)
+- [Current features and safe updates](docs/UPDATES.md)
+- [Ready-to-paste Slack Agent-view manifest](slack-manifest.json)
+
+The deterministic Orgo template remains available and unchanged as the advanced
+release path documented below.
+
+---
+
 ## Revenue Partner operating model
 
 The template does not just rename the base agent. It adds a GTM execution contract derived from the supplied landing page and three implementation videos:
@@ -84,6 +115,10 @@ Canonical files:
 
 | Guide | Covers |
 |---|---|
+| [Beginner installation](START-HERE.md) | Current VPS and Slack setup from a single repository link |
+| [Slack setup](docs/SLACK-SETUP.md) | Exact app-manifest, token, allowlist, channel, and test sequence |
+| [Skills](docs/SKILLS.md) | Included Revenue Partner skills, Hermes Skills Hub, approvals, audits, and updates |
+| [Updates](docs/UPDATES.md) | Reviewed runtime pin, current features, and safe container/manifest refresh |
 | [Documentation index](docs/README.md) | Complete public documentation map |
 | [Architecture](docs/ARCHITECTURE.md) | Components, data flow, trust boundaries, and extension rules |
 | [Operator guide](docs/OPERATOR_GUIDE.md) | Fit, Money Desk, campaign approvals, operation, and reporting |
@@ -157,7 +192,7 @@ Slack is retained and operator-enabled; what the agent may DO over Slack is boun
 
 ---
 
-## 🟢 Easiest way to run it
+## 🟢 Legacy Orgo cloud-desktop path
 
 1. **Make an Orgo account** → [orgo.ai](https://orgo.ai).
 2. **Publish and launch your copy** using the verified workflow in [Deployment](docs/DEPLOYMENT.md). This repository does not currently claim a gallery entry.
@@ -194,13 +229,13 @@ Slack is retained and operator-enabled; what the agent may DO over Slack is boun
 
 | | |
 |---|---|
-| **Agent** | Hermes Agent 0.18.0, installed from a hash-locked runtime; model setup remains operator-controlled |
+| **Agent** | Recommended VPS: Hermes Agent 0.20.6 in a digest-pinned official image. Legacy Orgo template: Hermes Agent 0.18.0 in its original hash-locked runtime |
 | **Chat** | Slack (socket mode) and optional Telegram QR onboarding, both operator-configured |
 | **Secrets** | Runtime-only environment/secret-manager inputs; no credential values are embedded in the template |
 | **Browser** | Hosted Super Browser MCP, **attached by URL, never vendored** — 12 providers (Playwright, Browser Use, Airtop, Hyperbrowser, Steel, Browserbase, Orgo desktop, Decodo, four Bright Data lanes) with Apify actor routing, persistent browser profiles, and the full approval lifecycle running server-side |
 | **Phone** | AgentPhone future-integration reference source only; all executable entrypoints and concrete network/send boundaries are hard-stopped |
 | **Tracing** | Optional Latitude telemetry when configured and verified |
-| **Skills** | Curated Revenue Partner operating skill and its source, campaign, acceptance, and Money Desk references |
+| **Skills** | Curated Revenue Partner operating skill and references, bundled current Hermes catalog, Super Browser specialists, Skills Hub search/install/update/audit, and optional skill-write approval |
 | **Persona** | Revenue Partner SOUL.md with fit gates, claim discipline, and approval boundaries |
 | **Knowledge** | Operator-controlled company, ICP, claims, permissions, campaign, and reporting vault |
 
