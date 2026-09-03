@@ -47,7 +47,9 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         self.assertEqual(self.builder.NAME, "revenue-partner-agent")
         self.assertRegex(self.builder.VERSION, r"^\d+\.\d+\.\d+$")
         self.assertNotIn("Buzz", self.builder.template["template"]["name"])
-        self.assertIn("Revenue Partner", self.builder.template["template"]["description"])
+        # The description carries the DISPLAY name, which is a variable; the
+        # template NAME above is the product identity and stays fixed.
+        self.assertIn(self.builder.AGENT_NAME, self.builder.template["template"]["description"])
 
     def test_serialized_publication_request_stays_below_endpoint_limit(self):
         body = self.builder.publication_body_bytes()
@@ -663,8 +665,8 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             trusted_env["PATH"] = f"{fake_bin_dir}:{trusted_env.get('PATH', '')}"
             trusted_env["REVENUE_PARTNER_VERIFY_GIT"] = "/usr/bin/git"
             expected_inventory = {
-                scanner: "candidate_credentials_ok 171",
-                yaml_scanner: "candidate_yaml_ok 3",
+                scanner: "candidate_credentials_ok 172",
+                yaml_scanner: "candidate_yaml_ok 4",
                 ROOT / ".github/scripts/check_skill_frontmatter.py": "candidate_skill_frontmatter_ok 17",
                 ROOT / ".github/scripts/check_shell_syntax.py": "shell_syntax_ok 16",
             }
@@ -3559,3 +3561,58 @@ class ModelChainTests(unittest.TestCase):
     def test_transport_key_survives_the_bridge(self):
         bridge = (FILES / "safe-env-bridge.py").read_text()
         self.assertIn("OPENROUTER_API_KEY", bridge)
+
+
+class AgentDisplayNameTests(unittest.TestCase):
+    """The display name is a variable, and Slack gets it in BOTH places.
+
+    Slack tracks two names in different screens: `display_information.name` is
+    the app, `features.bot_user.display_name` is the bot user -- and the bot one
+    is what shows in the sidebar, the chat header and @mentions. Renaming only
+    the app leaves the bot showing the old name, which makes a rename look like
+    it silently failed. Generating both from one variable means a fresh install
+    is never wrong.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.builder = load_builder()
+
+    def test_display_name_is_a_variable_not_a_literal(self):
+        source = (ROOT / "build_template.py").read_text()
+        self.assertIn('AGENT_NAME = os.environ.get("AGENT_NAME"', source)
+        self.assertIn("def rd_named", source)
+        # The soul and the onboarding banner are what a person reads.
+        self.assertIn('rd_named("SOUL.md")', source)
+        self.assertIn('rd_named("onboard.sh")', source)
+
+    def test_product_identity_is_deliberately_not_renamed(self):
+        """Display name and product identity are separate on purpose.
+
+        NAME is the release contract -- template identity, install paths and the
+        REVENUE_PARTNER_* broker env vars. Renaming it to follow a client's
+        display name would break the broker protocol and the release identity
+        for no user-visible gain.
+        """
+        self.assertEqual(self.builder.NAME, "revenue-partner-agent")
+        self.assertNotEqual(self.builder.NAME, self.builder.AGENT_NAME)
+
+    def test_slack_manifest_carries_the_name_in_both_places(self):
+        staged = {f["to"]: f["inline"] for f in self.builder.template["files"]}
+        manifest = yaml.safe_load(staged["/root/.hermes/slack-manifest.yaml"])
+        app_name = manifest["display_information"]["name"]
+        bot_name = manifest["features"]["bot_user"]["display_name"]
+        self.assertEqual(app_name, self.builder.AGENT_NAME)
+        self.assertEqual(
+            bot_name, self.builder.AGENT_NAME,
+            "the bot user name is what shows in @mentions; it must not be left "
+            "at a stale literal while only the app name is renamed",
+        )
+
+    def test_no_stale_display_name_reaches_the_agent(self):
+        """SOUL.md is the agent's own identity -- it must never introduce itself
+        with the previous tenant's name."""
+        staged = {f["to"]: f["inline"] for f in self.builder.template["files"]}
+        soul = staged[f"{self.builder.STAGE}/hermes/SOUL.md"]
+        self.assertIn(self.builder.AGENT_NAME, soul)
+        self.assertNotIn(self.builder.DISPLAY_NAME_PLACEHOLDER, soul)

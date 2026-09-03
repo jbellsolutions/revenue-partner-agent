@@ -1,0 +1,202 @@
+# Slack app manifest — generated with the agent's display name in BOTH places.
+#
+# Slack tracks two names and they are edited in different screens:
+#   display_information.name        -> the APP name   (Basic Information -> Display Information)
+#   features.bot_user.display_name  -> the BOT name   (App Home -> Your App's Presence)
+#
+# The BOT name is what appears in the sidebar, the chat header and @mentions.
+# Renaming only the app name leaves the bot still showing the old one, which is
+# the exact trap that made a rename look like it silently failed. Generating
+# both from one variable means a fresh install is never wrong and never needs
+# renaming afterwards.
+#
+# Create the app: api.slack.com/apps -> Create New App -> From a manifest ->
+# pick the workspace -> YAML tab -> paste -> Next -> Create.
+display_information:
+  name: Revenue Partner
+  description: Agent — full-workspace read/write, history, reactions, files, canvases.
+  background_color: "#1f2933"
+  long_description: "Hermes is an operator-controlled AI agent. It reads and writes across
+    channels, DMs and group DMs, reacts, manages files and canvases, and answers in threads
+    or its Assistant pane. It connects over Socket Mode, so no public request URL is exposed."
+
+features:
+  bot_user:
+    display_name: Revenue Partner
+    always_online: true
+  app_home:
+    home_tab_enabled: true
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: false
+  assistant_view:
+    assistant_description: Ask Hermes to research, draft, summarize a channel, or act on a thread.
+    suggested_prompts:
+      - title: Summarize this channel
+        message: Summarize the last 24 hours in this channel and list decisions and open questions.
+      - title: Catch me up
+        message: What did I miss across the channels I'm in since yesterday?
+      - title: Draft a reply
+        message: Draft a reply to the most recent message in this thread.
+  slash_commands:
+    - command: /hermes
+      description: Send an instruction to Hermes
+      usage_hint: "summarize #general since Monday"
+      should_escape: false
+
+oauth_config:
+  scopes:
+    # ---------------------------------------------------------------------
+    # BOT TOKEN — what Hermes does as itself.
+    # ---------------------------------------------------------------------
+    bot:
+      # Conversations: read history and write in every conversation type.
+      - channels:history        # public channel history
+      - channels:read           # list/inspect public channels
+      - channels:join           # join public channels on its own
+      - channels:manage         # create, archive, rename, set purpose
+      - channels:write.invites  # invite people to public channels
+      - channels:write.topic    # set public channel topics
+      - groups:history          # PRIVATE channel history (only where invited — see notes)
+      - groups:read
+      - groups:write
+      - groups:write.invites
+      - groups:write.topic
+      - im:history              # DM history
+      - im:read
+      - im:write
+      - im:write.topic
+      - mpim:history            # group DM history
+      - mpim:read
+      - mpim:write
+      - mpim:write.topic
+
+      # Messaging.
+      - chat:write
+      - chat:write.public       # post to any public channel WITHOUT joining it
+      - chat:write.customize    # post under a custom name/avatar
+      - app_mentions:read
+
+      # Reactions, pins, bookmarks.
+      - reactions:read
+      - reactions:write
+      - pins:read
+      - pins:write
+      - bookmarks:read
+      - bookmarks:write
+
+      # Files and canvases.
+      - files:read
+      - files:write
+      - remote_files:read
+      - remote_files:write
+      - remote_files:share
+      - canvases:read
+      - canvases:write
+
+      # People, groups, workspace.
+      - users:read
+      - users:read.email
+      - users.profile:read
+      - usergroups:read
+      - usergroups:write
+      - team:read
+      - emoji:read
+      - dnd:read
+
+      # Links, calls, metadata, assistant, commands.
+      - links:read
+      - links:write
+      - links.embed:write
+      - calls:read
+      - calls:write
+      - metadata.message:read
+      - assistant:write
+      - commands
+
+    # ---------------------------------------------------------------------
+    # USER TOKEN — only what a bot token genuinely cannot do.
+    # Acts AS the installing user. See notes before enabling.
+    # ---------------------------------------------------------------------
+    user:
+      - search:read             # full workspace search, incl. private conversations
+      - channels:history
+      - channels:read
+      - channels:write
+      - groups:history          # private channels the USER is in, without inviting the bot
+      - groups:read
+      - groups:write
+      - im:history
+      - im:read
+      - im:write
+      - mpim:history
+      - mpim:read
+      - mpim:write
+      - chat:write
+      - reactions:read
+      - reactions:write
+      - files:read
+      - files:write
+      - pins:read
+      - pins:write
+      - bookmarks:read
+      - bookmarks:write
+      - stars:read
+      - stars:write
+      - users:read
+      - users:read.email
+      - users.profile:read
+      - users.profile:write
+      - usergroups:read
+      - usergroups:write
+      - team:read
+      - emoji:read
+      - dnd:read
+      - dnd:write
+      - links:read
+
+settings:
+  event_subscriptions:
+    bot_events:
+      # Messages everywhere.
+      - message.channels
+      - message.groups
+      - message.im
+      - message.mpim
+      - app_mention
+
+      # Reactions and pins.
+      - reaction_added
+      - reaction_removed
+      - pin_added
+      - pin_removed
+
+      # Membership and channel lifecycle.
+      - member_joined_channel
+      - member_left_channel
+      - channel_created
+      - channel_rename
+      - channel_archive
+      - channel_unarchive
+      - channel_left
+      - group_open
+      - group_left
+
+      # People, files, emoji.
+      - team_join
+      - user_change
+      - file_shared
+      - file_created
+      - file_public
+      - emoji_changed
+
+      # App surfaces.
+      - app_home_opened
+      - assistant_thread_started
+      - assistant_thread_context_changed
+      - link_shared
+
+  interactivity:
+    is_enabled: true
+  org_deploy_enabled: false
+  socket_mode_enabled: true
+  token_rotation_enabled: false

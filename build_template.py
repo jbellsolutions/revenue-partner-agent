@@ -48,6 +48,16 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FILES = os.path.join(HERE, "files")
 NAMESPACE = "default"
 NAME = "revenue-partner-agent"
+
+# The agent's DISPLAY name -- what a person sees in Slack, in its own intro, and
+# in SOUL.md. Deliberately separate from NAME above, which is the immutable
+# template/product identity used for the release, install paths and env vars.
+# Renaming the display name must never require touching the product identity,
+# and must never be a find-and-replace: it is substituted into staged files at
+# build time so a fresh install is correct from the start rather than renamed
+# afterwards. Override per client with AGENT_NAME=... python3 build_template.py
+AGENT_NAME = os.environ.get("AGENT_NAME", "Partnerships").strip() or "Partnerships"
+DISPLAY_NAME_PLACEHOLDER = "Revenue Partner"
 VERSION = "1.0.1"
 API_BASE = "https://www.orgo.ai/api"
 MAX_PUBLICATION_BODY_BYTES = 1_000_000
@@ -117,6 +127,18 @@ def rd(rel):
     return subprocess.check_output([GIT, *GIT_SAFE_ARGS, "show", f":{repo_path}"], cwd=HERE, env=_scrubbed_env()).decode("utf-8")
 
 
+def rd_named(rel):
+    """Read a staged file and substitute the agent's display name.
+
+    Used only for files a person reads -- the soul, the onboarding banner. The
+    product identity (NAME, REVENUE_PARTNER_* env vars, /opt/revenue-partner
+    paths) is intentionally NOT touched: those are the release contract, and
+    renaming them would change the template identity and break the broker
+    protocol for no user-visible gain.
+    """
+    return rd(rel).replace(DISPLAY_NAME_PLACEHOLDER, AGENT_NAME)
+
+
 # --------------------------------------------------------------------------
 # files[]  — staged under /opt/revenue-partner/stage (copied into place post-install
 # so the Hermes installer can never clobber them) + scripts/icons at final paths
@@ -184,7 +206,7 @@ def payload_b64():
 files = [
     # --- staged Hermes config / identity / env ---
     F(f"{STAGE}/hermes/config.yaml", rd("config.yaml"), "0600"),
-    F(f"{STAGE}/hermes/SOUL.md", rd("SOUL.md"), "0644"),
+    F(f"{STAGE}/hermes/SOUL.md", rd_named("SOUL.md"), "0644"),
     F(f"{STAGE}/hermes/env", rd("hermes.env"), "0600"),
     # --- curated runtime trees, one deterministic tarball ---
     F("/opt/revenue-partner/payload.tgz.b64", payload_b64(), "0644"),
@@ -203,7 +225,7 @@ files = [
     # --- executables (installer never touches /usr/local/bin) ---
     F("/usr/local/bin/hermes-gateway-run.sh", rd("gateway-run.sh"), "0755"),
     F("/usr/local/bin/revenue-partner-agentphone-bridge-run.sh", rd("agentphone-bridge-run.sh"), "0755"),
-    F("/usr/local/bin/revenue-partner-onboard.sh", rd("onboard.sh"), "0755"),
+    F("/usr/local/bin/revenue-partner-onboard.sh", rd_named("onboard.sh"), "0755"),
     F("/usr/local/bin/revenue-partner-op-enable", rd("op-enable.py"), "0755"),
     F("/usr/local/bin/revenue-partner-onboard-launch.sh", rd("onboard-launch.sh"), "0755"),
     F("/usr/local/bin/revenue-partner-telegram-pair.py", rd("telegram-pair.py"), "0755"),
@@ -213,6 +235,7 @@ files = [
     F("/root/Desktop/Obsidian.desktop", rd("Obsidian.desktop"), "0755"),
     F("/root/Desktop/RevenuePartnerSetup.desktop", rd("RevenuePartnerSetup.desktop"), "0755"),
     F("/root/.hermes/daily-brief.prompt", rd("daily-brief.prompt"), "0644"),
+    F("/root/.hermes/slack-manifest.yaml", rd_named("slack-manifest.yaml"), "0644"),
 ]
 
 # --------------------------------------------------------------------------
@@ -382,7 +405,7 @@ template = {
     "template": {
         "name": NAME,
         "version": VERSION,
-        "description": ("Revenue Partner — a source-grounded Hermes GTM operator on Orgo. "
+        "description": (f"{AGENT_NAME} — a source-grounded Hermes GTM operator on Orgo. "
                         "Runs one Money Desk across reactivation, targeted outbound, affiliates, "
                         "podcasts/stages/sponsors, and coordinated content with Super Browser "
                         "orchestration, an explicit campaign approval policy, durable browser/phone "
