@@ -235,7 +235,6 @@ files = [
     F("/root/Desktop/Obsidian.desktop", rd("Obsidian.desktop"), "0755"),
     F("/root/Desktop/RevenuePartnerSetup.desktop", rd("RevenuePartnerSetup.desktop"), "0755"),
     F("/root/.hermes/daily-brief.prompt", rd("daily-brief.prompt"), "0644"),
-    F("/root/.hermes/slack-manifest.yaml", rd_named("slack-manifest.yaml"), "0644"),
 ]
 
 # --------------------------------------------------------------------------

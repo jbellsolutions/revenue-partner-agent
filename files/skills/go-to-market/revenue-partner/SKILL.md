@@ -357,7 +357,8 @@ Secrets never enter the vault.
 
 ## Daily Operating Loop
 
-1. Read `/root/agent-knowledge/INDEX.md` and linked current priorities.
+1. Read `$HERMES_HOME/agent-knowledge/INDEX.md` (or the deployed equivalent)
+   and its linked current priorities.
 2. Read active campaign contracts and open decisions.
 3. Reconcile changed outcomes and blockers.
 4. Execute the highest-value approved work.

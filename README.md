@@ -1,29 +1,170 @@
 <div align="center">
 
-<img src="docs/assets/hero.jpg" alt="Revenue Partner Agent" width="800"/>
+<img src="docs/assets/revenue-partner-hero-v2.webp" alt="Revenue Partner connects revenue, operations, calendar, inbox, customers, proposals, and daily priorities" width="1000"/>
 
-# Revenue Partner Agent 🚀
+# Revenue Partner
 
-**A source-grounded GTM operator that runs one Money Desk across reactivation, targeted outbound, affiliates, stages/sponsors, and coordinated content.**
+### Practical AI for revenue, operations, and everyday life.
 
-[![CI](https://github.com/jbellsolutions/revenue-partner-agent/actions/workflows/ci.yml/badge.svg?branch=revenue-partner-gtm)](https://github.com/jbellsolutions/revenue-partner-agent/actions/workflows/ci.yml)
+One calm, always-available operator that helps you find opportunities, stay on
+top of follow-up, prepare proposals, organize the work, and protect your time.
+
+[**Install Revenue Partner →**](START-HERE.md) &nbsp;·&nbsp;
+[See the Slack walkthrough](docs/SLACK-SETUP.md) &nbsp;·&nbsp;
+[Explore the tools](docs/TOOLS.md)
+
+</div>
+
+<div align="center">
+
+[![CI](https://github.com/jbellsolutions/revenue-partner-agent/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jbellsolutions/revenue-partner-agent/actions/workflows/ci.yml)
 [![Orgo](https://img.shields.io/badge/Orgo-schema_validated_not_published-f59e0b)](docs/VERIFICATION.md)
-[![Hermes](https://img.shields.io/badge/agent-Hermes_Agent-1f2937)](https://github.com/NousResearch/hermes-agent)
+[![Hermes](https://img.shields.io/badge/Hermes_Agent-0.20.6-0f766e)](https://github.com/NousResearch/hermes-agent)
+[![Slack](https://img.shields.io/badge/Slack-Agent_View-4A154B?logo=slack)](docs/SLACK-SETUP.md)
 [![MCP](https://img.shields.io/badge/MCP_configured-2_hosted-6366f1)](#-whats-in-the-box)
-[![Browser](https://img.shields.io/badge/Super_Browser-12_providers_hosted-0ea5e9)](docs/ARCHITECTURE.md)
 [![Secrets](https://img.shields.io/badge/baked_secrets-0-e11d48?logo=1password&logoColor=white)](#-your-keys-stay-yours)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-
-*Built on the supplied always-on Hermes/Orgo stack.*
-*Grounded in the Revenue Partner landing page and all three supplied implementation videos.*
 
 </div>
 
 ---
 
-## Revenue Partner operating model
+## AI should make life lighter
 
-The template does not just rename the base agent. It adds a GTM execution contract derived from the supplied landing page and three implementation videos:
+Revenue Partner is the revenue-and-operations side of **The AI Guy** approach:
+use practical AI to remove busywork, keep the important work moving, and give
+people more room to think, sell, serve customers, and live their lives.
+
+It is not another dashboard to babysit. It is an operator you can talk to in
+plain language from Slack.
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### Grow revenue
+
+Find and qualify opportunities, coordinate outreach and partner channels, keep
+follow-up moving, prepare proposals, and report the numbers that matter.
+
+</td>
+<td width="33%" valign="top">
+
+### Run operations
+
+Work across inboxes, calendars, documents, CRM, research, tasks, skills, and
+repeatable workflows without living in a dozen tabs.
+
+</td>
+<td width="33%" valign="top">
+
+### Get time back
+
+Turn scattered requests into a clear plan, protect personal time, remember the
+details, and finish the day knowing what moved forward.
+
+</td>
+</tr>
+</table>
+
+<div align="center">
+<img src="docs/assets/revenue-partner-workflow-v1.webp" alt="A simple flow from incoming opportunities to organized operations, proposals, schedules, and a calmer completed day" width="1000"/>
+</div>
+
+---
+
+## One partner for the work that keeps piling up
+
+Once you authorize the tools you want, Revenue Partner can help you:
+
+- mine and qualify leads across the channels your buyers already use;
+- recover old demand and coordinate targeted outbound;
+- organize affiliate, partner, speaker, sponsor, and content opportunities;
+- read calendars and inboxes, prepare the next action, and keep follow-up clear;
+- create private proposal drafts and track document status;
+- maintain one Money Desk for booked, attended, qualified, pipeline, and closed revenue;
+- research, write, organize files, manage tasks, and schedule recurring work;
+- remember your business context and load specialist skills only when needed.
+
+Revenue Partner drafts and researches freely inside its private workspace.
+Sending, publishing, spending, changing customer records, inviting people, or
+launching a campaign stays behind an explicit approval step.
+
+---
+
+## From a GitHub link to a working Slack partner
+
+The recommended installation is designed for a first-time owner and for a live
+webinar. It uses a private Ubuntu VPS, the reviewed Hermes Agent 0.20.6 image,
+and Slack's current Agent view.
+
+1. Give the repository link to Codex or Claude Code.
+2. The setup agent prepares the server and installs Revenue Partner.
+3. You approve the account sign-ins and paste private values into hidden prompts.
+4. The installer creates the Slack app, connects the tools you choose, and tests
+   a real direct message and channel thread.
+
+No public webhook is needed. No private token belongs in GitHub. The walkthrough
+explains one screen and one decision at a time.
+
+### Start here
+
+Give your setup agent this repository:
+
+```text
+https://github.com/jbellsolutions/revenue-partner-agent
+```
+
+Then tell it:
+
+```text
+Install Revenue Partner for me. Read START-HERE.md first, handle every technical
+step, and walk me through only the account approvals and private values you need.
+Finish when Revenue Partner answers a real message in Slack.
+```
+
+Or run the guided installer on a fresh Ubuntu VPS:
+
+```bash
+git clone https://github.com/jbellsolutions/revenue-partner-agent.git
+cd revenue-partner-agent
+./deploy/setup.sh
+```
+
+### Everything needed for the walkthrough
+
+| Guide | What it covers |
+|---|---|
+| [Start Here](START-HERE.md) | The plain-language installation from beginning to done |
+| [Slack setup](docs/SLACK-SETUP.md) | Every Slack screen, token, permission, command, and real-message test |
+| [Tools](docs/TOOLS.md) | Calendar, inbox, files, CRM, business apps, and PandaDoc proposals |
+| [Skills](docs/SKILLS.md) | Included specialist skills, approvals, audits, and safe updates |
+| [Updates](docs/UPDATES.md) | The reviewed runtime and repeatable update process |
+
+---
+
+## What comes with it
+
+| Layer | Included |
+|---|---|
+| **Revenue Partner brain** | Fit gates, approved claims, offer and ICP context, campaign rules, operating procedures, and Money Desk reporting |
+| **Private home** | An always-on VPS with persistent memory, files, skills, and configuration |
+| **Conversation** | Slack Agent view, direct messages, threaded channel work, buttons, and 50 current native commands |
+| **Everyday tools** | Research, browser, files, documents, code, vision, images, tasks, schedules, memory, and delegation when their prerequisites are available |
+| **Business connections** | Guided Composio connection for Calendar, Gmail, Outlook, Drive, CRM, and other apps, plus global or European PandaDoc |
+| **Skill system** | Revenue Partner operating skill, browser specialists, the bundled Hermes catalog, security scans, audits, updates, and owner-reviewed skill changes |
+| **Safety** | Slack Member-ID allowlist, hidden secret entry, private storage, untrusted external connectors, read-only first tests, and approval before consequential writes |
+
+The deterministic Orgo template remains available and unchanged as an advanced,
+legacy release path. The beginner Slack installation is additive and does not
+rewrite that working release.
+
+---
+
+## The Revenue Partner operating system
+
+This is more than a renamed assistant. It carries a source-grounded GTM
+execution contract built around:
 
 - **Two demand engines:** owned-demand recovery and new-demand acquisition.
 - **Four coordinated channels:** affiliates/partners, direct outbound, reactivation, and social/content.
@@ -84,6 +225,11 @@ Canonical files:
 
 | Guide | Covers |
 |---|---|
+| [Beginner installation](START-HERE.md) | Current VPS and Slack setup from a single repository link |
+| [Slack setup](docs/SLACK-SETUP.md) | Exact app-manifest, token, allowlist, channel, and test sequence |
+| [Skills](docs/SKILLS.md) | Included Revenue Partner skills, Hermes Skills Hub, approvals, audits, and updates |
+| [Tools](docs/TOOLS.md) | Full current toolset and guided Calendar, inbox, app, and proposal connections |
+| [Updates](docs/UPDATES.md) | Reviewed runtime pin, current features, and safe container/manifest refresh |
 | [Documentation index](docs/README.md) | Complete public documentation map |
 | [Architecture](docs/ARCHITECTURE.md) | Components, data flow, trust boundaries, and extension rules |
 | [Operator guide](docs/OPERATOR_GUIDE.md) | Fit, Money Desk, campaign approvals, operation, and reporting |
@@ -157,7 +303,7 @@ Slack is retained and operator-enabled; what the agent may DO over Slack is boun
 
 ---
 
-## 🟢 Easiest way to run it
+## 🟢 Legacy Orgo cloud-desktop path
 
 **Get your keys together first, then paste one block.** Everything the installer
 needs is collected up front so it never stops to ask mid-build.
@@ -257,13 +403,13 @@ Both tokens go into `setup-env.sh`. The token *name* in step 5 doesn't matter.
 
 | | |
 |---|---|
-| **Agent** | Hermes Agent 0.18.0, installed from a hash-locked runtime; model setup remains operator-controlled |
+| **Agent** | Recommended VPS: Hermes Agent 0.20.6 in a digest-pinned official image. Legacy Orgo template: Hermes Agent 0.18.0 in its original hash-locked runtime |
 | **Chat** | Slack (socket mode) and optional Telegram QR onboarding, both operator-configured |
 | **Secrets** | Runtime-only environment/secret-manager inputs; no credential values are embedded in the template |
 | **Browser** | Hosted Super Browser MCP, **attached by URL, never vendored** — 12 providers (Playwright, Browser Use, Airtop, Hyperbrowser, Steel, Browserbase, Orgo desktop, Decodo, four Bright Data lanes) with Apify actor routing, persistent browser profiles, and the full approval lifecycle running server-side |
 | **Phone** | AgentPhone future-integration reference source only; all executable entrypoints and concrete network/send boundaries are hard-stopped |
 | **Tracing** | Optional Latitude telemetry when configured and verified |
-| **Skills** | Curated Revenue Partner operating skill and its source, campaign, acceptance, and Money Desk references |
+| **Skills** | Curated Revenue Partner operating skill and references, bundled current Hermes catalog, Super Browser specialists, Skills Hub search/install/update/audit, and optional skill-write approval |
 | **Persona** | Revenue Partner SOUL.md with fit gates, claim discipline, and approval boundaries |
 | **Knowledge** | Operator-controlled company, ICP, claims, permissions, campaign, and reporting vault |
 

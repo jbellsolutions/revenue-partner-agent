@@ -4,6 +4,28 @@ All notable changes to Revenue Partner Agent are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and releases use semantic versioning.
 
+## [Unreleased]
+
+### Added
+
+- Beginner-first private VPS installer using the official Hermes Agent 0.20.6
+  image pinned by release tag and multi-platform digest.
+- Complete Slack Agent-view manifest generated from the current Hermes command
+  registry, plus a screen-by-screen Socket Mode, token, allowlist, channel, and
+  real-message walkthrough.
+- Safe Revenue Partner seed synchronizer that installs existing knowledge and
+  skills while preserving owner-edited deployed files.
+- Skills Hub guide covering bundled and Revenue Partner skills, discovery,
+  install, security audit, update lifecycle, and Slack skill-write approvals.
+- Container, skills, and Slack-manifest refresh helper and current-feature
+  ledger.
+
+### Preserved
+
+- The original deterministic Orgo 1.0.1 template, hash-locked Hermes 0.18.0
+  runtime, Revenue Partner GTM behavior, and advanced release workflow remain
+  intact.
+
 ## [1.0.1] - Live API contract remediation
 
 ### Fixed

@@ -665,10 +665,10 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             trusted_env["PATH"] = f"{fake_bin_dir}:{trusted_env.get('PATH', '')}"
             trusted_env["REVENUE_PARTNER_VERIFY_GIT"] = "/usr/bin/git"
             expected_inventory = {
-                scanner: "candidate_credentials_ok 172",
+                scanner: "candidate_credentials_ok 185",
                 yaml_scanner: "candidate_yaml_ok 4",
                 ROOT / ".github/scripts/check_skill_frontmatter.py": "candidate_skill_frontmatter_ok 17",
-                ROOT / ".github/scripts/check_shell_syntax.py": "shell_syntax_ok 16",
+                ROOT / ".github/scripts/check_shell_syntax.py": "shell_syntax_ok 19",
             }
             for checker, expected in expected_inventory.items():
                 result = subprocess.run(
@@ -3598,8 +3598,10 @@ class AgentDisplayNameTests(unittest.TestCase):
         self.assertNotEqual(self.builder.NAME, self.builder.AGENT_NAME)
 
     def test_slack_manifest_carries_the_name_in_both_places(self):
-        staged = {f["to"]: f["inline"] for f in self.builder.template["files"]}
-        manifest = yaml.safe_load(staged["/root/.hermes/slack-manifest.yaml"])
+        """slack-manifest.json is the canonical manifest -- richer than any
+        generated one (50 slash commands, agent_view) and referenced by
+        SECURITY.md, both deploy scripts and the setup docs."""
+        manifest = json.loads((ROOT / "slack-manifest.json").read_text())
         app_name = manifest["display_information"]["name"]
         bot_name = manifest["features"]["bot_user"]["display_name"]
         self.assertEqual(app_name, self.builder.AGENT_NAME)

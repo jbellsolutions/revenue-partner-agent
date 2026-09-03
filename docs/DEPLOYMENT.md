@@ -1,5 +1,9 @@
 # Deployment Guide
 
+> This document covers the advanced deterministic Orgo release pipeline. For a
+> new owner who wants Revenue Partner working in Slack on a private VPS, use
+> [`START-HERE.md`](../START-HERE.md) and [`SLACK-SETUP.md`](SLACK-SETUP.md).
+
 ## Release identity
 
 - Template namespace: `default`
