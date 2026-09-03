@@ -3616,3 +3616,16 @@ class AgentDisplayNameTests(unittest.TestCase):
         soul = staged[f"{self.builder.STAGE}/hermes/SOUL.md"]
         self.assertIn(self.builder.AGENT_NAME, soul)
         self.assertNotIn(self.builder.DISPLAY_NAME_PLACEHOLDER, soul)
+
+    def test_slack_authz_ships_open_so_a_blank_value_never_blocks_startup(self):
+        """A required member ID stalls a first-run install.
+
+        The gateway waits at startup for "who may talk to me" when no allowlist
+        is present. The operator usually does not have their own Slack member ID
+        to hand mid-install, and in a workspace they already control the prompt
+        buys no security. Ship open; document locking it down.
+        """
+        env = (FILES / "hermes.env").read_text()
+        self.assertIn("SLACK_ALLOW_ALL_USERS=true", env)
+        self.assertIn("SLACK_ALLOWED_USERS=", env)
+        self.assertIn("SLACK_ALLOW_ALL_USERS=false", env, "must document how to lock it down")

@@ -159,13 +159,76 @@ Slack is retained and operator-enabled; what the agent may DO over Slack is boun
 
 ## 🟢 Easiest way to run it
 
-1. **Make an Orgo account** → [orgo.ai](https://orgo.ai).
-2. **Publish and launch your copy** using the verified workflow in [Deployment](docs/DEPLOYMENT.md). This repository does not currently claim a gallery entry.
-3. The **Revenue Partner Setup** window walks you through:
-   - **Connect a model** — `hermes auth add openrouter --type api-key` and you're done; the default is `anthropic/claude-sonnet-5` via OpenRouter. This is a plain API key, so the agent can be brought up headlessly with no desktop session. Nous device-code OAuth remains available but needs an interactive sign-in.
-   - **Scan the QR** → tap **Create Bot** in Telegram → your personal bot is live. 🎉
-   - **Optional: paste a 1Password service-account token** — it resolves only the narrow model, Telegram, and telemetry allowlist; absent/non-executable connector credentials are excluded.
-4. **Text your bot.** You're done.
+**Get your keys together first, then paste one block.** Everything the installer
+needs is collected up front so it never stops to ask mid-build.
+
+Put your assistant in **plan mode**, paste the block below, read the plan,
+accept it, then let it run in auto mode.
+
+```
+You are installing my agent from this repo: <REPO LINK>
+Start in plan mode. Read everything below before planning. Do not ask me for
+anything that is already here.
+
+AGENT_NAME: Partnerships
+ORGO_API_KEY: placeholder
+ORGO_WORKSPACE_ID: placeholder
+OPENROUTER_API_KEY: placeholder
+OPENROUTER_MODEL: z-ai/glm-5.2
+COMPOSIO_API_KEY: placeholder      # optional — tools can be connected later
+SLACK_WORKSPACE: placeholder
+SLACK_ALLOWED_USER_IDS:           # optional — blank allows the whole workspace
+TELEGRAM_BOT_TOKEN: placeholder    # optional
+
+SOUL:
+<who the agent is — paste your own, or leave blank for the default>
+
+JOB:
+<what it does day to day — paste your own, or leave blank for the default>
+
+Rules: never ask me to let you type secrets — write setup-env.sh and tell me to
+run it. Give me the Slack steps as one numbered list with exact click paths. Do
+not post anything in Slack on first connect. Finish with a checklist.
+```
+
+Prefer to drive the release flow by hand? The verified publish → build → launch
+path is in [Deployment](docs/DEPLOYMENT.md).
+
+### Codex vs Claude Code
+
+Both work. **Codex** can place the keys and start the gateway itself, so it runs
+end to end. **Claude Code** will refuse to type your secrets even if you tell it
+to — that's deliberate, and not a bug. It writes `setup-env.sh` and asks you to
+run one command. Expect exactly one manual step there, and don't argue with it.
+
+### The Slack app, in order
+
+1. **api.slack.com/apps** → **Create New App** → **From a manifest**
+2. Pick your workspace → **YAML** tab → delete the sample → paste
+   `~/.hermes/slack-manifest.yaml` → **Next** → **Create**
+3. **Install App** → **Install to Workspace** → **Allow**
+4. Copy the **Bot User OAuth Token** (`xoxb-…`)
+5. **Basic Information** → **App-Level Tokens** → **Generate** → name it
+   anything → add scope **`connections:write`** → copy the **`xapp-…`** token
+6. Confirm **Socket Mode** is on (the manifest enables it)
+
+Both tokens go into `setup-env.sh`. The token *name* in step 5 doesn't matter.
+
+> **Renaming an app you already installed?** Slack keeps two names in two
+> screens. **Basic Information → Display Information** changes the *app* name.
+> **App Home → Your App's Presence → Edit bot name** changes the *bot* name —
+> and that's the one shown in the sidebar, the chat header and `@mentions`.
+> Change both, then reinstall to the workspace if prompted. Fresh installs from
+> the manifest above already carry your name in both places.
+
+### Finish checklist
+
+- [ ] Say hello in the DM — it replies using your Soul
+- [ ] `@mention` it in one channel (DMs don't need the tag, channels do)
+- [ ] Confirm the name reads correctly in the sidebar and in `@mentions`
+- [ ] Connect Composio tools if you're using them
+- [ ] Log into any sites it should act on from the Orgo desktop
+- [ ] Optional: Telegram, and locking down who may talk to it
 
 <details>
 <summary><b>Absent/non-executable connector inventory — future separately reviewed integrations</b></summary>
