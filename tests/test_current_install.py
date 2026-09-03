@@ -24,7 +24,13 @@ class CurrentInstallTests(unittest.TestCase):
 
     def test_slack_agent_manifest_is_complete(self) -> None:
         manifest = json.loads((ROOT / "slack-manifest.json").read_text())
-        self.assertEqual("Revenue Partner", manifest["display_information"]["name"])
+        self.assertEqual("Partnerships", manifest["display_information"]["name"])
+        # The bot user name is the one shown in @mentions; assert it too so a
+        # rename can never update only half of the pair.
+        self.assertEqual(
+            manifest["display_information"]["name"],
+            manifest["features"]["bot_user"]["display_name"],
+        )
         self.assertIn("agent_view", manifest["features"])
         scopes = manifest["oauth_config"]["scopes"]["bot"]
         events = manifest["settings"]["event_subscriptions"]["bot_events"]

@@ -4,8 +4,8 @@
     "minor_version": 1
   },
   "display_information": {
-    "name": "Revenue Partner",
-    "description": "Your private Revenue Partner GTM operator",
+    "name": "Partnerships",
+    "description": "Your private Partnerships GTM operator",
     "background_color": "#1a1a2e"
   },
   "features": {
@@ -15,7 +15,7 @@
       "messages_tab_read_only_enabled": false
     },
     "bot_user": {
-      "display_name": "Revenue Partner",
+      "display_name": "Partnerships",
       "always_online": true
     },
     "slash_commands": [
@@ -28,14 +28,14 @@
       },
       {
         "command": "/btw",
-        "description": "Alias for /background — Run a prompt in the background",
+        "description": "Alias for /background \u2014 Run a prompt in the background",
         "should_escape": false,
         "url": "https://hermes-agent.local/slack/commands",
         "usage_hint": "<prompt>"
       },
       {
         "command": "/bg",
-        "description": "Alias for /background — Run a prompt in the background",
+        "description": "Alias for /background \u2014 Run a prompt in the background",
         "should_escape": false,
         "url": "https://hermes-agent.local/slack/commands",
         "usage_hint": "<prompt>"
@@ -251,7 +251,7 @@
       },
       {
         "command": "/fast",
-        "description": "Toggle fast mode — OpenAI Priority Processing / Anthropic Fast Mode (Normal/Fast)",
+        "description": "Toggle fast mode \u2014 OpenAI Priority Processing / Anthropic Fast Mode (Normal/Fast)",
         "should_escape": false,
         "url": "https://hermes-agent.local/slack/commands",
         "usage_hint": "[normal|fast|status] [--global]"
