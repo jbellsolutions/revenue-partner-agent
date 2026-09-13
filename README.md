@@ -155,7 +155,7 @@ cd revenue-partner-agent
 | **Skill system** | Revenue Partner operating skill, browser specialists, the bundled Hermes catalog, security scans, audits, updates, and owner-reviewed skill changes |
 | **Safety** | Slack Member-ID allowlist, hidden secret entry, private storage, untrusted external connectors, read-only first tests, and approval before consequential writes |
 
-The deterministic Orgo template remains available and unchanged as an advanced,
+The deterministic [Orgo](https://orgo.ai?r=aiguy) template remains available and unchanged as an advanced,
 legacy release path. The beginner Slack installation is additive and does not
 rewrite that working release.
 
@@ -488,7 +488,7 @@ Yes — edit <code>SOUL.md</code> / <code>config.yaml</code> and rebuild (or jus
 
 <div align="center">
 
-MIT licensed · Hermes Agent by [Nous Research](https://github.com/NousResearch/hermes-agent) · cloud computers by [Orgo](https://orgo.ai)
+MIT licensed · Hermes Agent by [Nous Research](https://github.com/NousResearch/hermes-agent) · cloud computers by [Orgo](https://orgo.ai?r=aiguy)
 
 *Built from reusable agent infrastructure; Revenue Partner deployment and runtime evidence are verified separately for each published version.*
 
