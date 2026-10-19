@@ -104,7 +104,9 @@ After the map, go deeper on a sample (default 12, at most 20): the top revenue s
    - List the "needs your check" pages (same name, nothing else ties them) as questions for the owner. Never use them until the owner confirms.
    - Report what quality control dropped and why when the owner asks.
 
-If `rel_network_deep` says no frontier model is configured, tell the owner it needs `ANTHROPIC_API_KEY` (Claude Opus 5.5) or `OPENROUTER_API_KEY`. Never run the deep pass on a weaker model.
+The deep pass runs on Claude Opus 5.5: directly when `ANTHROPIC_API_KEY` is set and the `anthropic` package is installed, otherwise through OpenRouter (`anthropic/claude-opus-5.5`, `OPENROUTER_API_KEY`). If `rel_network_deep` says no frontier model is configured, tell the owner it needs one of those keys. Never run the deep pass on a weaker model.
+
+What the deep pass sends to the model provider: each sampled person's name, title, company, location, how the client knows them, and the text of the public pages saved for them. Never emails, phone numbers or notes.
 
 ## Classification and reasoning
 
