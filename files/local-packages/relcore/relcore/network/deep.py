@@ -147,7 +147,8 @@ EXPERT_CHARTER = (
     "first step is, and what each shared hub means. Every brief, hub insight and top pick cites the ids it rests "
     "on (fact ids like p3.F1, inference ids like p3.I1, opportunity ids like p3.O1). Plain words, no hype, no em "
     "dashes. Say 'potentially knows' for inferences, never 'knows'. When a person's facts carry identity 'likely', "
-    "say they are likely the same person. " + DATA_RULE)
+    "say they are likely the same person. Refer to people by name in every sentence: ids belong in cites only, "
+    "never in the text. " + DATA_RULE)
 
 EXPERT_SCHEMA = {"type": "object", "required": ["headline", "people", "top", "hubs"], "properties": {
     "headline": {"type": "string"},
@@ -607,6 +608,8 @@ def _expert(deep: Deep, rows: list[dict], hubs: list[dict], report: dict, client
 
 def _assemble(rows, hubs, expert, sel, report, engine, deep, example) -> dict:
     ids = _ids(rows)
+    expert = _named(expert, {f"p{i}": next(q["name"] for q in report["people"] if q["id"] == r["person"])
+                             for i, r in enumerate(rows, 1)})
     names = {q["id"]: q["name"] for q in report["people"]}
     briefs, dropped_lines = {}, []
     for b in expert.get("people") or []:
@@ -653,6 +656,20 @@ def _assemble(rows, hubs, expert, sel, report, engine, deep, example) -> dict:
                    "engine": ", ".join(sorted(deep.engines)) or engine.label(), "selection": sel, "headline": expert.get("headline", ""),
                    "agents": [{"agent": a, "label": LABELS[a], "calls": deep.calls[a]} for a in AGENTS],
                    "qc": qc, "people": people, "hubs": hubs, "top": top, "expert_dropped": dropped_lines})
+
+
+def _named(value, refs: dict, key: str = ""):
+    """Readers see names, not the expert's internal refs ("the Bri Ward in p12" -> "the Bri Ward card for Bri Ward"
+    would be worse, so a bare ref becomes the name and 'the X in pN' becomes 'X')."""
+    if isinstance(value, dict):
+        return {k: _named(v, refs, k) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_named(v, refs, key) for v in value]
+    if isinstance(value, str) and key not in ("cites", "opportunity", "person"):
+        value = re.sub(r"\bthe (?:[a-z]+ )?[A-Z][\w'-]*(?: [A-Z][\w'-]*)* (?:(?:contact|record|card|entry) )?"
+                       r"(?:in|from|at) (p\d+)\b", lambda m: refs.get(m.group(1), m.group(0)), value)
+        return re.sub(r"(?<![.\w])(p\d+)\b(?!\.[FIO]\d)", lambda m: refs.get(m.group(1), m.group(1)), value)
+    return value
 
 
 def _plain(value, key: str = ""):
