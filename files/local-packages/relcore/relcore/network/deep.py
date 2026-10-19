@@ -370,6 +370,7 @@ class Deep:
         self.run, self.engine = Path(run), engine
         self.cache = self.run / "deep"
         self.calls = {a: 0 for a in AGENTS}
+        self.engines: set = set()  # which model actually wrote the answers used, cached ones included
         self._lock = threading.Lock()
 
     def _ask(self, agent: str, pid: str, system: str, prompt: str, schema: dict) -> dict:
@@ -378,11 +379,15 @@ class Deep:
         if path.exists():
             cached = json.loads(path.read_text())
             if cached.get("key") == key:
+                with self._lock:
+                    self.engines.add(cached.get("engine") or self.engine.label())
                 return cached["answer"]
         answer = self.engine.ask(system, prompt, schema)
         with self._lock:
             self.calls[agent] += 1
         _write(path, {"key": key, "engine": self.engine.label(), "answer": answer})
+        with self._lock:
+            self.engines.add(self.engine.label())
         return answer
 
     # 2 research
@@ -645,7 +650,7 @@ def _assemble(rows, hubs, expert, sel, report, engine, deep, example) -> dict:
                                   for k in ("confirmed", "likely", "unsure")},
           "pages_namesake": sum(1 for pg in pages if pg["same_person"] == "no")}
     return _plain({"version": 1, "example": bool(example if example is not None else report.get("example")),
-                   "engine": engine.label(), "selection": sel, "headline": expert.get("headline", ""),
+                   "engine": ", ".join(sorted(deep.engines)) or engine.label(), "selection": sel, "headline": expert.get("headline", ""),
                    "agents": [{"agent": a, "label": LABELS[a], "calls": deep.calls[a]} for a in AGENTS],
                    "qc": qc, "people": people, "hubs": hubs, "top": top, "expert_dropped": dropped_lines})
 
@@ -657,5 +662,9 @@ def _plain(value, key: str = ""):
     if isinstance(value, list):
         return [_plain(v, key) for v in value]
     if isinstance(value, str) and key not in ("quote", "url"):
+        value = CITE_TAG.sub("", value)  # citations live in cites/based_on; inline tags are noise for a reader
         return value.replace(" — ", ", ").replace("—", ", ").replace("–", "-")
     return value
+
+
+CITE_TAG = re.compile(r"\s*[\[(](?:\s*(?:p\d+\.)?[FIO]\d+\s*[,;]?)+[\])]")
