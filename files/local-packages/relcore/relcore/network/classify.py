@@ -204,12 +204,18 @@ class LLM:
         return out
 
 
+def env_key(name: str) -> str:
+    """A credential from the environment, or '' when unset or an unexpanded ${VAR} left by an MCP config."""
+    value = (os.environ.get(name) or "").strip()
+    return "" if "${" in value else value
+
+
 def pick(name: str | None = None):
     name = name or os.environ.get("NETWORK_CLASSIFIER", "")
     if name == "rules":
         return Rules()
-    if name in ("", "jev") and os.environ.get("TYPESAFE_API_KEY"):
-        return Jev(os.environ["TYPESAFE_API_KEY"])
-    if name in ("", "jev", "llm") and os.environ.get("OPENROUTER_API_KEY"):
-        return LLM(os.environ["OPENROUTER_API_KEY"])
+    if name in ("", "jev") and env_key("TYPESAFE_API_KEY"):
+        return Jev(env_key("TYPESAFE_API_KEY"))
+    if name in ("", "jev", "llm") and env_key("OPENROUTER_API_KEY"):
+        return LLM(env_key("OPENROUTER_API_KEY"))
     return Rules()

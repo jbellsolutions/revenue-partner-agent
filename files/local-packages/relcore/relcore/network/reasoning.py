@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import os
 
-from .classify import _post
+from .classify import _post, env_key
 
 KIND_WORDS = {"buyer": "could buy from you", "partner": "already serves your customers and could refer them",
               "connector": "knows a lot of the people you sell to"}
@@ -52,7 +52,7 @@ def template(person: dict, path_names: list[str], kind: str) -> dict:
 
 
 def llm(client: dict):
-    key = os.environ.get("OPENROUTER_API_KEY")
+    key = env_key("OPENROUTER_API_KEY")
     model = os.environ.get("NETWORK_REASONING_MODEL", "z-ai/glm-5.3-flash")
     if not key:
         return template

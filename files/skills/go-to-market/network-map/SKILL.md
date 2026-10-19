@@ -36,6 +36,7 @@ Load this skill when the user asks to:
 Each run is a folder: `/root/.hermes/revenue-partner/relationship/network/<run>/`.
 - `<run>` is a short slug of lowercase letters, digits and dashes.
 - The folder holds `client.json` plus one file per source in `sources/`.
+- Write these with the file tool. If the file tool refuses that folder, stop and ask the owner to drop the files there. The run reads them from disk.
 
 `client.json` holds the client's profile:
 
