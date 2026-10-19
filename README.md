@@ -23,7 +23,7 @@ top of follow-up, prepare proposals, organize the work, and protect your time.
 [![Orgo](https://img.shields.io/badge/Orgo-schema_validated_not_published-f59e0b)](docs/VERIFICATION.md)
 [![Hermes](https://img.shields.io/badge/Hermes_Agent-0.20.6-0f766e)](https://github.com/NousResearch/hermes-agent)
 [![Slack](https://img.shields.io/badge/Slack-Agent_View-4A154B?logo=slack)](docs/SLACK-SETUP.md)
-[![MCP](https://img.shields.io/badge/MCP_configured-4_hosted-6366f1)](#-whats-in-the-box)
+[![MCP](https://img.shields.io/badge/MCP_configured-4_hosted_+_1_local-6366f1)](#-whats-in-the-box)
 [![Secrets](https://img.shields.io/badge/baked_secrets-0-e11d48?logo=1password&logoColor=white)](#-your-keys-stay-yours)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -294,11 +294,15 @@ flowchart LR
         SC["Scrape Creators<br/>public social + ad libraries"]
     end
 
+    RC["relcore (local)<br/>living contact cards · network map"]
+
     OP["🔐 1Password<br/>op://Hermes/Hermes Agent Secrets<br/>allowlisted mappings resolved at every start"]
 
     TG --> GW
     SL["Slack (socket mode)"] --> GW
     GW --> mcp
+    GW --> RC
+    RC --> OBS
     GW --> OBS
     OP -. keys .-> GW
 ```
@@ -387,6 +391,7 @@ Both tokens go into `setup-env.sh`. The token *name* in step 5 doesn't matter.
 |---|---|
 | Slack | **Enabled** — socket mode, operator-connected. Workspace scopes govern visibility; `platform_toolsets` governs what the agent can do |
 | Scrape Creators | **Enabled** — hosted MCP, public-data routes only; no login, cookies, or authenticated profile |
+| relcore network map | **Enabled** — local MCP, no credential and no send tool; cards and revenue spots from the client's own sources. Bulk card import is the owner's CLI |
 | 1Password secret transport | Optional operator setup; resolving a secret never activates a disabled connector |
 | Composio | Runtime registration and client absent; a separately reviewed integration/rebuild/release is required |
 | AgentMail | Runtime registration and client absent; a separately reviewed integration/rebuild/release is required |
@@ -451,7 +456,7 @@ Replace `'WORKSPACE_ID'` with the literal non-secret workspace ID. Omit `--launc
 <details>
 <summary><b>Make it yours — what's in <code>files/</code></b></summary>
 
-- `config.yaml` — the Hermes config (4 configured/enabled hosted MCP servers — Super Browser, browser-box, data-box and Scrape Creators — 9 enabled model/telemetry plugins, per-platform toolsets, and the narrow 1Password map)
+- `config.yaml` — the Hermes config (4 configured/enabled hosted MCP servers — Super Browser, browser-box, data-box and Scrape Creators — plus the local relcore server for contact cards and the network map, 9 enabled model/telemetry plugins, per-platform toolsets, and the narrow 1Password map)
 - `SOUL.md` — the agent's personality
 - `onboard.sh` / `telegram-pair.py` / `op-enable.py` — the first-boot setup
 - `agentphone-bridge/` — reviewed future-integration source; supervisor entrypoint and direct network helpers are hard-stopped

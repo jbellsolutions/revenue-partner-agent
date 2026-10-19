@@ -80,14 +80,17 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
         mcp_servers = config["mcp_servers"]
         enabled_mcp = sum(server.get("enabled", True) for server in mcp_servers.values())
         enabled_plugins = config["plugins"]["enabled"]
-        self.assertEqual((len(mcp_servers), enabled_mcp, len(enabled_plugins)), (4, 4, 9))
+        self.assertEqual((len(mcp_servers), enabled_mcp, len(enabled_plugins)), (5, 5, 9))
+        hosted = [name for name, server in mcp_servers.items() if "url" in server]
+        self.assertEqual(len(hosted), 4)
+        self.assertEqual([name for name in mcp_servers if name not in hosted], ["relcore"])
 
         readme = (ROOT / "README.md").read_text()
         app_description = self.builder.template["apps"][0]["description"]
         self.assertIn("4 hosted MCP servers (attached by URL)", readme)
-        self.assertIn("MCP_configured-4_hosted", readme)
+        self.assertIn("MCP_configured-4_hosted_+_1_local", readme)
         self.assertIn("9 enabled model/telemetry plugins", readme)
-        self.assertIn("4 configured/enabled MCP connections", app_description)
+        self.assertIn("5 configured/enabled MCP connections", app_description)
 
     def test_readme_badges_do_not_overstate_or_link_to_missing_targets(self):
         readme = (ROOT / "README.md").read_text()
@@ -687,10 +690,10 @@ class RevenuePartnerTemplateTests(unittest.TestCase):
             trusted_env["PATH"] = f"{fake_bin_dir}:{trusted_env.get('PATH', '')}"
             trusted_env["REVENUE_PARTNER_VERIFY_GIT"] = "/usr/bin/git"
             expected_inventory = {
-                scanner: "candidate_credentials_ok 185",
+                scanner: "candidate_credentials_ok 273",
                 yaml_scanner: "candidate_yaml_ok 4",
-                ROOT / ".github/scripts/check_skill_frontmatter.py": "candidate_skill_frontmatter_ok 17",
-                ROOT / ".github/scripts/check_shell_syntax.py": "shell_syntax_ok 19",
+                ROOT / ".github/scripts/check_skill_frontmatter.py": "candidate_skill_frontmatter_ok 18",
+                ROOT / ".github/scripts/check_shell_syntax.py": "shell_syntax_ok 20",
             }
             for checker, expected in expected_inventory.items():
                 result = subprocess.run(
@@ -2789,7 +2792,8 @@ assert bounded.closed and not hasattr(bounded_result, "read")
                 for member in archive.getmembers()
                 if member.name.startswith("hermes/skills/") and member.name.endswith("/SKILL.md")
             }
-        self.assertEqual(skill_files, {"hermes/skills/go-to-market/revenue-partner/SKILL.md"})
+        self.assertEqual(skill_files, {"hermes/skills/go-to-market/revenue-partner/SKILL.md",
+                                       "hermes/skills/go-to-market/network-map/SKILL.md"})
 
     def test_payload_excludes_local_python_build_artifacts(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -3068,7 +3072,7 @@ print("direct_hosted_helpers_blocked")
         # stays read-only, so widening these two cannot widen the rest.
         safe_remote_toolsets = {"session_search"}
         working_toolsets = {
-            "session_search", "super-browser", "browser-box", "data-box", "scrape-creators",
+            "session_search", "super-browser", "browser-box", "data-box", "scrape-creators", "relcore",
             "skills", "memory", "file", "todo",
         }
         platform_toolsets = config["platform_toolsets"]

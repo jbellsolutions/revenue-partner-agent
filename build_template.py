@@ -16,7 +16,8 @@
 # Revenue Partner release: source-grounded GTM behavior, tenant-neutral runtime,
 # approval-constrained production actions, and deterministic browser packaging:
 #   • 1Password secret plane (op CLI + narrow six-value allowlist)
-#   • 1 configured/enabled MCP server: hosted Super Browser, attached by URL
+#   • hosted MCP servers attached by URL (Super Browser, browser-box, data-box, Scrape Creators)
+#   • relcore, the local relationship-card and network-map MCP server (stdlib Python, no credential)
 #   • latitude-telemetry-hermes stdlib-registered plugin + core reasoning_config patch
 #   • AgentPhone future-integration source with immutable network hard stops
 #   • Curated Revenue Partner skill, SOUL.md persona, and operating defaults
@@ -169,9 +170,11 @@ def payload_b64():
     runtime_roots = (
         ("build-locks", "build-locks"),
         ("skills/go-to-market/revenue-partner", "hermes/skills/go-to-market/revenue-partner"),
+        ("skills/go-to-market/network-map", "hermes/skills/go-to-market/network-map"),
         ("scripts", "hermes/scripts"),
         ("local-packages/latitude-telemetry-hermes",
          "hermes/local-packages/latitude-telemetry-hermes"),
+        ("local-packages/relcore", "hermes/local-packages/relcore"),
         ("agent-knowledge", "agent-knowledge"),
     )
     pathspecs = [f"files/{rel_root}" for rel_root, _ in runtime_roots]
@@ -455,9 +458,9 @@ template = {
         {
             "name": "hermes-gateway",
             "title": "Hermes Gateway",
-            "description": ("Hermes gateway daemon — Slack and Telegram channels, 4 configured/enabled "
+            "description": ("Hermes gateway daemon — Slack and Telegram channels, 5 configured/enabled "
                             "MCP connections: the hosted Super Browser policy server, browser-box (read "
-                            "tools), data-box and Scrape Creators; "
+                            "tools), data-box, Scrape Creators and the local relcore network map; "
                             "model/telemetry plugins, with production-capable remote toolsets absent."),
             "install": INSTALL,
             "services": [

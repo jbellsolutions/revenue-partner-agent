@@ -14,6 +14,10 @@ The repository seeds:
   campaign, approval, and reporting system;
 - its campaign contract, source ledger, operating-system, and acceptance-test
   references;
+- `network-map` — everyone a client already knows (CRM, LinkedIn through our
+  reader account, email lists, contacts, social followers) as living contact
+  cards, with revenue spots and warm paths, run on the local `relcore` MCP
+  server;
 - the complete Revenue Partner knowledge-vault structure;
 - Super Browser planning, routing, verification, provider, scraping, agent, and
   publishing-safety specialist skills already shipped in this repository.

@@ -65,6 +65,8 @@ MANAGED_KEYS = (
     "LATITUDE_PROJECT",
     "OPENAI_API_KEY",
     "OPENROUTER_API_KEY",
+    # TypeSafe Jev classifies people for the relcore network map (titles and companies only).
+    "TYPESAFE_API_KEY",
     "XAI_API_KEY",
     "AI_GATEWAY_API_KEY",
     "MODEL_API_KEY",
@@ -117,6 +119,8 @@ RUNTIME_MANAGED_KEYS = (
     "LATITUDE_PROJECT",
     "OPENAI_API_KEY",
     "OPENROUTER_API_KEY",
+    # TypeSafe Jev classifies people for the relcore network map (titles and companies only).
+    "TYPESAFE_API_KEY",
     "XAI_API_KEY",
     "AI_GATEWAY_API_KEY",
     "MODEL_API_KEY",

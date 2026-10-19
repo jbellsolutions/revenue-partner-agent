@@ -1,0 +1,3243 @@
+{
+ "title": "Revenue Partnerships",
+ "source": "https://map.truerevenuepartnerships.com/resources/partnership-map/",
+ "origin": "https://claude.ai/artifact/NayXixwi6zbVSt7t5tYbuX",
+ "note": "Owner's partnership taxonomy (September 2026). 11 families, 67 subcategories, 339 partner types.",
+ "families": [
+  {
+   "id": "F1",
+   "name": "Affiliates",
+   "subs": 9,
+   "types": 41,
+   "definition": "Affiliates are independent publishers, creators, list owners or businesses who promote an offer to their audience and are paid only on a tracked outcome (sale, lead, call, install or signup), attributed by link, code or platform.",
+   "worker": "Affiliate Program Manager",
+   "tagline": "two axes, 41 partner types, and a 60-day cookie norm",
+   "subcategories": [
+    {
+     "id": "F1.A",
+     "name": "Content & editorial publishers",
+     "types": [
+      {
+       "id": "F1.A.1",
+       "name": "Niche blogger / SEO affiliate site",
+       "what": "Topic site ranking for buyer-intent searches",
+       "example": "Home-fitness blog linking gear",
+       "pay": "CPS %",
+       "bench": "Content publishers earned about 16% of network affiliate revenue in 2024 ([eMarketer](https://www.emarketer.com/content/faq-on-affiliate-marketing--how-ai-creators-reshaping-channel-2026))"
+      },
+      {
+       "id": "F1.A.2",
+       "name": "Review site",
+       "what": "Single-product or category reviews",
+       "example": "\"[Tool] review\" pages",
+       "pay": "CPS % or CPA",
+       "bench": "Amazon category rates run 0-10% for physical goods ([Amazon Associates](https://affiliate-program.amazon.com/help/node/topic/GRXPHT8U84RAYDXZ))"
+      },
+      {
+       "id": "F1.A.3",
+       "name": "Comparison / \"best X\" / \"X vs Y\" site",
+       "what": "Listicles and head-to-head pages",
+       "example": "\"Best CRM for agencies\"",
+       "pay": "CPS %, sometimes placement fee",
+       "bench": "B2B SaaS median 20% recurring for 12 months ([TrackRev, aggregator](https://www.trackrev.io/data/affiliate-program-benchmarks))"
+      },
+      {
+       "id": "F1.A.4",
+       "name": "Mass-media commerce desk",
+       "what": "Newspaper or magazine shopping desk",
+       "example": "Wirecutter-style desk",
+       "pay": "Flat fee + commission",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.A.5",
+       "name": "B2B software review / list directory",
+       "what": "Software directories and list sites",
+       "example": "Category directory listing a SaaS",
+       "pay": "Recurring % or CPA",
+       "bench": "Top 25 PartnerStack vendors paid an average 23.53% commission ([PartnerStack](https://partnerstack.com/resources/research-lab/charts/high-performing-vendors-tend-to-offer-20-25-for-commissions))"
+      },
+      {
+       "id": "F1.A.6",
+       "name": "Long-form creator-affiliate",
+       "what": "YouTube or podcast creator paid only on tracked commission",
+       "example": "Tech YouTuber with ?ref= links",
+       "pay": "CPS %, code attribution",
+       "bench": "By a brand's eighth YouTube creator partnership, CTR is 1.8x the first ([eMarketer](https://www.emarketer.com/content/faq-on-affiliate-marketing--how-ai-creators-reshaping-channel-2026))"
+      },
+      {
+       "id": "F1.A.7",
+       "name": "Educator / course creator affiliate",
+       "what": "Teachers linking tools inside lessons",
+       "example": "Course author recommending software",
+       "pay": "Recurring %",
+       "bench": "EdTech and B2C SaaS pay 30-40% ([Tapfiliate](https://tapfiliate.com/blog/a-complete-guide-for-saas-affiliate-commissions/))"
+      }
+     ]
+    },
+    {
+     "id": "F1.B",
+     "name": "Deal & incentive publishers",
+     "types": [
+      {
+       "id": "F1.B.1",
+       "name": "Coupon / voucher code site",
+       "what": "Code aggregators",
+       "example": "RetailMeNot-style site",
+       "pay": "CPS + tenancy fees",
+       "bench": "Coupon publishers earned 42.4% of affiliate revenue in H1 2025 ([eMarketer](https://www.emarketer.com/content/faq-on-affiliate-marketing--how-ai-creators-reshaping-channel-2026))"
+      },
+      {
+       "id": "F1.B.2",
+       "name": "Deal community / forum",
+       "what": "User-voted deal boards",
+       "example": "Deal forum thread",
+       "pay": "CPS",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.B.3",
+       "name": "Cashback portal",
+       "what": "Shares commission back to shoppers",
+       "example": "Rakuten Rewards-style portal",
+       "pay": "CPS + placement fee",
+       "bench": "Cashback and loyalty earned about 35% of affiliate revenue in 2024 ([eMarketer](https://www.emarketer.com/content/faq-on-affiliate-marketing--how-ai-creators-reshaping-channel-2026))"
+      },
+      {
+       "id": "F1.B.4",
+       "name": "Loyalty / points / miles program",
+       "what": "Airline, hotel or retail points malls",
+       "example": "Airline shopping portal",
+       "pay": "CPS + tenancy",
+       "bench": "See [[F1.B.3 Cashback portal|F1.B.3]] (combined share)"
+      },
+      {
+       "id": "F1.B.5",
+       "name": "Card-linked offer platform",
+       "what": "Offers triggered by bank-card spend",
+       "example": "Bank-card offers",
+       "pay": "Per transaction",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.B.6",
+       "name": "Browser extension",
+       "what": "Auto-applies codes or cashback",
+       "example": "Coupon extension",
+       "pay": "CPS",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.B.7",
+       "name": "Virtual incentive / reward app",
+       "what": "In-game currency or survey rewards",
+       "example": "Reward app offer wall",
+       "pay": "CPA",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.B.8",
+       "name": "Affinity / closed user group",
+       "what": "Gated audiences such as students, military, employees",
+       "example": "Student discount portal",
+       "pay": "CPS",
+       "bench": "Gated access reduces code leakage ([Acceleration Partners](https://www.accelerationpartners.com/resources/affiliate-partner-types/))"
+      }
+     ]
+    },
+    {
+     "id": "F1.C",
+     "name": "Performance & paid-traffic affiliates",
+     "types": [
+      {
+       "id": "F1.C.1",
+       "name": "Media buyer",
+       "what": "Buys paid social, native or display to drive offers",
+       "example": "Native-ad arbitrage buyer",
+       "pay": "CPA",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.C.2",
+       "name": "PPC / search affiliate (incl. trademark-plus)",
+       "what": "Bids on search terms, branded only with permission",
+       "example": "Search affiliate on \"[brand] discount\"",
+       "pay": "CPA / CPS",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.C.3",
+       "name": "Domain parking",
+       "what": "Monetizes parked domains",
+       "example": "Typo-domain traffic",
+       "pay": "CPC",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.C.4",
+       "name": "Retargeting partner",
+       "what": "Re-engages site visitors",
+       "example": "Retargeting network",
+       "pay": "CPC / CPM",
+       "bench": "Display partners are often paid CPC/CPM ([impact.com](https://help.impact.com/brand/what-would-you-like-to-learn-about/partnership-strategies/working-with-partners/an-impactcom-guide-to-partner-types))"
+      },
+      {
+       "id": "F1.C.5",
+       "name": "Comparison shopping engine",
+       "what": "Price-comparison feeds",
+       "example": "Shopping comparison site",
+       "pay": "CPC / CPS",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.C.6",
+       "name": "Mobile / app-install & SMS partner",
+       "what": "App installs, SMS offers",
+       "example": "App-install network",
+       "pay": "CPI / CPA",
+       "bench": "CPI and CPA are standard for mobile ([Acceleration Partners](https://www.accelerationpartners.com/resources/affiliate-partner-types/))"
+      },
+      {
+       "id": "F1.C.7",
+       "name": "Pay-per-call publisher / call network",
+       "what": "Drives qualified inbound calls",
+       "example": "Insurance or legal call network",
+       "pay": "Per qualified call",
+       "bench": "About $15 baseline up to $400 per call at named networks ([Business of Apps](https://www.businessofapps.com/affiliate/pay-per-call/))"
+      },
+      {
+       "id": "F1.C.8",
+       "name": "Lead-gen publisher (quiz funnels, co-reg)",
+       "what": "Collects and sells leads",
+       "example": "Business-funding quiz funnel",
+       "pay": "Per lead",
+       "bench": "Funded-account CPA about $175 ([Fintel Connect](https://www.fintelconnect.com/blog/cpa-affiliate-marketing/))"
+      }
+     ]
+    },
+    {
+     "id": "F1.D",
+     "name": "Email & list owners",
+     "types": [
+      {
+       "id": "F1.D.1",
+       "name": "Owned-newsletter affiliate",
+       "what": "Newsletter linking offers on commission",
+       "example": "Niche B2B newsletter",
+       "pay": "CPS / CPA",
+       "bench": "Newsletter CPA deals run $10-100 per acquisition ([beehiiv, vendor](https://www.beehiiv.com/blog/newsletter-sponsorship-cost))"
+      },
+      {
+       "id": "F1.D.2",
+       "name": "Rented / shared list mailer",
+       "what": "Mails third-party lists on performance",
+       "example": "List broker mailing",
+       "pay": "CPA or per send",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.D.3",
+       "name": "Email lead-gen affiliate",
+       "what": "Captures leads via email",
+       "example": "Co-registration mailer",
+       "pay": "Per lead",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.D.4",
+       "name": "Email retargeting partner",
+       "what": "Re-mails abandoners on the brand's behalf",
+       "example": "Email retargeting vendor",
+       "pay": "CPS",
+       "bench": "Listed as an Awin partner type ([Awin](https://help.awin.com/advertisers/docs/en/partner-types-overview))"
+      }
+     ]
+    },
+    {
+     "id": "F1.E",
+     "name": "Aggregators & sub-networks",
+     "types": [
+      {
+       "id": "F1.E.1",
+       "name": "Sub-affiliate network",
+       "what": "Houses hundreds or thousands of small publishers",
+       "example": "Publisher monetization network",
+       "pay": "Pass-through commission less margin",
+       "bench": "Listed by impact.com ([impact.com](https://help.impact.com/brand/what-would-you-like-to-learn-about/partnership-strategies/working-with-partners/an-impactcom-guide-to-partner-types))"
+      },
+      {
+       "id": "F1.E.2",
+       "name": "CPA network",
+       "what": "Performance network of media buyers",
+       "example": "CPA network offer",
+       "pay": "CPA",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.E.3",
+       "name": "Creator monetization layer",
+       "what": "Aggregates creators' links",
+       "example": "Link-in-bio monetization tool",
+       "pay": "Pass-through",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F1.F",
+     "name": "Technology & commerce-enablement partners",
+     "types": [
+      {
+       "id": "F1.F.1",
+       "name": "Conversion-tech widget / plug-in",
+       "what": "On-site tools that drive conversions",
+       "example": "Post-purchase offer widget",
+       "pay": "CPS / rev share",
+       "bench": "Tech partners grew to about 7% of affiliate revenue, up from 5% in 2021 ([eMarketer](https://www.emarketer.com/content/faq-on-affiliate-marketing--how-ai-creators-reshaping-channel-2026))"
+      },
+      {
+       "id": "F1.F.2",
+       "name": "Checkout / cart-abandonment tool",
+       "what": "Recovers carts",
+       "example": "Cart-recovery app",
+       "pay": "CPS",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.F.3",
+       "name": "Shopping assistant / AI answer surface",
+       "what": "Assistants that recommend products",
+       "example": "AI shopping assistant",
+       "pay": "CPS",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.F.4",
+       "name": "Registry platform",
+       "what": "Wedding and baby registries",
+       "example": "Universal registry",
+       "pay": "CPS",
+       "bench": "Listed as a type by Acceleration Partners ([Acceleration Partners](https://www.accelerationpartners.com/resources/affiliate-partner-types/))"
+      }
+     ]
+    },
+    {
+     "id": "F1.G",
+     "name": "Community & micro-creator affiliates",
+     "types": [
+      {
+       "id": "F1.G.1",
+       "name": "Community owner affiliate",
+       "what": "Skool, Discord, Facebook group or Reddit owner linking offers",
+       "example": "Skool group owner promoting software",
+       "pay": "Recurring %",
+       "bench": "Skool pays affiliates 40% lifetime ([Skool](https://www.skool.com/affiliate-program))"
+      },
+      {
+       "id": "F1.G.2",
+       "name": "Commission-only micro-creator",
+       "what": "Small social creator on commission, no fee",
+       "example": "Instagram creator with a code",
+       "pay": "CPS, code attribution",
+       "bench": "Creators' share of Awin revenue rose from 15.9% to 19.5% YoY ([eMarketer](https://www.emarketer.com/content/faq-on-affiliate-marketing--how-ai-creators-reshaping-channel-2026))"
+      }
+     ]
+    },
+    {
+     "id": "F1.H",
+     "name": "B2B & professional affiliates",
+     "types": [
+      {
+       "id": "F1.H.1",
+       "name": "B2B SaaS affiliate (consultant, blogger, educator)",
+       "what": "Professionals recommending software",
+       "example": "Fractional CMO linking a tool",
+       "pay": "Recurring %",
+       "bench": "Best-performing offers sit at 20%, 25% and 30% ([PartnerStack](https://partnerstack.com/resources/research-lab/charts/high-performing-vendors-tend-to-offer-20-25-for-commissions))"
+      },
+      {
+       "id": "F1.H.2",
+       "name": "Agency-as-affiliate",
+       "what": "Agency that recommends but does not resell",
+       "example": "Marketing agency referral link",
+       "pay": "Recurring %",
+       "bench": "PartnerStack partners earned $500M+ in 2024 ([PartnerStack](https://partnerstack.com/resources/research-lab/charts/high-performing-vendors-tend-to-offer-20-25-for-commissions))"
+      },
+      {
+       "id": "F1.H.3",
+       "name": "Freelancer / implementer affiliate",
+       "what": "Solo implementers linking tools",
+       "example": "GHL freelancer",
+       "pay": "Recurring %",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F1.I",
+     "name": "Customer & alumni affiliates",
+     "types": [
+      {
+       "id": "F1.I.1",
+       "name": "Customer affiliate",
+       "what": "Customer paid cash commission for promoting to an audience",
+       "example": "User with a tracked link on YouTube",
+       "pay": "Cash %",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F1.I.2",
+       "name": "Graduate / alumni affiliate",
+       "what": "Course or certification graduate promoting via link",
+       "example": "Certified grad promoting the program",
+       "pay": "Cash %",
+       "bench": "No benchmark found"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "F2",
+   "name": "Influencers & Creators",
+   "subs": 6,
+   "types": 24,
+   "definition": "Influencers & Creators are individuals paid at least partly in cash, product, retainer or equity for their content, endorsement or creative voice.",
+   "worker": "Creator Partnerships Manager",
+   "tagline": "buying a person's voice, not an ad slot",
+   "subcategories": [
+    {
+     "id": "F2.A",
+     "name": "Sponsored social content",
+     "types": [
+      {
+       "id": "F2.A.1",
+       "name": "Sponsored post / video",
+       "what": "Feed post, Reel, TikTok, Short, Story, carousel, X or FB post, Pin",
+       "example": "Micro fitness creator Reel",
+       "pay": "Flat fee",
+       "bench": "Instagram nano $20-200, micro $200-2K; rule of thumb about $100 per 10K followers ([Hootsuite](https://blog.hootsuite.com/influencer-pricing/))"
+      },
+      {
+       "id": "F2.A.2",
+       "name": "Product seeding / gifting",
+       "what": "Unconditional product send",
+       "example": "PR box to 50 micro creators",
+       "pay": "Product only",
+       "bench": "20-40% post rate claimed ([Skeepers, vendor](https://skeepers.io/us/blog/product-seeding/))"
+      },
+      {
+       "id": "F2.A.3",
+       "name": "Gifted-for-post",
+       "what": "Product plus a posting agreement",
+       "example": "Product + $100 for one Reel",
+       "pay": "Product + small fee",
+       "bench": "80% of marketplace deals are under $300 ([Collabstr](https://collabstr.com/2026-influencer-marketing-report))"
+      },
+      {
+       "id": "F2.A.4",
+       "name": "Account takeover",
+       "what": "Creator runs the brand's account for a day",
+       "example": "Chef takes over a restaurant's Stories",
+       "pay": "Flat fee",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F2.A.5",
+       "name": "Live-stream integration",
+       "what": "Reads, overlays or sponsored streams on Twitch, YouTube Live or TikTok Live",
+       "example": "Game-launch stream",
+       "pay": "Per stream or per hour, priced on concurrent viewers",
+       "bench": "50-500 CCV: $100-800 per stream ([InfluencerFee, vendor](https://influencerfee.com/blog/twitch-sponsorship-rates/))"
+      },
+      {
+       "id": "F2.A.6",
+       "name": "Event / experience invite",
+       "what": "Press trips, launches, brand trips",
+       "example": "Resort hosts creators",
+       "pay": "Hosted + fee",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F2.A.7",
+       "name": "Creator-run contest / giveaway",
+       "what": "Giveaway on the creator's channel",
+       "example": "Tag-a-friend giveaway",
+       "pay": "Flat fee + prize",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F2.B",
+     "name": "UGC & content creation",
+     "types": [
+      {
+       "id": "F2.B.1",
+       "name": "UGC ad creative",
+       "what": "Testimonial, unboxing, demo and hook variants for the brand's ads",
+       "example": "5 UGC videos for Meta ads",
+       "pay": "Per asset",
+       "bench": "Mid-level $150-300, median about $175 ([Influee, vendor](https://influee.co/blog/ugc-price)); UGC grew from 15% to 35% of Collabstr engagements ([Collabstr](https://collabstr.com/2026-influencer-marketing-report))"
+      },
+      {
+       "id": "F2.B.2",
+       "name": "Creator content licensing",
+       "what": "Brand licenses an existing organic post",
+       "example": "License a viral review for ads",
+       "pay": "Usage-rights fee",
+       "bench": "Usage rights add 30-50% ([Later](https://later.com/blog/influencer-pricing-benchmarks-the-complete-2026-guide/))"
+      },
+      {
+       "id": "F2.B.3",
+       "name": "Raw footage / photo asset pack",
+       "what": "Unedited footage or photos",
+       "example": "B-roll pack",
+       "pay": "Per pack",
+       "bench": "Raw footage adds 30-50% ([Influee, vendor](https://influee.co/blog/ugc-price))"
+      },
+      {
+       "id": "F2.B.4",
+       "name": "AI / virtual creator content",
+       "what": "Synthetic avatars or virtual influencers",
+       "example": "Virtual influencer campaign",
+       "pay": "Flat fee",
+       "bench": "89% of enterprise marketers avoid virtual influencers ([IMH](https://influencermarketinghub.com/influencer-marketing-statistics/))"
+      }
+     ]
+    },
+    {
+     "id": "F2.C",
+     "name": "Creator-handle paid amplification",
+     "types": [
+      {
+       "id": "F2.C.1",
+       "name": "Meta Partnership Ads",
+       "what": "Ads run from the creator's handle via an authorization code",
+       "example": "Creator Reel boosted as an ad",
+       "pay": "Monthly whitelisting fee",
+       "bench": "Fee about 25% of base rate per 30 days ([IMH](https://influencermarketinghub.com/whitelisting-and-spark-ads/)); 19% lower CPA and 13% higher CTR per Meta ([Social Media Today](https://www.socialmediatoday.com/news/meta-expands-creator-partnership-opportunities-for-brands/807691/))"
+      },
+      {
+       "id": "F2.C.2",
+       "name": "TikTok Spark Ads",
+       "what": "Boost an organic creator video with a Spark code",
+       "example": "Boosted TikTok review",
+       "pay": "Licensing fee or higher Shop commission",
+       "bench": "About $500/month flat, or Shop commission raised 8+ points ([IMH](https://influencermarketinghub.com/whitelisting-and-spark-ads/))"
+      },
+      {
+       "id": "F2.C.3",
+       "name": "YouTube creator partnerships boost",
+       "what": "Creator video run as Shorts or in-stream ads",
+       "example": "Boosted integration",
+       "pay": "Fee + media",
+       "bench": "30% average conversion-lift increase, per YouTube ([YouTube Blog](https://blog.youtube/news-and-events/youtube-creator-partnerships-newfronts-2026/))"
+      },
+      {
+       "id": "F2.C.4",
+       "name": "LinkedIn Thought Leader Ads",
+       "what": "Sponsoring a creator's LinkedIn post",
+       "example": "B2B creator post promoted",
+       "pay": "Surcharge on post fee",
+       "bench": "Adds 20-40% ([ContentGrip](https://www.contentgrip.com/linkedin-influencer-pricing/))"
+      },
+      {
+       "id": "F2.C.5",
+       "name": "Dark posting",
+       "what": "Ads from the creator's handle that never appear in the organic feed",
+       "example": "Variant-tested creator ads",
+       "pay": "Whitelisting fee",
+       "bench": "Covered by the [[F2.C.1 Meta Partnership Ads|F2.C.1]] fee norm"
+      }
+     ]
+    },
+    {
+     "id": "F2.D",
+     "name": "Long-term creator relationships",
+     "types": [
+      {
+       "id": "F2.D.1",
+       "name": "Brand ambassador",
+       "what": "Exclusive 3-12 month relationship, 4-12 posts/month",
+       "example": "Micro creator as a yearly face",
+       "pay": "Monthly retainer + exclusivity",
+       "bench": "Micro $800-3K/month; exclusivity adds 20-40% ([InfluencerFee, vendor](https://influencerfee.com/post.php?slug=brand-ambassador-rates))"
+      },
+      {
+       "id": "F2.D.2",
+       "name": "Creator advisory board / creator-in-residence",
+       "what": "Creators who shape product and content",
+       "example": "Creator council",
+       "pay": "Retainer or equity",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F2.E",
+     "name": "Creator commerce",
+     "types": [
+      {
+       "id": "F2.E.1",
+       "name": "TikTok Shop affiliate",
+       "what": "Creators sell via Shop, through open or targeted collabs",
+       "example": "Beauty creator Shop video",
+       "pay": "Commission, sometimes + flat fee",
+       "bench": "Open collab 13-16%, targeted 18-30% ([ShortFormNation](https://www.shortformnation.com/blog/tiktok-shop-affiliate-commission-rates-what-brands-should-offer-2026-data))"
+      },
+      {
+       "id": "F2.E.2",
+       "name": "Amazon Influencer / LTK storefront creator",
+       "what": "Storefront curation",
+       "example": "Amazon storefront list",
+       "pay": "Commission, sometimes + fee",
+       "bench": "Average Amazon-creator payout $88 ([Collabstr](https://collabstr.com/2026-influencer-marketing-report))"
+      },
+      {
+       "id": "F2.E.3",
+       "name": "Livestream shopping host",
+       "what": "Sells live on TikTok Live, Whatnot or Amazon Live",
+       "example": "Whatnot collectibles host",
+       "pay": "Commission + fee",
+       "bench": "Whatnot expected >$6B 2025 sales; livestream share of TikTok Shop fell from 26% to 18% ([eMarketer](https://www.emarketer.com/content/livestream-shopping-gains-momentum-beyond-tiktok-gen-z))"
+      }
+     ]
+    },
+    {
+     "id": "F2.F",
+     "name": "Co-creation & creator IP",
+     "types": [
+      {
+       "id": "F2.F.1",
+       "name": "Collab drop / co-created product",
+       "what": "Limited edition with a creator",
+       "example": "Creator flavor drop",
+       "pay": "Royalty or rev share",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F2.F.2",
+       "name": "Creator equity / co-owned brand",
+       "what": "Equity or advisor options",
+       "example": "Creator-advisor options",
+       "pay": "Equity (often 1-yr cliff, 4-yr vest)",
+       "bench": "Directional only ([Influencers-Time, low quality](https://www.influencers-time.com/equity-based-creator-deals-are-rewriting-brand-balance-sheet/))"
+      },
+      {
+       "id": "F2.F.3",
+       "name": "Creator name / likeness licensing",
+       "what": "Creator IP on packaging or ads",
+       "example": "Creator name on product line",
+       "pay": "Royalty + advance",
+       "bench": "No benchmark found"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "F3",
+   "name": "Sponsorships",
+   "subs": 5,
+   "types": 35,
+   "definition": "A sponsorship is a paid placement (cash or in-kind) inside media, a property or an event that someone else owns and controls.",
+   "worker": "Sponsorship Desk",
+   "tagline": "rate-card inventory in someone else's property",
+   "subcategories": [
+    {
+     "id": "F3.A",
+     "name": "Newsletter & community media",
+     "types": [
+      {
+       "id": "F3.A.1",
+       "name": "Newsletter primary placement",
+       "what": "Top ad unit in an issue",
+       "example": "Primary slot in a B2B newsletter",
+       "pay": "CPM on opens or flat",
+       "bench": "CPM $10-75; B2B $50-100+ ([beehiiv, vendor](https://www.beehiiv.com/blog/newsletter-sponsorship-cost)); flat fee 2.5-5% of subscriber count ([Paved](https://www.paved.com/blog/newsletter-sponsorship-rates/))"
+      },
+      {
+       "id": "F3.A.2",
+       "name": "Newsletter secondary placement",
+       "what": "Mid-issue unit",
+       "example": "Secondary slot",
+       "pay": "Share of primary",
+       "bench": "50-65% of primary ([Paved](https://www.paved.com/blog/newsletter-sponsorship-rates/))"
+      },
+      {
+       "id": "F3.A.3",
+       "name": "Classified / footer placement",
+       "what": "Short text unit",
+       "example": "Footer line",
+       "pay": "Share of primary",
+       "bench": "25-35% of primary ([Paved](https://www.paved.com/blog/newsletter-sponsorship-rates/))"
+      },
+      {
+       "id": "F3.A.4",
+       "name": "Dedicated send",
+       "what": "Whole issue for one sponsor",
+       "example": "Solo email",
+       "pay": "Multiple of primary",
+       "bench": "2-5x primary ([Paved](https://www.paved.com/blog/newsletter-sponsorship-rates/))"
+      },
+      {
+       "id": "F3.A.5",
+       "name": "Ad-network placement",
+       "what": "Network-sold CPM/CPC ad",
+       "example": "beehiiv Ad Network",
+       "pay": "CPM on unique opens or CPC",
+       "bench": "Examples: $5 CPM or $2 CPC; up to 3 ads per post ([beehiiv Help](https://www.beehiiv.com/support/article/17507491038231-ad-network-faq))"
+      },
+      {
+       "id": "F3.A.6",
+       "name": "Community channel post",
+       "what": "Sponsored post in Slack, Discord or Skool",
+       "example": "Monthly #announcements post",
+       "pay": "Monthly flat fee",
+       "bench": "$350/month in a 22,500-member Slack ([Write the Docs](https://www.writethedocs.org/sponsorship/slack/))"
+      }
+     ]
+    },
+    {
+     "id": "F3.B",
+     "name": "Audio & video media",
+     "types": [
+      {
+       "id": "F3.B.1",
+       "name": "Podcast host-read ad (mid-roll)",
+       "what": "Host reads the sponsor spot, baked-in or recorded",
+       "example": "60s mid-roll",
+       "pay": "CPM",
+       "bench": "$18-30 CPM, premium up to $40-50 ([Podder](https://www.podderapp.com/post/podcast-cpm-benchmarks)); about $25 mid-roll ([Ad Results Media](https://www.adresultsmedia.com/news-insights/how-much-do-podcast-ads-cost/))"
+      },
+      {
+       "id": "F3.B.2",
+       "name": "Podcast pre-roll / post-roll",
+       "what": "Spot at start or end",
+       "example": "30s pre-roll",
+       "pay": "CPM",
+       "bench": "Pre-roll about $20; post-roll $1-5 (ARM 2026) vs $10-15 (ARM 2025), a conflict ([Ad Results Media](https://www.adresultsmedia.com/news-insights/how-much-do-podcast-ads-cost/))"
+      },
+      {
+       "id": "F3.B.3",
+       "name": "Podcast programmatic / DAI",
+       "what": "Dynamically inserted spots",
+       "example": "Spotify Audience Network buy",
+       "pay": "CPM",
+       "bench": "$15-25 programmatic ([CastFox](https://www.castfox.net/blog/podcast-advertising-platforms-2026))"
+      },
+      {
+       "id": "F3.B.4",
+       "name": "YouTube long-form integration",
+       "what": "60-90s mid-roll read in a video",
+       "example": "Tool read in a tutorial",
+       "pay": "CPM on expected views or flat",
+       "bench": "$10-80 CPM by niche ([SponsorRadar](https://sponsorradar.com/insights/youtube-sponsorship-rates-what-brands-should-pay))"
+      },
+      {
+       "id": "F3.B.5",
+       "name": "YouTube dedicated video",
+       "what": "Whole video about the sponsor",
+       "example": "Dedicated review video",
+       "pay": "Multiple of integration",
+       "bench": "1.5-2x ([SponsorRadar](https://sponsorradar.com/insights/youtube-sponsorship-rates-what-brands-should-pay)); 2-4x ([1of10](https://1of10.com/blog/youtube-sponsorship-rates/))"
+      },
+      {
+       "id": "F3.B.6",
+       "name": "Radio / local broadcast spot",
+       "what": "Terrestrial radio spot or sponsorship",
+       "example": "Drive-time 30s",
+       "pay": "Per spot / CPM",
+       "bench": "30s $3-525; top-15 market CPM $9-32 ([Ad Results Media](https://www.adresultsmedia.com/news-insights/how-much-do-radio-ads-cost/))"
+      }
+     ]
+    },
+    {
+     "id": "F3.C",
+     "name": "Event sponsorships",
+     "types": [
+      {
+       "id": "F3.C.1",
+       "name": "Title / presenting sponsor",
+       "what": "Top tier with naming",
+       "example": "\"Presented by\" a conference",
+       "pay": "Flat package",
+       "bench": "Platinum/Title $15K-50K+ ([i4a](https://www.i4a.com/blog/event-sponsorship-packages/))"
+      },
+      {
+       "id": "F3.C.2",
+       "name": "Tiered package (Gold/Silver/Bronze)",
+       "what": "Standard tier bundles",
+       "example": "Gold at a regional conference",
+       "pay": "Flat package",
+       "bench": "Gold $7.5-20K, Silver $3-10K, Bronze $1-5K; top tier about 3-4x bottom ([i4a](https://www.i4a.com/blog/event-sponsorship-packages/))"
+      },
+      {
+       "id": "F3.C.3",
+       "name": "Exhibitor / booth (trade show)",
+       "what": "Floor space",
+       "example": "10x10 booth",
+       "pay": "Space + logistics",
+       "bench": "$100-200/sq ft; total $15K-250K+; cost per lead $150-500 ([AMW, agency](https://amworldgroup.com/pricing/trade-show-cost))"
+      },
+      {
+       "id": "F3.C.4",
+       "name": "Session / track / keynote sponsorship",
+       "what": "Paid stage time",
+       "example": "Sponsored breakout",
+       "pay": "Flat, often inside a tier",
+       "bench": "Gold virtual tiers often include a keynote slot ([Converve](https://www.converve.com/event-networking-blog/virtual-event-sponsorship-packages-2026/))"
+      },
+      {
+       "id": "F3.C.5",
+       "name": "Meals / reception / happy hour",
+       "what": "Catering naming",
+       "example": "Sponsored lunch",
+       "pay": "Flat",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F3.C.6",
+       "name": "Swag / lanyard / badge / wifi / app item",
+       "what": "Branded utility items",
+       "example": "Lanyard sponsor",
+       "pay": "Flat",
+       "bench": "A few hundred dollars at a 200-person regional event ([ExpoFP](https://blog.expofp.com/event-sponsorship-packages-ideas-tiers-and-pricing-examples/))"
+      },
+      {
+       "id": "F3.C.7",
+       "name": "Lounge / hub",
+       "what": "Branded space",
+       "example": "Sponsor lounge",
+       "pay": "Flat",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F3.C.8",
+       "name": "Attendee-list / lead-retrieval",
+       "what": "Paid access to opt-in leads",
+       "example": "Lead-scan package",
+       "pay": "Flat or per lead",
+       "bench": "Sponsors value leads and decision-maker access over logos ([i4a](https://www.i4a.com/blog/event-sponsorship-packages/))"
+      },
+      {
+       "id": "F3.C.9",
+       "name": "Virtual summit sponsor",
+       "what": "Tier on an online summit",
+       "example": "Gold sponsor of a summit",
+       "pay": "Flat tier",
+       "bench": "Example ladder $5K / $10K / $20K / $40K ([Converve](https://www.converve.com/event-networking-blog/virtual-event-sponsorship-packages-2026/))"
+      },
+      {
+       "id": "F3.C.10",
+       "name": "Webinar sponsor",
+       "what": "Paid slot in a publisher's webinar series",
+       "example": "Sponsored industry webinar",
+       "pay": "Flat or CPL",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F3.C.11",
+       "name": "Meetup / local event sponsor",
+       "what": "Food, venue or cash for local meetups",
+       "example": "Pizza for a founders meetup",
+       "pay": "In-kind or small flat",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F3.D",
+     "name": "Content sponsorships",
+     "types": [
+      {
+       "id": "F3.D.1",
+       "name": "Sponsored research / benchmark report",
+       "what": "Sponsor funds, publisher brands the report",
+       "example": "\"State of X\" report",
+       "pay": "Flat + leads",
+       "bench": "Bundled into top event tiers ([Converve](https://www.converve.com/event-networking-blog/virtual-event-sponsorship-packages-2026/)); no price found"
+      },
+      {
+       "id": "F3.D.2",
+       "name": "Sponsored tool / calculator / template",
+       "what": "Branded utility in a publisher property",
+       "example": "ROI calculator",
+       "pay": "Flat",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F3.D.3",
+       "name": "Native / branded article (advertorial)",
+       "what": "Publisher-written, labeled sponsored",
+       "example": "Sponsored article",
+       "pay": "Flat",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F3.D.4",
+       "name": "Sponsored series / season",
+       "what": "Sponsor owns a season or vertical",
+       "example": "Podcast season sponsor",
+       "pay": "Flat package",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F3.D.5",
+       "name": "Naming rights",
+       "what": "Name on event, stage, award or channel",
+       "example": "\"[Brand] Stage\"",
+       "pay": "Flat",
+       "bench": "Included in Platinum virtual tiers ([Converve](https://www.converve.com/event-networking-blog/virtual-event-sponsorship-packages-2026/))"
+      },
+      {
+       "id": "F3.D.6",
+       "name": "Sponsored awards / lists",
+       "what": "Sponsor funds an award or ranking",
+       "example": "\"Top 40 agencies\" sponsor",
+       "pay": "Flat",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F3.E",
+     "name": "Sports & local community sponsorships",
+     "types": [
+      {
+       "id": "F3.E.1",
+       "name": "Youth team / league",
+       "what": "Jersey, banner or league naming",
+       "example": "Little-league jersey",
+       "pay": "Per season",
+       "bench": "Jersey $250-2,000; banner $250-1,000 (2023 data) ([TeamSnap](https://www.teamsnap.com/blog/brand-marketing/cost-to-sponsor-a-local-sports-team))"
+      },
+      {
+       "id": "F3.E.2",
+       "name": "School events / boosters",
+       "what": "Booster clubs, yearbook, scoreboard",
+       "example": "Scoreboard ad",
+       "pay": "Per season",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F3.E.3",
+       "name": "Church / community festival",
+       "what": "Festival booths and banners",
+       "example": "County fair banner",
+       "pay": "Flat",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F3.E.4",
+       "name": "Charity gala / golf / 5K sponsor (cause overlap)",
+       "what": "Flat-fee visibility at a charity event",
+       "example": "Hole sponsor at charity golf",
+       "pay": "Flat",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F3.E.5",
+       "name": "Minor-league / semi-pro signage & promo nights",
+       "what": "Signage, promo nights",
+       "example": "Minor-league promo night",
+       "pay": "Flat",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F3.E.6",
+       "name": "Stadium / arena signage & naming rights",
+       "what": "Enterprise sports inventory",
+       "example": "Arena naming rights",
+       "pay": "Multi-year contract",
+       "bench": "$4.5B sponsorship spend across 13 North American markets ([SponsorUnited](https://www.sponsorunited.com/insights/2025-markets-report))"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "F4",
+   "name": "Co-Promotion",
+   "subs": 6,
+   "types": 38,
+   "definition": "Co-Promotion is two or more businesses jointly promoting an event, offer or content piece to their combined audiences.",
+   "worker": "Co-Promotion Producer",
+   "tagline": "pooled audiences, shared list or shared revenue",
+   "subcategories": [
+    {
+     "id": "F4.A",
+     "name": "Joint events",
+     "types": [
+      {
+       "id": "F4.A.1",
+       "name": "Co-hosted webinar",
+       "what": "Both brands on the page, both mail, leads shared",
+       "example": "SaaS + agency webinar",
+       "pay": "50/50 of net sales or 30-50% to the non-owner (inferred)",
+       "bench": "57% average registrant-to-attendee in B2B ([ON24](https://www.on24.com/blog/key-takeaways-from-the-2025-webinar-benchmarks-report/)). Info-product show rates are much lower"
+      },
+      {
+       "id": "F4.A.2",
+       "name": "Joint workshop / masterclass",
+       "what": "Paid or free joint training with a joint offer",
+       "example": "Coach + AI implementer workshop",
+       "pay": "Revenue split",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F4.A.3",
+       "name": "Virtual summit co-host / co-producer",
+       "what": "Co-owns the summit, list and pass revenue",
+       "example": "Two brands co-produce a summit",
+       "pay": "Shared pass revenue and list",
+       "bench": "All-access pass conversion 3-5% industry-wide, about 8-13% when well run (2020 data) ([Summit in a Box](https://www.summitinabox.co/blog/virtual-summit-conversion-rates))"
+      },
+      {
+       "id": "F4.A.4",
+       "name": "Summit speaker-promoter",
+       "what": "Speaker who contractually promotes for a pass-sales share",
+       "example": "Speaker mails 20K list",
+       "pay": "40-50% affiliate on pass sales",
+       "bench": "Speakers drove 60% of traffic in one summit that grew a list by 11,500 ([HeySummit](https://heysummit.com/blog/how-virtual-summit-grew-email-list-to-11500-without-ads))"
+      },
+      {
+       "id": "F4.A.5",
+       "name": "Co-hosted challenge",
+       "what": "Multi-day challenge run by two experts",
+       "example": "5-day challenge into a joint cohort",
+       "pay": "Split upsell revenue",
+       "bench": "Warm paid challenges convert 10-15% (solo data; nothing sourced on co-hosted) ([Dream Coach Match](https://dreamcoachmatch.com/coaching-business/how-to-run-challenge-launch))"
+      },
+      {
+       "id": "F4.A.6",
+       "name": "Joint in-person event / seminar / roadshow",
+       "what": "Split venue and ad costs, shared attendee list",
+       "example": "Two local firms co-host a seminar",
+       "pay": "Cost and revenue split",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F4.A.7",
+       "name": "Co-hosted live audio / video",
+       "what": "X Spaces co-hosts, LinkedIn Live co-organizers, collab Lives",
+       "example": "LinkedIn Live with a partner as co-organizer",
+       "pay": "Shared leads",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F4.A.8",
+       "name": "Joint podcast crossover episode",
+       "what": "Both shows publish the same recorded conversation",
+       "example": "Two shows release one joint episode",
+       "pay": "Shared audience exposure",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F4.A.9",
+       "name": "Webinar swap: guest on theirs (with split)",
+       "what": "You present to their list; they earn commission or reciprocity",
+       "example": "Present to a partner's list and pay them 40%",
+       "pay": "Commission or reciprocal promotion",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F4.A.10",
+       "name": "Webinar swap: host them on yours",
+       "what": "They present to your list; you earn commission",
+       "example": "Host a partner's training",
+       "pay": "Commission",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F4.B",
+     "name": "Joint launches & offers",
+     "types": [
+      {
+       "id": "F4.B.1",
+       "name": "JV launch partner",
+       "what": "List owners mail during a launch window, with leaderboards and prizes",
+       "example": "Course launch partner team",
+       "pay": "30-50% commission; $100 minimum in high-ticket",
+       "bench": "([Authentic Partnership](https://authenticpartnership.rocks/partner-launch-management/)); top 5-20 partners get prizes ([ProductLaunchStrategy](https://productlaunchstrategy.org/how-to-get-your-affiliates-to-enthusiastically-promote-your-product-launch/))"
+      },
+      {
+       "id": "F4.B.2",
+       "name": "JV launch manager / broker",
+       "what": "Third party recruits and runs the partner team",
+       "example": "Launch manager on retainer",
+       "pay": "Retainer + about 10% of launch revenue",
+       "bench": "$1,000/month + 10% ([Authentic Partnership](https://authenticpartnership.rocks/partner-launch-management/))"
+      },
+      {
+       "id": "F4.B.3",
+       "name": "Bundle sale",
+       "what": "Many contributors' products sold at one price for 48 hours to 5 days",
+       "example": "Creator bundle",
+       "pay": "Affiliates 50-65%; contributors 70-80% on own sales",
+       "bench": "([Location Rebel](https://www.locationrebel.com/bundle-sales/))"
+      },
+      {
+       "id": "F4.B.4",
+       "name": "Co-sponsored giveaway / loop giveaway",
+       "what": "Pooled prizes; entrants opt in to all partners",
+       "example": "Multi-brand giveaway",
+       "pay": "Shared list",
+       "bench": "Match partners of comparable size; disclose partner marketing (2016) ([Listrak](https://www.listrak.com/blog/perfect-partnerships-how-to-run-a-successful-co-branded-sweepstakes))"
+      },
+      {
+       "id": "F4.B.5",
+       "name": "Seasonal joint promotion",
+       "what": "Black Friday cross-offers, joint gift guides",
+       "example": "Holiday gift guide of partner products",
+       "pay": "Cross-traffic",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F4.B.6",
+       "name": "Joint packaged offer (single campaign)",
+       "what": "Two complementary services sold together at one price for one campaign",
+       "example": "Coach + AI build package",
+       "pay": "Revenue split",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F4.C",
+     "name": "Content co-marketing",
+     "types": [
+      {
+       "id": "F4.C.1",
+       "name": "Co-authored ebook / report / research",
+       "what": "Joint content with shared lead capture",
+       "example": "HubSpot + LinkedIn ebook",
+       "pay": "Shared leads",
+       "bench": "Plan for roughly double a solo timeline ([HubSpot](https://blog.hubspot.com/marketing/co-marketing-guide))"
+      },
+      {
+       "id": "F4.C.2",
+       "name": "Joint case study",
+       "what": "One customer shared by two vendors",
+       "example": "Integration case study",
+       "pay": "Shared exposure",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F4.C.3",
+       "name": "Guest post swap",
+       "what": "Reciprocal guest articles",
+       "example": "Blog swap",
+       "pay": "Reciprocal",
+       "bench": "Listed as a core format ([HubSpot](https://blog.hubspot.com/marketing/co-marketing-guide))"
+      },
+      {
+       "id": "F4.C.4",
+       "name": "Co-branded tool / template / calculator",
+       "what": "Jointly branded utility",
+       "example": "Joint ROI calculator",
+       "pay": "Shared leads",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F4.C.5",
+       "name": "Co-produced video / interview series",
+       "what": "Jointly produced series",
+       "example": "Joint YouTube series",
+       "pay": "Shared exposure",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F4.C.6",
+       "name": "Co-authored lead magnet (split capture)",
+       "what": "One asset, both capture leads",
+       "example": "Joint checklist",
+       "pay": "Shared leads with named-partner consent",
+       "bench": "Name the partner in the consent language ([Suzanne Dibble](https://suzannedibble.com/gdpr-data-sharing-processing-sharing-data-safely/))"
+      }
+     ]
+    },
+    {
+     "id": "F4.D",
+     "name": "Audience & list swaps",
+     "types": [
+      {
+       "id": "F4.D.1",
+       "name": "Newsletter swap",
+       "what": "Reciprocal mention or dedicated send",
+       "example": "Two niche newsletters swap",
+       "pay": "Reciprocal",
+       "bench": "3-5 quality partners beat many; mismatched swaps can yield zero ([Growth In Reverse](https://growthinreverse.com/cross-promotions/))"
+      },
+      {
+       "id": "F4.D.2",
+       "name": "Free recommendation network",
+       "what": "beehiiv Recommendations, Substack Recommendations, Kit Creator Network",
+       "example": "Mutual recommendations",
+       "pay": "Reciprocal",
+       "bench": "Kit network creators grew lists 9% more in 3 months ([Kit](https://kit.com/resources/blog/how-to-use-paid-recommendations))"
+      },
+      {
+       "id": "F4.D.3",
+       "name": "Paid CPA recommendation (adjacent)",
+       "what": "beehiiv Boosts, SparkLoop, Kit paid recommendations",
+       "example": "Pay per confirmed subscriber",
+       "pay": "CPA",
+       "bench": "Boosts average about $1.63/sub with a 20% fee ([Newsletter Supply](https://newsletter.supply/blog/how-does-beehiiv-boosts-work)); Kit $2-20/sub ([Kit](https://kit.com/resources/blog/how-to-use-paid-recommendations))"
+      },
+      {
+       "id": "F4.D.4",
+       "name": "Podcast feed swap",
+       "what": "Each show publishes the other's full episode in its own feed",
+       "example": "Two B2B shows swap episodes",
+       "pay": "Reciprocal",
+       "bench": "Claimed to convert 10-40x better than standard promos ([J-Delmas, vendor](https://jdelmasstudios.com/podcast-cross-promotion-feed-swap-playbook/))"
+      },
+      {
+       "id": "F4.D.5",
+       "name": "Podcast promo / trailer swap",
+       "what": "Recorded or host-read promo swaps",
+       "example": "30s promo swap",
+       "pay": "Reciprocal",
+       "bench": "Same source ([J-Delmas, vendor](https://jdelmasstudios.com/podcast-cross-promotion-feed-swap-playbook/))"
+      },
+      {
+       "id": "F4.D.6",
+       "name": "Social collab post / shoutout swap",
+       "what": "IG Collab posts, co-authored LinkedIn posts",
+       "example": "IG Collab post",
+       "pay": "Reciprocal",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F4.D.7",
+       "name": "Post-purchase / thank-you page cross-offer",
+       "what": "Each partner's offer on the other's confirmation page",
+       "example": "Thank-you page offer",
+       "pay": "Reciprocal or commission",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F4.E",
+     "name": "Local & retail cross-promotion",
+     "types": [
+      {
+       "id": "F4.E.1",
+       "name": "Co-branded coupon / offer",
+       "what": "Buy at A, get a discount at B",
+       "example": "Gym + smoothie shop",
+       "pay": "Cross-traffic",
+       "bench": "Listed tactic ([US Chamber](https://www.uschamber.com/co/grow/marketing/cross-promotion-strategies-and-tips))"
+      },
+      {
+       "id": "F4.E.2",
+       "name": "Shared loyalty / punch card / passport",
+       "what": "Points or stamps across partners",
+       "example": "Downtown passport",
+       "pay": "Cross-traffic",
+       "bench": "Listed tactic ([US Chamber](https://www.uschamber.com/co/grow/marketing/cross-promotion-strategies-and-tips))"
+      },
+      {
+       "id": "F4.E.3",
+       "name": "Shop-local / district campaign",
+       "what": "BID- or chamber-led campaign",
+       "example": "Small Business Saturday",
+       "pay": "Shared cost",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F4.E.4",
+       "name": "In-store cross-merchandising / co-display",
+       "what": "Shared endcap or display",
+       "example": "Multi-brand barbecue endcap",
+       "pay": "Cross-sales",
+       "bench": "Listed tactic ([US Chamber](https://www.uschamber.com/co/grow/marketing/cross-promotion-strategies-and-tips))"
+      },
+      {
+       "id": "F4.E.5",
+       "name": "Jointly funded local advertising",
+       "what": "Shared billboard, mailer or radio buy",
+       "example": "Two trades split a billboard",
+       "pay": "Cost split",
+       "bench": "Listed tactic ([US Chamber](https://www.uschamber.com/co/grow/marketing/cross-promotion-strategies-and-tips))"
+      },
+      {
+       "id": "F4.E.6",
+       "name": "Jointly hosted community event",
+       "what": "Tournaments, demos, markets",
+       "example": "Joint demo day",
+       "pay": "Shared leads",
+       "bench": "Listed tactic ([US Chamber](https://www.uschamber.com/co/grow/marketing/cross-promotion-strategies-and-tips))"
+      }
+     ]
+    },
+    {
+     "id": "F4.F",
+     "name": "B2B tech-partner co-marketing",
+     "types": [
+      {
+       "id": "F4.F.1",
+       "name": "Integration-partner joint campaign",
+       "what": "Joint webinar, content or booth between integration partners",
+       "example": "HubSpot + Hotjar webinar",
+       "pay": "Shared leads",
+       "bench": "([HubSpot](https://blog.hubspot.com/marketing/co-marketing-guide))"
+      },
+      {
+       "id": "F4.F.2",
+       "name": "Account-mapping joint campaign",
+       "what": "Campaign aimed at overlapping accounts found through Crossbeam or Reveal",
+       "example": "Joint ABM to shared prospects",
+       "pay": "Shared pipeline",
+       "bench": "Partner-involved deals win 11.7% more often (2024) ([Crossbeam](https://insider.crossbeam.com/entry/new-data-involving-partners-in-deals-increases-win-rate-for-nearly-every-ecosystem-size-and-type))"
+      },
+      {
+       "id": "F4.F.3",
+       "name": "Peer co-funded campaign",
+       "what": "Two peers split the campaign budget",
+       "example": "Joint paid campaign",
+       "pay": "Cost split",
+       "bench": "No benchmark found"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "F5",
+   "name": "Stages & Media",
+   "subs": 7,
+   "types": 48,
+   "definition": "Stages & Media is earned or arranged exposure where you appear as a guest, speaker, expert or source on a platform someone else owns.",
+   "worker": "Stages & Media Booker",
+   "tagline": "yes, a separate family, defined by who owns the platform",
+   "subcategories": [
+    {
+     "id": "F5.A",
+     "name": "Audio",
+     "types": [
+      {
+       "id": "F5.A.1",
+       "name": "Interview-show guest",
+       "what": "1:1 host interview; the core type",
+       "example": "B2B founder on an industry podcast",
+       "pay": "Unpaid; exposure",
+       "bench": "605K active shows ([Barrett Media](https://barrettmedia.com/2025/10/13/number-of-active-podcasts-hits-new-high-in-september-2025-listen-notes-data-shows/))"
+      },
+      {
+       "id": "F5.A.2",
+       "name": "Panel / roundtable guest",
+       "what": "Multi-guest show",
+       "example": "Roundtable episode",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.A.3",
+       "name": "Guest segment on solo / news show",
+       "what": "Expert call-in, expert of the week",
+       "example": "Weekly expert segment",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.A.4",
+       "name": "Podcast tour",
+       "what": "Launch-timed burst of 10-50 appearances",
+       "example": "Book-launch tour",
+       "pay": "Unpaid; booked via agency",
+       "bench": "Agencies charge $500-1,500 per confirmed booking ([The Podcast Consultant](https://thepodcastconsultant.com/blog/podcast-booking-agency))"
+      },
+      {
+       "id": "F5.A.5",
+       "name": "Podcast guest swap",
+       "what": "You guest on theirs, they guest on yours",
+       "example": "Two hosts trade interviews",
+       "pay": "Reciprocal",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.A.6",
+       "name": "Radio guest / radio media tour",
+       "what": "Talk-radio, satellite, RMT",
+       "example": "Local talk-radio segment",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.A.7",
+       "name": "Live audio room",
+       "what": "X Spaces speaker or co-host",
+       "example": "X Space panel",
+       "pay": "Unpaid",
+       "bench": "LinkedIn stopped Audio Events in Dec 2024 ([Social Media Today](https://www.socialmediatoday.com/news/linkedins-phasing-dedicated-live-audio-events/733669/))"
+      },
+      {
+       "id": "F5.A.8",
+       "name": "Pay-for-play sponsored guest (hybrid)",
+       "what": "You pay the host to appear as a guest",
+       "example": "\"Featured guest\" package",
+       "pay": "Guest pays host; must disclose",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F5.B",
+     "name": "Video & new media",
+     "types": [
+      {
+       "id": "F5.B.1",
+       "name": "YouTube interview guest",
+       "what": "Interview on the host's channel",
+       "example": "Channel interview",
+       "pay": "Unpaid",
+       "bench": "33% of weekly listeners use YouTube for podcasts ([Podnews / Edison](https://podnews.net/press-release/edison-research-infinite-dial-2025))"
+      },
+      {
+       "id": "F5.B.2",
+       "name": "YouTube guest-style collab",
+       "what": "Guest appearance with a creator",
+       "example": "Creator collab video",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.B.3",
+       "name": "Livestream guest",
+       "what": "YouTube Live, Twitch, Rumble",
+       "example": "Live Q&A guest",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.B.4",
+       "name": "LinkedIn Live guest",
+       "what": "Guest or speaker on a host's LinkedIn Live",
+       "example": "Industry show on LinkedIn Live",
+       "pay": "Unpaid",
+       "bench": "LinkedIn Live is now the single live entry point ([Social Media Today](https://www.socialmediatoday.com/news/linkedins-phasing-dedicated-live-audio-events/733669/))"
+      },
+      {
+       "id": "F5.B.5",
+       "name": "TikTok / Instagram Live collab",
+       "what": "Dual-screen live",
+       "example": "IG Live collab",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.B.6",
+       "name": "Streaming show / digital network guest",
+       "what": "FAST channels, business streaming shows",
+       "example": "Business streaming show",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.B.7",
+       "name": "Local TV segment",
+       "what": "Morning show or news commentary",
+       "example": "Morning-show expert",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F5.C",
+     "name": "Conference & industry stages",
+     "types": [
+      {
+       "id": "F5.C.1",
+       "name": "Keynote",
+       "what": "Main-stage talk",
+       "example": "Industry conference keynote",
+       "pay": "Fee (or comp)",
+       "bench": "$5K-50K+ typical budgets ([National Speakers Bureau](https://www.nsb.com/blog/how-much-does-a-keynote-speaker-cost-a-clear-guide-for-event-planners/))"
+      },
+      {
+       "id": "F5.C.2",
+       "name": "Breakout session",
+       "what": "Track session",
+       "example": "Breakout talk",
+       "pay": "Usually unpaid",
+       "bench": "([GapScience](https://gapscience.com/how-much-do-conference-speakers-get-paid/))"
+      },
+      {
+       "id": "F5.C.3",
+       "name": "Panel",
+       "what": "Moderated panel seat",
+       "example": "Panel seat",
+       "pay": "Usually unpaid",
+       "bench": "([GapScience](https://gapscience.com/how-much-do-conference-speakers-get-paid/))"
+      },
+      {
+       "id": "F5.C.4",
+       "name": "Workshop / pre-conference intensive",
+       "what": "Half- or full-day session",
+       "example": "Pre-con workshop",
+       "pay": "Honorarium or fee",
+       "bench": "Half-day at 1.5-2x the keynote fee ([Headliner Bureau](https://headlinerbureau.com/insights/keynote-speaker-fee-ranges))"
+      },
+      {
+       "id": "F5.C.5",
+       "name": "Fireside chat",
+       "what": "Moderated Q&A",
+       "example": "Fireside with the organizer",
+       "pay": "Fee",
+       "bench": "About 75-100% of the keynote fee ([Headliner Bureau](https://headlinerbureau.com/insights/keynote-speaker-fee-ranges))"
+      },
+      {
+       "id": "F5.C.6",
+       "name": "Demo-theater / floor-stage talk",
+       "what": "Expo-floor talk, often sponsor-bought",
+       "example": "Expo theater slot",
+       "pay": "Often pay-to-speak (hybrid with [[F3 Sponsorships|F3]])",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.C.7",
+       "name": "Lightning / poster talk",
+       "what": "Short-format session",
+       "example": "5-minute lightning talk",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.C.8",
+       "name": "Association chapter / CE-credit session",
+       "what": "Chapter meeting or CE session",
+       "example": "CPA society CPE session",
+       "pay": "Unpaid or honorarium",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F5.D",
+     "name": "Local, civic, education & corporate stages",
+     "types": [
+      {
+       "id": "F5.D.1",
+       "name": "Chamber of Commerce lunch talk",
+       "what": "Member lunch presentation",
+       "example": "Chamber lunch-and-learn",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.D.2",
+       "name": "Civic club talk",
+       "what": "Rotary, Kiwanis, Lions",
+       "example": "Rotary breakfast talk",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.D.3",
+       "name": "Networking-group feature talk",
+       "what": "BNI or leads-group feature presentation",
+       "example": "BNI feature slot",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.D.4",
+       "name": "Library / SBDC / SCORE workshop",
+       "what": "Free public small-business workshop",
+       "example": "SBDC AI workshop",
+       "pay": "Unpaid or small fee",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.D.5",
+       "name": "Church / community group talk",
+       "what": "Community education session",
+       "example": "Community center talk",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.D.6",
+       "name": "University guest lecture",
+       "what": "Business school or class lecture",
+       "example": "MBA guest lecture",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.D.7",
+       "name": "Accelerator / incubator judge or office hours",
+       "what": "Demo-day judge, mentor slots",
+       "example": "Demo-day judge",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.D.8",
+       "name": "Corporate lunch-and-learn / training / SKO",
+       "what": "In-house session",
+       "example": "Sales kickoff talk",
+       "pay": "Often paid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.D.9",
+       "name": "Practice stage",
+       "what": "Toastmasters, open mics, pitch nights",
+       "example": "Pitch night",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F5.E",
+     "name": "Virtual stages",
+     "types": [
+      {
+       "id": "F5.E.1",
+       "name": "Virtual summit speaker",
+       "what": "Recorded or live talk with no promotion obligation",
+       "example": "Summit interview",
+       "pay": "Unpaid, or optional affiliate link",
+       "bench": "Virtual live keynote is about 60-75% of the in-person fee ([Headliner Bureau](https://headlinerbureau.com/insights/keynote-speaker-fee-ranges))"
+      },
+      {
+       "id": "F5.E.2",
+       "name": "Guest on a host's webinar",
+       "what": "Host owns the list",
+       "example": "Guest trainer on a partner webinar",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.E.3",
+       "name": "Bundled webinar-series presenter",
+       "what": "One of many presenters in a series",
+       "example": "Industry webinar series",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.E.4",
+       "name": "Online conference session",
+       "what": "Session at a virtual conference",
+       "example": "Virtual track session",
+       "pay": "Unpaid or fee",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F5.F",
+     "name": "Seminars & expert rooms",
+     "types": [
+      {
+       "id": "F5.F.1",
+       "name": "Guest presenter at a promoter's seminar (platform selling)",
+       "what": "Sell a program from a promoter's stage",
+       "example": "Seminar platform pitch",
+       "pay": "Split of sales with promoter",
+       "bench": "50/50 promoter splits are common practice but unsourced (see Gaps)"
+      },
+      {
+       "id": "F5.F.2",
+       "name": "Mastermind guest expert",
+       "what": "Guest session inside a mastermind",
+       "example": "Mastermind hot seat",
+       "pay": "Unpaid or fee",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.F.3",
+       "name": "Bootcamp / retreat guest trainer",
+       "what": "Guest session at a bootcamp or retreat",
+       "example": "Retreat guest trainer",
+       "pay": "Fee or comp",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.F.4",
+       "name": "Paid-community expert call (one-off)",
+       "what": "One expert call in someone's paid group",
+       "example": "Skool guest call",
+       "pay": "Unpaid, lead-share",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F5.G",
+     "name": "Earned media & PR",
+     "types": [
+      {
+       "id": "F5.G.1",
+       "name": "Expert quote / commentary",
+       "what": "Source in articles via query marketplaces",
+       "example": "Qwoted quote in trade press",
+       "pay": "Unpaid; tool fee",
+       "bench": "Featured premium $99.99/month, Qwoted from $149.99 ([Connectively, biased](https://blog.connectively.us/qwoted-pricing-vs-featured-pricing/))"
+      },
+      {
+       "id": "F5.G.2",
+       "name": "Bylined article / guest column",
+       "what": "Authored piece in an outlet",
+       "example": "Trade-magazine column",
+       "pay": "Unpaid (paid councils are hybrid)",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.G.3",
+       "name": "Guest blog post",
+       "what": "Post on a host blog",
+       "example": "Industry blog post",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.G.4",
+       "name": "Newsletter guest essay",
+       "what": "Guest issue in a host newsletter",
+       "example": "Guest essay",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.G.5",
+       "name": "Awards / \"40 under 40\" lists",
+       "what": "Recognition lists (many pay-to-enter)",
+       "example": "Local business award",
+       "pay": "Entry fee sometimes",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.G.6",
+       "name": "Feature / profile subject",
+       "what": "Outlet profiles you",
+       "example": "Local paper profile",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.G.7",
+       "name": "Book / anthology / report inclusion",
+       "what": "Contributor to someone else's publication",
+       "example": "Anthology chapter",
+       "pay": "Unpaid or fee",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F5.G.8",
+       "name": "Roundup / listicle inclusion",
+       "what": "Named in expert roundups",
+       "example": "\"25 AI experts\" roundup",
+       "pay": "Unpaid",
+       "bench": "No benchmark found"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "F6",
+   "name": "Referral & Power Partners",
+   "subs": 7,
+   "types": 26,
+   "definition": "Referral & Power Partners are businesses and professionals who already serve your buyers and send you specific named introductions, or endorse your offer to their customers.",
+   "worker": "Power Partner Builder",
+   "tagline": "named introductions and endorsed JVs",
+   "subcategories": [
+    {
+     "id": "F6.A",
+     "name": "Referral partners",
+     "types": [
+      {
+       "id": "F6.A.1",
+       "name": "One-way paid referral (finder's fee)",
+       "what": "Partner sends leads; you pay per lead, close or %",
+       "example": "Realtor refers buyers to a roofer",
+       "pay": "Flat or % of first sale / first year",
+       "bench": "Warm intro about 10% of first-year ACV; qualified opportunity about 20% ([SaaStr](https://www.saastr.com/what-are-typical-commission-ranges-for-referral-partners-for-enterprise-b2b-saas))"
+      },
+      {
+       "id": "F6.A.2",
+       "name": "Reciprocal referral",
+       "what": "Two firms trade clients with no money",
+       "example": "Plumber and HVAC swap calls",
+       "pay": "Traded leads",
+       "bench": "Lawyers must keep these non-exclusive and disclosed ([Minnesota Rule 7.2](https://revisor.mn.gov/court_rules/rule/prcond-7.2/pdf))"
+      },
+      {
+       "id": "F6.A.3",
+       "name": "Referral network / group",
+       "what": "One seat per trade (BNI, leads clubs, referral circles)",
+       "example": "BNI chapter",
+       "pay": "Membership dues",
+       "bench": "BNI reports $62,459 average closed business per US member (self-reported) ([IFA / BNI](https://www.franchise.org/2025/08/bni-mid-year-report-global-network-surges-as-businesses-prioritize-quality-referrals/))"
+      },
+      {
+       "id": "F6.A.4",
+       "name": "Strategic referral alliance",
+       "what": "Written referral agreement with SLAs",
+       "example": "MSP + cyber-insurance broker",
+       "pay": "Fee, rev share or reciprocal",
+       "bench": "Partner-closed deal 25-40%+ of first-year ACV ([SaaStr](https://www.saastr.com/what-are-typical-commission-ranges-for-referral-partners-for-enterprise-b2b-saas))"
+      },
+      {
+       "id": "F6.A.5",
+       "name": "Lead swap / lead-sharing agreement",
+       "what": "Exchange leads that don't fit",
+       "example": "Two gyms swap waitlists by location",
+       "pay": "Even swap or per-lead price",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F6.A.6",
+       "name": "Competitor overflow / pass-over",
+       "what": "Send work you can't take to a competitor for a fee",
+       "example": "Booked-out landscaper passes jobs",
+       "pay": "Referral fee or reciprocal",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F6.B",
+     "name": "Lifecycle handoff partners",
+     "types": [
+      {
+       "id": "F6.B.1",
+       "name": "Before (upstream) partner",
+       "what": "Sells to the customer before they need you",
+       "example": "Business-formation attorney → bookkeeper",
+       "pay": "As [[F6.A Referral partners|F6.A]]",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F6.B.2",
+       "name": "During (concurrent) partner",
+       "what": "Bought at the same time as you",
+       "example": "Wedding venue + caterer",
+       "pay": "As [[F6.A Referral partners|F6.A]]",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F6.B.3",
+       "name": "After (downstream) partner",
+       "what": "Bought after you",
+       "example": "Roofer → solar installer",
+       "pay": "As [[F6.A Referral partners|F6.A]]",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F6.B.4",
+       "name": "Instead-of (substitute) partner",
+       "what": "What customers buy when they don't buy you",
+       "example": "Declined MCA applicants passed to an alternative lender",
+       "pay": "As [[F6.A Referral partners|F6.A]]",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F6.C",
+     "name": "Endorsed JVs (host-beneficiary)",
+     "types": [
+      {
+       "id": "F6.C.1",
+       "name": "Endorsed mailing / email",
+       "what": "Host mails their list recommending your offer under the host's name",
+       "example": "Chiropractor endorses a massage studio",
+       "pay": "Commonly 50/50 of profit; Abraham cites 10-90% splits",
+       "bench": "([Abraham PDF](https://grumomedia.com/files/Jay_Abraham-From_Mediocrity_to_Millions.pdf))"
+      },
+      {
+       "id": "F6.C.2",
+       "name": "Insert / package stuffer / invoice JV",
+       "what": "Your offer rides in the host's shipments or invoices",
+       "example": "Pet store bag stuffer for a groomer",
+       "pay": "Per-insert fee or rev share",
+       "bench": "Abraham: about 5c vs 80c for a mailing, 2-3x response (anecdotal) ([Abraham PDF](https://grumomedia.com/files/Jay_Abraham-From_Mediocrity_to_Millions.pdf))"
+      },
+      {
+       "id": "F6.C.3",
+       "name": "Endorsed webinar / event",
+       "what": "Host invites their audience to your webinar",
+       "example": "CPA firm hosts a funding-options webinar for a lending broker",
+       "pay": "Rev share",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F6.D",
+     "name": "Offer JVs",
+     "types": [
+      {
+       "id": "F6.D.1",
+       "name": "Back-end JV",
+       "what": "Partner's product offered to your buyers after purchase",
+       "example": "Gym offers a nutrition coach",
+       "pay": "Rev share, 25-50% to host (inferred)",
+       "bench": "Abraham claims about 70% of profit comes from the back end ([Abraham PDF](https://grumomedia.com/files/Jay_Abraham-From_Mediocrity_to_Millions.pdf))"
+      },
+      {
+       "id": "F6.D.2",
+       "name": "Front-end JV / lead-offer swap",
+       "what": "Partner's free or low-cost offer used as your acquisition bait",
+       "example": "Free audit from a partner as a lead magnet",
+       "pay": "Rev share",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F6.D.3",
+       "name": "Bundle / package JV",
+       "what": "Ongoing joint offer at one price",
+       "example": "New-homeowner bundle",
+       "pay": "Split",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F6.D.4",
+       "name": "Consignment / pay-on-sale",
+       "what": "Product placed with a host who pays only on sale",
+       "example": "Retailer keeps $1 of a $4 sale",
+       "pay": "Host margin",
+       "bench": "25% example ([Abraham PDF](https://grumomedia.com/files/Jay_Abraham-From_Mediocrity_to_Millions.pdf))"
+      }
+     ]
+    },
+    {
+     "id": "F6.E",
+     "name": "Resource JVs",
+     "types": [
+      {
+       "id": "F6.E.1",
+       "name": "Sales-force leasing",
+       "what": "Borrow a partner's reps",
+       "example": "150-rep sales force leased",
+       "pay": "Fixed rate + override on residuals",
+       "bench": "([Abraham PDF](https://grumomedia.com/files/Jay_Abraham-From_Mediocrity_to_Millions.pdf))"
+      },
+      {
+       "id": "F6.E.2",
+       "name": "Fulfillment / capacity JV",
+       "what": "Partner delivers work you sell",
+       "example": "Overflow fulfillment",
+       "pay": "Results-based share",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F6.E.3",
+       "name": "R&D-for-share",
+       "what": "Partner builds in exchange for a revenue share",
+       "example": "Developer builds a tool for royalties",
+       "pay": "Rev share",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F6.E.4",
+       "name": "Call-center / telemarketing share",
+       "what": "Borrow a partner's calling capacity",
+       "example": "Shared appointment setting",
+       "pay": "Per result",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F6.F",
+     "name": "Asset deals",
+     "types": [
+      {
+       "id": "F6.F.1",
+       "name": "Dormant-list reactivation JV",
+       "what": "Your offer to a partner's inactive customers",
+       "example": "Mail a closed gym's old members",
+       "pay": "Revenue split",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F6.F.2",
+       "name": "Idle brand / product / IP revival",
+       "what": "Relaunch an unused asset",
+       "example": "Revive a discontinued course",
+       "pay": "Split",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F6.F.3",
+       "name": "Idle space / equipment / inventory",
+       "what": "Share idle capacity",
+       "example": "Podiatrist and sleep clinic split overhead 50/50",
+       "pay": "Cost or revenue split",
+       "bench": "([Abraham PDF](https://grumomedia.com/files/Jay_Abraham-From_Mediocrity_to_Millions.pdf))"
+      }
+     ]
+    },
+    {
+     "id": "F6.G",
+     "name": "Gap & orchestrator JVs",
+     "types": [
+      {
+       "id": "F6.G.1",
+       "name": "Gap / arbitrage JV",
+       "what": "Combine assets no one has combined",
+       "example": "Book + course + coaching",
+       "pay": "Orchestrator-heavy split",
+       "bench": "Abraham cites 75-90% operator retention (anecdotal) ([Abraham PDF](https://grumomedia.com/files/Jay_Abraham-From_Mediocrity_to_Millions.pdf))"
+      },
+      {
+       "id": "F6.G.2",
+       "name": "Orchestrator / JV broker",
+       "what": "Match two parties and take an override",
+       "example": "Agency brokers a lender + CPA deal",
+       "pay": "Override",
+       "bench": "No benchmark found"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "F7",
+   "name": "Access Partners",
+   "subs": 6,
+   "types": 31,
+   "definition": "Access Partners are organizations that own a group your buyers already belong to: members, franchisees, employees, community members or attendees.",
+   "worker": "Access Partnerships Manager",
+   "tagline": "paying for the room, not the sale",
+   "subcategories": [
+    {
+     "id": "F7.A",
+     "name": "Institutions & associations",
+     "types": [
+      {
+       "id": "F7.A.1",
+       "name": "Trade association affinity program",
+       "what": "Member discount or endorsed-vendor status",
+       "example": "State contractors' association endorses a funding broker",
+       "pay": "Royalty and/or services fee",
+       "bench": "Large associations earn six- and seven-figure yearly royalties ([Cavuno](https://cavuno.com/blog/non-dues-revenue))"
+      },
+      {
+       "id": "F7.A.2",
+       "name": "Professional association / licensing body",
+       "what": "CPA, bar or realtor board member benefit",
+       "example": "CPA society endorses a tax tool",
+       "pay": "Royalty + member discount",
+       "bench": "Pure royalties are tax-exempt; services income is UBIT ([Partners in Association Management](https://yoursearchisdone.com/affinity-agreements-101/))"
+      },
+      {
+       "id": "F7.A.3",
+       "name": "Chamber of commerce partner program",
+       "what": "Member perk or preferred vendor",
+       "example": "Chamber \"member savings\" listing",
+       "pay": "Flat or royalty",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.A.4",
+       "name": "Economic development org / SBDC",
+       "what": "Access to small-business clients",
+       "example": "SBDC resource-partner list",
+       "pay": "Usually in-kind",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.A.5",
+       "name": "Industry council",
+       "what": "Council member offers",
+       "example": "Regional tech council perk",
+       "pay": "Flat or royalty",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.A.6",
+       "name": "Union member-benefit program",
+       "what": "Member benefit offers",
+       "example": "Union member discount",
+       "pay": "Royalty",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.A.7",
+       "name": "Alumni association / university",
+       "what": "Alumni perks, career services, incubators",
+       "example": "Alumni perk portal",
+       "pay": "Royalty or flat",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.A.8",
+       "name": "Credit union / community bank member offer",
+       "what": "Business-member perks",
+       "example": "Credit-union business perks",
+       "pay": "Rev share",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F7.B",
+     "name": "Buying & operating networks",
+     "types": [
+      {
+       "id": "F7.B.1",
+       "name": "Franchisor preferred / approved vendor",
+       "what": "Vendor listed or mandated for all units",
+       "example": "Approved marketing vendor for a franchise",
+       "pay": "Volume rebate to franchisor",
+       "bench": "Mandated tech fees run $200-2,000/month per unit; rebates rarely disclosed (advocacy source) ([Lopes Law](https://lopeslawllc.com/franchise-preferred-vendor-program-costs/))"
+      },
+      {
+       "id": "F7.B.2",
+       "name": "GPO / buying group",
+       "what": "Contracted vendor to pooled buyers",
+       "example": "Healthcare or public-sector GPO contract",
+       "pay": "Admin fee % of purchases",
+       "bench": "Safe harbor at 3% or less; largest GPOs averaged 1.22-2.25% (2008 data) ([GAO](https://www.gao.gov/assets/a308834.html))"
+      },
+      {
+       "id": "F7.B.3",
+       "name": "Purchasing / marketing co-op",
+       "what": "Vendor to a member co-op",
+       "example": "Hardware co-op vendor program",
+       "pay": "Admin fee or rebate",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.B.4",
+       "name": "Dealer council",
+       "what": "Vendor to a dealer network's council",
+       "example": "Equipment dealer council program",
+       "pay": "Rebate",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.B.5",
+       "name": "PE portfolio platform",
+       "what": "Portfolio-wide vendor deal",
+       "example": "Vendor to all portfolio companies",
+       "pay": "Negotiated",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.B.6",
+       "name": "Property manager / landlord tenant perk",
+       "what": "Tenant offers",
+       "example": "Tenant perk in multifamily app",
+       "pay": "Rev share or flat",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F7.C",
+     "name": "Employer & benefit platforms",
+     "types": [
+      {
+       "id": "F7.C.1",
+       "name": "Employee perks marketplace",
+       "what": "Vendor listed in perk catalogs",
+       "example": "PerkSpot listing",
+       "pay": "Merchant-funded commission",
+       "bench": "1,000+ employer clients; commission not disclosed ([SpotSaaS](https://www.spotsaas.com/blog/perkspot-review-2026))"
+      },
+      {
+       "id": "F7.C.2",
+       "name": "Benefits broker / PEO",
+       "what": "Vendor offered through benefits channels",
+       "example": "PEO add-on benefit",
+       "pay": "Commission",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.C.3",
+       "name": "Rewards / recognition platform",
+       "what": "Vendor inside reward catalogs",
+       "example": "Recognition-platform reward",
+       "pay": "Commission",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F7.D",
+     "name": "Communities & memberships",
+     "types": [
+      {
+       "id": "F7.D.1",
+       "name": "Paid community member perk",
+       "what": "Offer in a Skool, Circle or Mighty \"perks\" tab",
+       "example": "Skool community perk",
+       "pay": "Rev share",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.D.2",
+       "name": "Facebook / LinkedIn group partner",
+       "what": "Standing offer in a group",
+       "example": "Niche Facebook group partner",
+       "pay": "Rev share or flat",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.D.3",
+       "name": "Slack / Discord community partner",
+       "what": "Standing partner status",
+       "example": "Discord partner channel",
+       "pay": "Rev share or flat",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.D.4",
+       "name": "Mastermind / peer group vendor",
+       "what": "Introduced to all members",
+       "example": "Vistage/EO-style group vendor",
+       "pay": "Rev share",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F7.E",
+     "name": "Event & room owners",
+     "types": [
+      {
+       "id": "F7.E.1",
+       "name": "Conference attendee-offer partner",
+       "what": "Standing offer to all attendees",
+       "example": "Conference attendee perk",
+       "pay": "Rev share",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.E.2",
+       "name": "Trade show organizer partner",
+       "what": "Organizer-endorsed solution provider",
+       "example": "Show's official partner",
+       "pay": "Rev share",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.E.3",
+       "name": "Meetup / networking host",
+       "what": "Host introduces you to the group on a standing basis",
+       "example": "Founders meetup partner",
+       "pay": "Rev share or finder's fee",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.E.4",
+       "name": "Workshop / retreat operator",
+       "what": "Offer to every cohort",
+       "example": "Retreat vendor",
+       "pay": "Rev share",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.E.5",
+       "name": "Webinar-series host",
+       "what": "Standing offer across a host's series",
+       "example": "Series-wide partner",
+       "pay": "Rev share",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F7.F",
+     "name": "Connectors & gatekeepers",
+     "types": [
+      {
+       "id": "F7.F.1",
+       "name": "Coach / consultant client book",
+       "what": "Introduces you to their whole client roster",
+       "example": "Coach offers your service to 40 clients",
+       "pay": "Rev share",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.F.2",
+       "name": "Business broker",
+       "what": "Access to buyers and sellers they represent",
+       "example": "Broker's buyer list",
+       "pay": "Finder's fee",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.F.3",
+       "name": "Fractional executive portfolio",
+       "what": "Fractional CFO or CMO across clients",
+       "example": "Fractional CFO client base",
+       "pay": "Rev share",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.F.4",
+       "name": "Accountant / attorney advisory base",
+       "what": "Advisor opens the client base",
+       "example": "CPA newsletter to clients",
+       "pay": "Flat or services fee (check professional rules)",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F7.F.5",
+       "name": "Finder (group introduction)",
+       "what": "Unlicensed finder opening a group",
+       "example": "Finder introduces a buyer group",
+       "pay": "Finder's fee",
+       "bench": "No benchmark found"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "F8",
+   "name": "Channel Partners",
+   "subs": 5,
+   "types": 25,
+   "definition": "Channel Partners are third parties who resell, deliver, embed or distribute your offer.",
+   "worker": "Channel Program Manager",
+   "tagline": "they sell, deliver, bill or embed your offer",
+   "subcategories": [
+    {
+     "id": "F8.A",
+     "name": "Resell & distribute",
+     "types": [
+      {
+       "id": "F8.A.1",
+       "name": "Reseller / authorized dealer",
+       "what": "Buys and resells",
+       "example": "SaaS reseller",
+       "pay": "Discount margin",
+       "bench": "Tier ladder example: 20% / 30% / 35% ([Monetizely, vendor](https://www.getmonetizely.com/articles/partner-discounts-amp-margins-how-to-structure-a-win-win-saas-reseller-program))"
+      },
+      {
+       "id": "F8.A.2",
+       "name": "VAR",
+       "what": "Reseller adding services",
+       "example": "IT VAR",
+       "pay": "Margin",
+       "bench": "25-35% gross margin ([Monetizely, vendor](https://www.getmonetizely.com/articles/partner-discounts-amp-margins-how-to-structure-a-win-win-saas-reseller-program))"
+      },
+      {
+       "id": "F8.A.3",
+       "name": "Distributor / aggregator",
+       "what": "Wholesale to resellers",
+       "example": "Pax8-style distributor",
+       "pay": "Margin",
+       "bench": "8-15% ([Monetizely, vendor](https://www.getmonetizely.com/articles/partner-discounts-amp-margins-how-to-structure-a-win-win-saas-reseller-program))"
+      },
+      {
+       "id": "F8.A.4",
+       "name": "TSD / master agent + technology advisor",
+       "what": "Distributor with advisors (agents) under it",
+       "example": "Telarus-style TSD",
+       "pay": "Recurring residuals",
+       "bench": "$16.6B TSD billings in 2024; 86% of partners are advisors ([Omdia](https://omdia.tech.informa.com/blogs/2026/jan/key-insights-from-the-16point6bn-dollars-technology-services-distribution-tsd-market))"
+      },
+      {
+       "id": "F8.A.5",
+       "name": "ISO / sub-ISO / merchant-services agent",
+       "what": "Card-processing sales agents",
+       "example": "Merchant-services agent",
+       "pay": "Residual split",
+       "bench": "1099 agents 50-70%; ISOs 70-80%+ ([Unison, vendor](https://www.unisonpayment.com/blog/merchant-services-agent-program-residual-income))"
+      },
+      {
+       "id": "F8.A.6",
+       "name": "Funding / loan broker ISO",
+       "what": "Sells lending products (MCA, SBA)",
+       "example": "Sub-broker network for a funding brokerage",
+       "pay": "Points or commission",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F8.A.7",
+       "name": "Independent sales rep / manufacturer's rep",
+       "what": "1099 commission-only rep",
+       "example": "Regional manufacturer's rep",
+       "pay": "Commission",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F8.A.8",
+       "name": "Dealer network",
+       "what": "Local dealers selling your product",
+       "example": "Equipment dealers",
+       "pay": "Margin",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F8.B",
+     "name": "Deliver & manage",
+     "types": [
+      {
+       "id": "F8.B.1",
+       "name": "MSP",
+       "what": "Managed service provider bundling you",
+       "example": "MSP bundles a security tool",
+       "pay": "Margin + services",
+       "bench": "30-40% ([Monetizely, vendor](https://www.getmonetizely.com/articles/partner-discounts-amp-margins-how-to-structure-a-win-win-saas-reseller-program))"
+      },
+      {
+       "id": "F8.B.2",
+       "name": "MSSP",
+       "what": "Managed security provider",
+       "example": "MSSP",
+       "pay": "Margin + services",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F8.B.3",
+       "name": "System integrator / GSI",
+       "what": "Large-scale implementation",
+       "example": "Accenture-style SI",
+       "pay": "Services revenue",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F8.B.4",
+       "name": "Implementation / solutions partner",
+       "what": "Certified implementers",
+       "example": "HubSpot Solutions Partner",
+       "pay": "Rev share on sourced MRR + services",
+       "bench": "Upmarket referral pays 20% for one year on $3K+ MRR ([HubSpot](https://www.hubspot.com/solutions-partners-tiers-and-benefits-2026))"
+      },
+      {
+       "id": "F8.B.5",
+       "name": "Consultancy / fractional operator",
+       "what": "Advisors who deliver and resell",
+       "example": "Fractional CRO",
+       "pay": "Services + margin",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F8.B.6",
+       "name": "Implementation agency partner",
+       "what": "Agency that deploys your product for its clients",
+       "example": "GHL agency deploying a tool",
+       "pay": "Services + rev share",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F8.C",
+     "name": "Embed & integrate",
+     "types": [
+      {
+       "id": "F8.C.1",
+       "name": "ISV / technology partner",
+       "what": "Integration + co-sell",
+       "example": "CRM integration partner",
+       "pay": "Co-sell pipeline",
+       "bench": "Partner involvement lifts win rates 11.7% ([Crossbeam](https://insider.crossbeam.com/entry/new-data-involving-partners-in-deals-increases-win-rate-for-nearly-every-ecosystem-size-and-type))"
+      },
+      {
+       "id": "F8.C.2",
+       "name": "OEM / embedded",
+       "what": "Your product inside theirs under their SKU",
+       "example": "Scheduling engine inside a vertical CRM",
+       "pay": "Royalty per seat/unit",
+       "bench": "Salesforce OEM apps pay 25% of net revenue ([Appnigma](https://appnigma.ai/blogs/salesforce-appexchange-revenue-share/))"
+      },
+      {
+       "id": "F8.C.3",
+       "name": "Platform-built app",
+       "what": "App built on a host platform",
+       "example": "GHL or HubSpot app",
+       "pay": "Platform take rate",
+       "bench": "Shopify: 0% on first $1M, then 15% ([Shopify.dev](https://shopify.dev/docs/apps/launch/distribution/revenue-share))"
+      },
+      {
+       "id": "F8.C.4",
+       "name": "API / data partner",
+       "what": "Data or API supply",
+       "example": "Enrichment API partner",
+       "pay": "Usage fees",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F8.D",
+     "name": "Marketplaces",
+     "types": [
+      {
+       "id": "F8.D.1",
+       "name": "Hyperscaler marketplace (incl. CPPO)",
+       "what": "AWS, Azure or GCP listing; resellers transact via private offers",
+       "example": "AWS private offer",
+       "pay": "Take rate",
+       "bench": "About 3% standard; 1.5-2% at scale; CPPO +0.5% ([Partner1](https://www.partner1.io/partner-blog/cloud-marketplace-fees-compared))"
+      },
+      {
+       "id": "F8.D.2",
+       "name": "SaaS app marketplace",
+       "what": "HubSpot, AppExchange, GHL, Shopify, Zapier, Atlassian",
+       "example": "AppExchange ISV listing",
+       "pay": "Take rate",
+       "bench": "ISVforce 15% of net revenue ([Appnigma](https://appnigma.ai/blogs/salesforce-appexchange-revenue-share/))"
+      },
+      {
+       "id": "F8.D.3",
+       "name": "Vertical marketplace",
+       "what": "Industry-specific marketplace",
+       "example": "Dental software marketplace",
+       "pay": "Take rate",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F8.D.4",
+       "name": "Info-product / community marketplace",
+       "what": "ClickBank, Skool Discovery, Whop",
+       "example": "ClickBank listing",
+       "pay": "Take rate + affiliate pay",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F8.E",
+     "name": "White-label & rebrand resale",
+     "types": [
+      {
+       "id": "F8.E.1",
+       "name": "White-label SaaS reseller",
+       "what": "Partner resells your software under their brand",
+       "example": "GHL SaaS mode agency",
+       "pay": "Markup",
+       "bench": "GHL SaaS mode needs the $497/month plan; usage often rebilled at 2-4x ([CoursePlatformsReview](https://www.courseplatformsreview.com/blog/highlevel-saas-mode/))"
+      },
+      {
+       "id": "F8.E.2",
+       "name": "White-label fulfilment reseller",
+       "what": "Partner resells your service under their brand",
+       "example": "Agency resells white-label SEO or VA services",
+       "pay": "Markup",
+       "bench": "50-100% markup typical ([Sibley Digital](https://sibleydigital.com/blog/white-label-seo-markup))"
+      },
+      {
+       "id": "F8.E.3",
+       "name": "Private-label course / certification reseller",
+       "what": "Partner resells your finished course as theirs",
+       "example": "Coach resells a private-label AI course",
+       "pay": "Wholesale price or rev share",
+       "bench": "No benchmark found"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "F9",
+   "name": "Strategic Alliances & Licensing",
+   "subs": 7,
+   "types": 27,
+   "definition": "Strategic Alliances & Licensing are long-term contractual or equity arrangements that share intellectual property, brand, method, territory, ownership or operations, beyond any single campaign or sale.",
+   "worker": "Alliances & Licensing Analyst",
+   "tagline": "IP, equity and co-owned products",
+   "subcategories": [
+    {
+     "id": "F9.A",
+     "name": "Co-branding & co-created products",
+     "types": [
+      {
+       "id": "F9.A.1",
+       "name": "Co-branded offer",
+       "what": "Two brands on one ongoing product",
+       "example": "Co-branded card; bakery + coffee box",
+       "pay": "Margin split or royalty",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F9.A.2",
+       "name": "Ingredient branding",
+       "what": "Partner's brand as a named component",
+       "example": "\"Powered by X\"",
+       "pay": "Co-op marketing funds",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F9.A.3",
+       "name": "Co-developed product",
+       "what": "Jointly built product with shared IP",
+       "example": "Two agencies build an AI audit tool",
+       "pay": "Rev share by contribution",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F9.A.4",
+       "name": "Private-label product sourcing",
+       "what": "Made to your spec, sold only under your brand",
+       "example": "HVAC company's branded filters",
+       "pay": "Wholesale margin",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F9.B",
+     "name": "Licensing",
+     "types": [
+      {
+       "id": "F9.B.1",
+       "name": "Brand / trademark licensing",
+       "what": "Licensee uses your name on their products",
+       "example": "Gym brand on a supplement line",
+       "pay": "Royalty on wholesale",
+       "bench": "Service royalties 2-15%; adjusted royalties up to 12-14% ([Flowhaven](https://www.flowhaven.com/resources/major-types-of-royalty-rates-in-brand-licensing))"
+      },
+      {
+       "id": "F9.B.2",
+       "name": "Technology / patent licensing",
+       "what": "License software, patents or methods",
+       "example": "License a scheduling engine",
+       "pay": "% of net sales",
+       "bench": "Software 5-8%; consumer products 2-5% ([IPCG](https://www.ipcg.com/answers/typical-patent-royalty-rates-by-industry))"
+      },
+      {
+       "id": "F9.B.3",
+       "name": "Content / curriculum / IP licensing",
+       "what": "License a course, framework or certification",
+       "example": "AI curriculum licensed to a college",
+       "pay": "Per-seat or rev share",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F9.B.4",
+       "name": "Character / personality licensing",
+       "what": "A person's name or likeness",
+       "example": "Expert's name on a program",
+       "pay": "Royalty + advance",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F9.B.5",
+       "name": "Sublicensing / master license",
+       "what": "Licensee re-licenses to others",
+       "example": "Regional master licensee",
+       "pay": "Share of sublicense income",
+       "bench": "Licensor keeps 25-75% ([Flowhaven](https://www.flowhaven.com/resources/major-types-of-royalty-rates-in-brand-licensing))"
+      }
+     ]
+    },
+    {
+     "id": "F9.C",
+     "name": "Franchise-style & licensed-operator models",
+     "types": [
+      {
+       "id": "F9.C.1",
+       "name": "Franchise (FTC-regulated)",
+       "what": "Trademark + significant control + required payment of $735+",
+       "example": "Service franchise",
+       "pay": "Royalty on gross",
+       "bench": "Average 6.7% of gross; business services about 11.9% ([Franzy](https://franzy.com/blog/average-franchise-royalty-fee/))"
+      },
+      {
+       "id": "F9.C.2",
+       "name": "Licensed operator / certification program",
+       "what": "Use of a method or name without significant control",
+       "example": "Certified AI integrator operating under your method",
+       "pay": "License fee or rev share",
+       "bench": "Must stay below franchise triggers ([FTC](https://www.ftc.gov/news-events/news/press-releases/2024/07/ftc-publishes-inflation-adjusted-monetary-thresholds-three-exemptions-franchise-rule))"
+      },
+      {
+       "id": "F9.C.3",
+       "name": "Dealer / territory rights",
+       "what": "Exclusive rights in a territory",
+       "example": "County territory license",
+       "pay": "Fee + royalty",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F9.C.4",
+       "name": "Area developer / master franchise",
+       "what": "Develops multiple units in a region",
+       "example": "Regional area developer",
+       "pay": "Fee + override",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F9.D",
+     "name": "Equity & contractual JVs",
+     "types": [
+      {
+       "id": "F9.D.1",
+       "name": "Equity joint venture",
+       "what": "New jointly owned entity",
+       "example": "Coach + AI builder form a NewCo",
+       "pay": "Equity split",
+       "bench": "Alliance typology per ([CFI](https://corporatefinanceinstitute.com/resources/management/strategic-alliances/))"
+      },
+      {
+       "id": "F9.D.2",
+       "name": "Minority-stake alliance",
+       "what": "One partner takes a stake in the other",
+       "example": "Strategic investment",
+       "pay": "Equity",
+       "bench": "([CFI](https://corporatefinanceinstitute.com/resources/management/strategic-alliances/))"
+      },
+      {
+       "id": "F9.D.3",
+       "name": "Contractual (non-equity) JV",
+       "what": "Contract-only long-term venture",
+       "example": "Multi-year joint program",
+       "pay": "Profit split",
+       "bench": "([CFI](https://corporatefinanceinstitute.com/resources/management/strategic-alliances/))"
+      },
+      {
+       "id": "F9.D.4",
+       "name": "Earn-in deal",
+       "what": "Partner earns equity by hitting milestones",
+       "example": "Operator earns a stake for building sales",
+       "pay": "Equity vesting",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F9.D.5",
+       "name": "Rev-share-for-equity swap",
+       "what": "Revenue share converted to equity",
+       "example": "Rev share into shares",
+       "pay": "Equity",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F9.E",
+     "name": "Purchasing co-ops & group buying (as organizer)",
+     "types": [
+      {
+       "id": "F9.E.1",
+       "name": "Purchasing co-op / GPO formation",
+       "what": "Members pool volume for discounts",
+       "example": "Restaurant buying group",
+       "pay": "Vendor admin fees",
+       "bench": "Healthcare safe harbor at 3% or less ([CASRAI](https://casrai.org/guides/gpo-safe-harbor))"
+      },
+      {
+       "id": "F9.E.2",
+       "name": "Community group-buying deal",
+       "what": "Negotiated volume discount for a community",
+       "example": "Software discount for a Skool group",
+       "pay": "Admin fee or goodwill",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F9.F",
+     "name": "Shared services & resource alliances",
+     "types": [
+      {
+       "id": "F9.F.1",
+       "name": "Shared staff / office / back office",
+       "what": "Ongoing shared operations",
+       "example": "Shared SDR team or call center",
+       "pay": "Cost split",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F9.F.2",
+       "name": "Teaming agreement / joint bid",
+       "what": "Joint bids, e.g. government contracts",
+       "example": "Two firms team on an RFP",
+       "pay": "Work share",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F9.F.3",
+       "name": "Exclusive distribution rights",
+       "what": "Secure exclusive rights to distribute a product",
+       "example": "Exclusive regional rights",
+       "pay": "Margin",
+       "bench": "Abraham's \"distribution control\" ([Abraham PDF](https://grumomedia.com/files/Jay_Abraham-From_Mediocrity_to_Millions.pdf))"
+      }
+     ]
+    },
+    {
+     "id": "F9.G",
+     "name": "R&D & innovation partnerships",
+     "types": [
+      {
+       "id": "F9.G.1",
+       "name": "Joint R&D",
+       "what": "Co-funded development",
+       "example": "Joint AI model build",
+       "pay": "Shared IP",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F9.G.2",
+       "name": "Sponsored university research",
+       "what": "Firm funds academic research",
+       "example": "University lab project",
+       "pay": "Funding for IP rights",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F9.G.3",
+       "name": "Design partner / pilot program",
+       "what": "Early customers co-shape the product",
+       "example": "Pilot customers at a discount",
+       "pay": "Discount for input",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F9.G.4",
+       "name": "Data partnership",
+       "what": "Share or pool data assets",
+       "example": "Anonymized benchmark data pool",
+       "pay": "Data access",
+       "bench": "No benchmark found"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "F10",
+   "name": "Cause & Nonprofit Partners",
+   "subs": 4,
+   "types": 15,
+   "definition": "Cause & Nonprofit Partners are charities, schools, teams, faith and civic groups where the business's contribution (a percentage of sales, a donation per unit, a fundraiser share or in-kind support) produces revenue, traffic or community access in return.",
+   "worker": "Community & Cause Coordinator",
+   "tagline": "giving tied to sales or traffic",
+   "subcategories": [
+    {
+     "id": "F10.A",
+     "name": "Cause marketing",
+     "types": [
+      {
+       "id": "F10.A.1",
+       "name": "Percent-of-sale / $-per-unit",
+       "what": "Fixed share of each purchase donated during a campaign",
+       "example": "$25 per HVAC tune-up to a food bank",
+       "pay": "Donation from margin",
+       "bench": "Disclose amount, dates and cap ([Engage for Good](https://engageforgood.com/resource/do-good-and-sell-it-well-an-overview-of-cause-marketing-regulation/))"
+      },
+      {
+       "id": "F10.A.2",
+       "name": "Buy-one-give-one / in-kind",
+       "what": "Product or service donated per sale",
+       "example": "Whitening funds a veteran cleaning",
+       "pay": "In-kind cost",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F10.A.3",
+       "name": "Checkout / round-up ask",
+       "what": "Customer donates at checkout",
+       "example": "\"$1 for the school band\"",
+       "pay": "Customer money passes through",
+       "bench": "$275M raised across 92 campaigns in 2024; average gift $1.13 ([NonProfit Times](https://thenonprofittimes.com/npt_articles/checkout-campaigns-rang-up-275-million-in-2024/))"
+      },
+      {
+       "id": "F10.A.4",
+       "name": "Cause-branded product",
+       "what": "Special edition supporting a cause",
+       "example": "Pink pizza box in October",
+       "pay": "Rev share to charity",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F10.A.5",
+       "name": "Cause affiliate",
+       "what": "Nonprofit promotes via a tracked link and earns a donation per sale",
+       "example": "Charity link on a brand's network",
+       "pay": "% of sale as donation",
+       "bench": "Listed as a partner type ([impact.com](https://help.impact.com/brand/what-would-you-like-to-learn-about/partnership-strategies/working-with-partners/an-impactcom-guide-to-partner-types))"
+      }
+     ]
+    },
+    {
+     "id": "F10.B",
+     "name": "Community fundraisers & charity events",
+     "types": [
+      {
+       "id": "F10.B.1",
+       "name": "Spirit / fundraiser night",
+       "what": "Group brings its people; business donates a share of the night's sales",
+       "example": "Restaurant spirit night for a PTA",
+       "pay": "% of qualifying sales",
+       "bench": "15-40% of sales on GroupRaise listings ([GroupRaise](https://www.groupraise.com/restaurant-fundraisers))"
+      },
+      {
+       "id": "F10.B.2",
+       "name": "Product fundraiser / gift-card resale",
+       "what": "Group sells your product or cards at a margin",
+       "example": "Team sells car-wash cards",
+       "pay": "Group margin",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F10.B.3",
+       "name": "Fundraiser service partnership",
+       "what": "You run the fundraiser with the nonprofit",
+       "example": "Gym runs a charity bootcamp",
+       "pay": "Shared entry and sponsor revenue",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F10.B.4",
+       "name": "Charity auction / in-kind event donor",
+       "what": "Donate a package to a gala or auction",
+       "example": "Spa package at a school auction",
+       "pay": "Leads from winners",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F10.C",
+     "name": "Pledges & certifications",
+     "types": [
+      {
+       "id": "F10.C.1",
+       "name": "Percent-of-revenue pledge",
+       "what": "Ongoing pledge such as 1% for the Planet or Pledge 1%",
+       "example": "Coffee roaster joins 1% for the Planet",
+       "pay": "At least 1% of annual sales",
+       "bench": "4,241+ members, $939M+ given ([1% for the Planet](https://www.onepercentfortheplanet.org/frequently-asked-questions))"
+      },
+      {
+       "id": "F10.C.2",
+       "name": "B Corp / benefit corporation",
+       "what": "Third-party certification or legal form",
+       "example": "Agency certifies as a B Corp",
+       "pay": "Certification cost; B Corp buyer networks",
+       "bench": "10,000+ B Corps ([B Lab](https://www.bcorporation.net/en-us/news/press/over-1-million-people-now-work-at-certified-b-corps/))"
+      }
+     ]
+    },
+    {
+     "id": "F10.D",
+     "name": "Community & institutional partnerships",
+     "types": [
+      {
+       "id": "F10.D.1",
+       "name": "School / workforce partnership",
+       "what": "Internships, apprenticeships, curriculum",
+       "example": "Trade-school apprenticeship",
+       "pay": "Talent pipeline; possible curriculum fee",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F10.D.2",
+       "name": "Faith / civic community partnership",
+       "what": "Member discount through churches or civic groups",
+       "example": "Mover offers church-member discount",
+       "pay": "Discount as referral channel",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F10.D.3",
+       "name": "Nonprofit referral program",
+       "what": "Nonprofit refers members; business donates per job",
+       "example": "Veterans org + home-mod contractor",
+       "pay": "Donation per referred customer",
+       "bench": "No benchmark found (regulated-industry caution)"
+      },
+      {
+       "id": "F10.D.4",
+       "name": "Employee volunteering / gift matching",
+       "what": "Company matches staff gifts or time",
+       "example": "Matching-gift program",
+       "pay": "Retention and PR",
+       "bench": "No benchmark found"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "F11",
+   "name": "House Partners",
+   "subs": 5,
+   "types": 29,
+   "definition": "House Partners are the business's own base: customers, past buyers, old leads, employees, contractors and alumni.",
+   "worker": "House Revenue Operator",
+   "tagline": "your own customers, leads, staff and alumni",
+   "subcategories": [
+    {
+     "id": "F11.A",
+     "name": "Customer referral",
+     "types": [
+      {
+       "id": "F11.A.1",
+       "name": "Refer-a-friend (give/get)",
+       "what": "Single- or double-sided rewards",
+       "example": "\"Give $50, get $50\"",
+       "pay": "Credit, cash or discount",
+       "bench": "Share rate 15% solid, 30% excellent; referral 5-15% of revenue healthy (2022) ([Friendbuy](https://www.friendbuy.com/blog/referral-rates))"
+      },
+      {
+       "id": "F11.A.2",
+       "name": "B2B customer referral program",
+       "what": "Account credits, cash or charity donation for referrals",
+       "example": "\"Refer a firm, get 2 months free\"",
+       "pay": "Credit or cash",
+       "bench": "84% of B2B buyers start with a referral (secondary) ([Shno](https://www.shno.co/marketing-statistics/customer-advocacy-statistics))"
+      },
+      {
+       "id": "F11.A.3",
+       "name": "Referral contest",
+       "what": "Time-boxed prizes for most referrals",
+       "example": "Quarterly referral leaderboard",
+       "pay": "Prizes",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.A.4",
+       "name": "Gifted seat / trial",
+       "what": "Customers gift access to peers",
+       "example": "\"Gift a free month\"",
+       "pay": "Product",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F11.B",
+     "name": "Advocacy & proof",
+     "types": [
+      {
+       "id": "F11.B.1",
+       "name": "Customer ambassador / advocate",
+       "what": "Superfans promoting with perks",
+       "example": "Customer ambassador club",
+       "pay": "Points, perks, swag",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.B.2",
+       "name": "Customer advisory board",
+       "what": "Customers shaping the roadmap",
+       "example": "Quarterly CAB",
+       "pay": "Access, recognition",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.B.3",
+       "name": "Case-study partner",
+       "what": "Customer featured in a story",
+       "example": "Video case study",
+       "pay": "Recognition, discount",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.B.4",
+       "name": "Reference customer",
+       "what": "Takes sales calls for you",
+       "example": "Reference call for an enterprise deal",
+       "pay": "Credit, perks",
+       "bench": "21% say finding references is the main SaaS buying roadblock ([Shno](https://www.shno.co/marketing-statistics/customer-advocacy-statistics))"
+      },
+      {
+       "id": "F11.B.5",
+       "name": "Review generator",
+       "what": "Reviews on Google, G2, Capterra",
+       "example": "Post-job Google review request",
+       "pay": "None (incentives restricted)",
+       "bench": "70% of B2B buyers rely on peer reviews ([Shno](https://www.shno.co/marketing-statistics/customer-advocacy-statistics))"
+      },
+      {
+       "id": "F11.B.6",
+       "name": "Testimonial / UGC contributor",
+       "what": "Customer-created proof content",
+       "example": "Customer video testimonial",
+       "pay": "Perks",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.B.7",
+       "name": "User-group champion / community MVP",
+       "what": "Runs user groups or leads the community",
+       "example": "Trailblazer-style champion",
+       "pay": "Recognition, access",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.B.8",
+       "name": "Customer speaker",
+       "what": "Customer on your stage or webinar",
+       "example": "Customer keynote at your event",
+       "pay": "Recognition",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F11.C",
+     "name": "Loyalty & expansion",
+     "types": [
+      {
+       "id": "F11.C.1",
+       "name": "Loyalty / points program",
+       "what": "Points for purchases and actions",
+       "example": "Salon points card",
+       "pay": "Points",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.C.2",
+       "name": "VIP tier",
+       "what": "Status tiers with perks",
+       "example": "VIP client tier",
+       "pay": "Perks",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.C.3",
+       "name": "Upsell / cross-sell / ascension ladder",
+       "what": "Move buyers up the offer ladder",
+       "example": "Free community → course → done-for-you",
+       "pay": "Offer pricing",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.C.4",
+       "name": "Multi-location / account expansion",
+       "what": "Expand into new sites or departments",
+       "example": "Second location onboard",
+       "pay": "Offer pricing",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.C.5",
+       "name": "Customer-to-partner conversion",
+       "what": "Customer becomes affiliate, reseller or implementer",
+       "example": "Client becomes a certified implementer",
+       "pay": "Hand-off to [[F1 Affiliates|F1]], [[F8 Channel Partners|F8]] or [[F9 Strategic Alliances & Licensing|F9]]",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F11.D",
+     "name": "Reactivation & win-back",
+     "types": [
+      {
+       "id": "F11.D.1",
+       "name": "Dormant-lead database reactivation",
+       "what": "SMS, email or AI calling to old leads",
+       "example": "Reactivate 5,000 old funding leads",
+       "pay": "Offer",
+       "bench": "Reactivation of inactive customers averages 12-20% ([Eightx](https://eightx.co/blog/average-win-back-reactivation-rate-benchmarks)); no B2B lead data"
+      },
+      {
+       "id": "F11.D.2",
+       "name": "Past-buyer reactivation",
+       "what": "Re-offer to past buyers",
+       "example": "Annual tune-up reminder",
+       "pay": "Offer",
+       "bench": "Win-back flows convert 1-2.5%, top quartile 5-10% ([Eightx](https://eightx.co/blog/average-win-back-reactivation-rate-benchmarks))"
+      },
+      {
+       "id": "F11.D.3",
+       "name": "Lapsed-subscription win-back",
+       "what": "Win back cancelled subscribers",
+       "example": "Churned-member offer",
+       "pay": "Discount",
+       "bench": "About 1 in 4 new subscriptions come from previously cancelled subscribers ([Recurly](https://recurly.com/blog/customer-winback-strategies-for-subscriptions/))"
+      },
+      {
+       "id": "F11.D.4",
+       "name": "Failed-payment / involuntary-churn recovery",
+       "what": "Dunning and card retries",
+       "example": "Card-update sequence",
+       "pay": "None",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.D.5",
+       "name": "Pause-instead-of-cancel",
+       "what": "Offer a pause at cancellation",
+       "example": "3-month pause option",
+       "pay": "Pause",
+       "bench": "75% of paused customers return to billing ([Recurly](https://recurly.com/blog/customer-winback-strategies-for-subscriptions/))"
+      },
+      {
+       "id": "F11.D.6",
+       "name": "No-show / unclosed-proposal follow-up",
+       "what": "Revive stalled pipeline",
+       "example": "Closed-lost re-engagement",
+       "pay": "Offer",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.D.7",
+       "name": "Churned-to-competitor win-back",
+       "what": "Target customers lost to rivals",
+       "example": "Switch-back offer",
+       "pay": "Discount",
+       "bench": "No benchmark found"
+      }
+     ]
+    },
+    {
+     "id": "F11.E",
+     "name": "Team & network",
+     "types": [
+      {
+       "id": "F11.E.1",
+       "name": "Employee hiring referral",
+       "what": "Staff refer hires",
+       "example": "Referral bonus for technicians",
+       "pay": "Bonus, often in installments",
+       "bench": "28.2% of referred applicants hired; construction bonus about $2,500 ([Hellora](https://www.hellora.com/resources/the-state-of-employee-referral-programs-key-insights-benchmarks))"
+      },
+      {
+       "id": "F11.E.2",
+       "name": "Employee sales referral",
+       "what": "Staff refer customers",
+       "example": "Technician spots a replacement job",
+       "pay": "Spiff",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.E.3",
+       "name": "Employee advocacy",
+       "what": "Staff share brand content",
+       "example": "Team LinkedIn program",
+       "pay": "Recognition",
+       "bench": "Employee-shared content gets about 8x engagement (older data) ([Oktopost](https://www.oktopost.com/blog/employee-advocacy-statistics-2026/))"
+      },
+      {
+       "id": "F11.E.4",
+       "name": "Boomerang alumni network",
+       "what": "Former staff as referrers and rehires",
+       "example": "Alumni LinkedIn group",
+       "pay": "Bonus",
+       "bench": "No benchmark found"
+      },
+      {
+       "id": "F11.E.5",
+       "name": "Placed contractors / VAs",
+       "what": "VAs placed with clients refer new clients",
+       "example": "Placed VA refers another business",
+       "pay": "Bonus",
+       "bench": "No benchmark found"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+{
+  "_doc": "Exact tool names the agent may register from each MCP server (Hermes mcp_servers.<name>.tools.include). Read-only CRM and calendar lookups only. Every send, reply, create, update or delete happens in the relsend worker after a signed human approval, never through an agent tool. Exact names only (no globs): scripts/check_repo.py rejects globs and any name matching a deny pattern. Confirm live names with `python3 -m relcore doctor --mcp-surface` after connecting; a name that does not exist simply registers nothing.",
+  "deny_patterns": ["*SEND*", "*REPLY*", "*FORWARD*", "*CREATE*", "*UPDATE*", "*DELETE*", "*REMOVE*", "*PATCH*", "*POST*", "*EXECUTE*", "*PROXY*", "*UPSERT*", "*MERGE*", "*ADD*", "*MOVE*", "*ARCHIVE*", "*TRASH*", "*DRAFT*", "COMPOSIO_*"],
+  "servers": {
+    "composio": [
+      "HUBSPOT_LIST_CONTACTS",
+      "HUBSPOT_SEARCH_CONTACTS_BY_CRITERIA",
+      "HUBSPOT_GET_CONTACT_BY_ID",
+      "HUBSPOT_LIST_COMPANIES",
+      "HUBSPOT_SEARCH_COMPANIES",
+      "HUBSPOT_LIST_DEALS",
+      "SALESFORCE_SEARCH_CONTACTS",
+      "SALESFORCE_GET_CONTACT",
+      "PIPEDRIVE_GET_ALL_PERSONS",
+      "PIPEDRIVE_SEARCH_PERSONS",
+      "GOOGLECALENDAR_FIND_EVENT",
+      "GOOGLECALENDAR_FIND_FREE_SLOTS",
+      "GOOGLECALENDAR_LIST_CALENDARS"
+    ]
+  }
+}

@@ -26,7 +26,7 @@ Older candidate hashes and artifact sizes are intentionally not presented as cur
 
 | Python compilation | Passed | Builder, tests, bridges, packaged source |
 | Super Browser runtime registration | Passed twice | Atomic standard-library `.pth`/`.dist-info` plus verified console entry point; no build backend or resolver |
-| Shell syntax | 19 passed | 15 tracked shell programs plus install and three boot/resume hooks from the assembled template |
+| Shell syntax | 20 passed | 16 tracked shell programs (including the vendored `relcore/backup.sh`) plus install and three boot/resume hooks from the assembled template |
 | Markdown/HTML local links and assets | 68 resolved | Count derived by `.github/scripts/check_markdown_links.py`; Markdown links/images plus HTML `src`/`href` references |
 | Exact candidate export | Passed | Non-Python launcher rejects tracked/index differences and non-ignored untracked files, captures `git write-tree`, verifies archive parity, and runs all tests/builds inside that export |
 | Local JSON Schema | Passed | Disposable environment populated from `requirements-ci.lock` under `--require-hashes` |
