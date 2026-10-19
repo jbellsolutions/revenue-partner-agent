@@ -42,8 +42,15 @@ class NetworkMapTests(unittest.TestCase):
             self.assertTrue(name.startswith("rel_"), name)
             self.assertIsNone(SEND_LIKE.search(name.replace("rel_network_plan", "rel_network_preview")), name)
         for name in ("rel_network_plan", "rel_network_map", "rel_network_job", "rel_network_report",
+                     "rel_network_deep_plan", "rel_network_page_add", "rel_network_deep",
                      "rel_network_li_allow", "rel_network_li_record", "rel_network_li_block", "rel_suppress"):
             self.assertIn(name, include)
+
+    def test_deep_pass_reaches_claude_opus(self):
+        env = self.server["env"]
+        self.assertEqual(env["ANTHROPIC_API_KEY"], "${ANTHROPIC_API_KEY}", "the deep pass runs on Claude Opus 5.5")
+        bridge = (FILES / "safe-env-bridge.py").read_text()
+        self.assertEqual(bridge.count('"ANTHROPIC_API_KEY"'), 2, "both key lists carry the Anthropic key")
 
     def test_vendored_server_registers_every_pinned_tool(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -81,7 +88,9 @@ class NetworkMapTests(unittest.TestCase):
     def test_skill_keeps_the_linkedin_and_bulk_import_rules(self):
         skill = (FILES / "skills/go-to-market/network-map/SKILL.md").read_text()
         for rule in ("never theirs", "rel_network_li_block", "Never solve or route around it",
-                     "Send no messages from the reader account", "relcore network apply", "do-not-contact"):
+                     "Send no messages and post no content, ever", "zero writes", "rel_network_page_add",
+                     "potentially knows", "Never run the deep pass on a weaker model", "relcore network apply",
+                     "do-not-contact"):
             self.assertIn(rule, skill)
 
 

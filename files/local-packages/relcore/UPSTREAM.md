@@ -1,6 +1,6 @@
 # relcore (vendored)
 
-Source: github.com/jbellsolutions/true-revenue-partner, branch `network-map`, commit `f6b7727157c3d8ebf63a791d67bce961a7f20cf9`.
+Source: github.com/jbellsolutions/true-revenue-partner, branch `network-map`, commit `c2e58cd55e51588949a2a0e79b5bec7727b7ad79`.
 Copied as is: `relcore/` (stdlib Python, no dependencies), `policies/permissions.json`,
 `policies/mcp-tool-allowlist.json`, `data/revenue-partnerships.json` (the 339 partnership types).
 

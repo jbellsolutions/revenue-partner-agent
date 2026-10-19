@@ -12,6 +12,10 @@ The pipeline reads each source (one progress bar each), merges people across sou
     python3 -m relcore network run <run> [--classifier rules|llm|jev] [--spots 12] [--example]
     python3 -m relcore network report <run> [--spots]  print the report (or just the spots)
     python3 -m relcore network apply <run> --yes       owner only: write the cards into this install
+    python3 -m relcore network deep-plan <run> [--sample 12]   who the deep pass will research, and what we know
+    python3 -m relcore network deep <run> [--sample 12] [--engine anthropic|claude|openrouter|codex]
+                                                       the five-agent deep pass (deep.py): who each person
+                                                       is connected to, checked, and what it could bring
     python3 -m relcore network li-status [--account default]
     python3 -m relcore network li-clear --account default --yes    owner only, after checking the account by hand
 
@@ -33,7 +37,7 @@ from .job import Job
 from .linkedin import Ledger
 from .sources import detect, read_path
 
-RESERVED = {"client.json", "truth.json", "job.json", "report.json", "classes.json", "plan.json"}
+RESERVED = {"client.json", "truth.json", "job.json", "report.json", "classes.json", "plan.json", "deep.json"}
 LABELS = {"linkedin": "LinkedIn", "crm": "CRM", "email_list": "Email list", "contacts": "Phone and contacts",
           "facebook": "Facebook", "instagram": "Instagram", "x": "X", "tiktok": "TikTok", "youtube": "YouTube",
           "threads": "Threads", "web": "Web pages", "mutuals": "Mutual connections"}
@@ -171,13 +175,19 @@ def _quiet(d, spots):
         pass  # the job file records the failure
 
 
-def _t_job(srv, run):
+def _t_job(srv, run, deep=False):
     d = _run_dir(srv, run)
+    if deep:
+        f = d / "deep" / "job.json"
+        return json.loads(f.read_text()) if f.exists() else {"state": "not_started"}
     return json.loads((d / "job.json").read_text()) if (d / "job.json").exists() else {"state": "not_started"}
 
 
-def _t_report(srv, run, spots_only=False):
+def _t_report(srv, run, spots_only=False, deep=False):
     d = _run_dir(srv, run)
+    if deep:
+        f = d / "deep.json"
+        return json.loads(f.read_text()) if f.exists() else {"state": "not_run", "next": "rel_network_deep"}
     if not (d / "report.json").exists():
         return {"state": "not_mapped", "next": "rel_network_map"}
     r = json.loads((d / "report.json").read_text())
@@ -185,6 +195,54 @@ def _t_report(srv, run, spots_only=False):
         names = {p["id"]: p for p in r["people"]}
         return {"totals": r["totals"], "spots": [{**s, "person_card": names.get(s["person"])} for s in r["spots"]]}
     return r
+
+
+def _t_deep_plan(srv, run, sample=12):
+    d = _run_dir(srv, run)
+    if not (d / "report.json").exists():
+        return {"state": "not_mapped", "next": "rel_network_map first; the deep pass samples from its report"}
+    return deep_plan(d, sample)
+
+
+def _t_page_add(srv, run, person, url, kind, text, title="", found_via="search", account="default"):
+    from . import deep
+    d = _run_dir(srv, run)
+    return deep.add_page(d, person, {"url": url, "kind": kind, "title": title, "text": text, "found_via": found_via},
+                         ledger=Ledger(srv.paths.home, account))
+
+
+def _t_deep(srv, run, sample=12, wait=False):
+    from . import deep, models
+    d = _run_dir(srv, run)
+    if not (d / "report.json").exists():
+        return {"state": "not_mapped", "next": "rel_network_map first"}
+    engine = models.pick()  # raises with what to configure when no frontier model is reachable
+    if wait:
+        r = deep.run(d, engine=engine, n=sample)
+        return {"state": "complete", "qc": r["qc"], "top": len(r["top"]), "engine": r["engine"]}
+    threading.Thread(target=_quiet_deep, args=(d, engine, sample), daemon=True).start()
+    return {"state": "started", "job": "call rel_network_job with deep true to watch the five agents"}
+
+
+def _quiet_deep(d, engine, sample):
+    from . import deep
+    try:
+        deep.run(d, engine=engine, n=sample)
+    except Exception:
+        pass  # deep/job.json records the failure
+
+
+def deep_plan(d: Path, sample: int = 12) -> dict:
+    from . import deep
+    report = json.loads((d / "report.json").read_text())
+    sel = deep.select(report, sample)
+    by_id = {p["id"]: p for p in report["people"]}
+    have = deep.load_pages(d, report)
+    return {"rule": sel["rule"], "people": [
+        {"person": pid, **{k: by_id[pid].get(k) for k in ("name", "title", "company", "location", "sources", "identities")},
+         "pages": len(have.get(pid) or [])} for pid in sel["people"]],
+        "next": "find each person's public pages (website, association and event pages, social profiles; LinkedIn "
+                "only through the reader caps), add each with rel_network_page_add, then call rel_network_deep"}
 
 
 def _t_li_allow(srv, kind, account="default"):
@@ -221,13 +279,45 @@ MCP_TOOLS = [
                                     "wait": {"type": "boolean"}}}},
     {"name": "rel_network_job", "read": True, "handler": _t_job,
      "description": "Progress of a run: one entry per source (queued, reading, done, skipped) and per stage "
-                    "(merge, classify, map, spots) with real counts.",
-     "inputSchema": {"type": "object", "additionalProperties": False, "required": ["run"], "properties": {"run": _RUN}}},
+                    "(merge, classify, map, spots) with real counts. With deep true: the deep pass, one entry per "
+                    "agent (cards, research, qc, brainstorm, expert).",
+     "inputSchema": {"type": "object", "additionalProperties": False, "required": ["run"],
+                     "properties": {"run": _RUN, "deep": {"type": "boolean"}}}},
     {"name": "rel_network_report", "read": True, "handler": _t_report,
      "description": "The NetworkReport for a run: totals, the people shown, who-knows-who edges, and the revenue spots "
                     "(person, kind, score, warm path, why, a draft opener). Openers are drafts for the owner to approve.",
      "inputSchema": {"type": "object", "additionalProperties": False, "required": ["run"],
-                     "properties": {"run": _RUN, "spots_only": {"type": "boolean"}}}},
+                     "properties": {"run": _RUN, "spots_only": {"type": "boolean"}, "deep": {"type": "boolean"}}}},
+    {"name": "rel_network_deep_plan", "read": True, "handler": _t_deep_plan,
+     "description": "Who the deep pass will research (top revenue spots plus the best-connected people the client "
+                    "knows least about, up to 20) with what is already known and how many pages each has. Writes nothing.",
+     "inputSchema": {"type": "object", "additionalProperties": False, "required": ["run"],
+                     "properties": {"run": _RUN, "sample": {"type": "integer", "minimum": 1, "maximum": 20}}}},
+    {"name": "rel_network_page_add", "read": False, "handler": _t_page_add,
+     "description": "Save one public page you read (website, association, event, news, podcast, social profile) as "
+                    "evidence for one person in the deep pass. The page text is stored as data. A LinkedIn page is "
+                    "refused unless rel_network_li_record already logged that url.",
+     "inputSchema": {"type": "object", "additionalProperties": False, "required": ["run", "person", "url", "kind", "text"],
+                     "properties": {"run": _RUN, "person": {"type": "string", "maxLength": 120,
+                                                            "description": "The person id from the report, or their exact name."},
+                                    "url": {"type": "string", "maxLength": 500},
+                                    "kind": {"type": "string", "enum": ["linkedin", "facebook", "instagram", "x", "tiktok",
+                                                                        "youtube", "website", "association", "news",
+                                                                        "podcast", "event", "directory", "other"]},
+                                    "title": {"type": "string", "maxLength": 200},
+                                    "found_via": {"type": "string", "enum": ["own_profile", "linked", "search"],
+                                                  "description": "own_profile: a profile URL from the client's own "
+                                                                 "sources (checked in code); linked: linked from it; "
+                                                                 "search: found by name."},
+                                    "text": {"type": "string", "maxLength": 60000}, "account": _ACCOUNT}}},
+    {"name": "rel_network_deep", "read": False, "handler": _t_deep,
+     "description": "Run the deep pass on the sample: five agents (cards, connection researcher, quality control, "
+                    "opportunity brainstorm, connections expert) on the strongest configured model (Claude Opus 5.5 "
+                    "when ANTHROPIC_API_KEY is set). Every fact must quote its page; anything that fails a check is "
+                    "dropped and listed. Writes deep.json. Sends nothing to anyone.",
+     "inputSchema": {"type": "object", "additionalProperties": False, "required": ["run"],
+                     "properties": {"run": _RUN, "sample": {"type": "integer", "minimum": 1, "maximum": 20},
+                                    "wait": {"type": "boolean"}}}},
     {"name": "rel_network_li_allow", "read": True, "handler": _t_li_allow,
      "description": "Ask before every LinkedIn invite or connections-list page on our reader account. Returns ok=false "
                     "when the daily invite cap, the hourly page cap, or a block stops it. Never work around a no.",
@@ -252,15 +342,17 @@ def main(argv=None) -> int:
     from ..store import Store
     ap = argparse.ArgumentParser(prog="relcore network", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("action", choices=["plan", "run", "report", "apply", "li-status", "li-clear"])
+    ap.add_argument("action", choices=["plan", "run", "report", "apply", "deep-plan", "deep", "li-status", "li-clear"])
     ap.add_argument("run", nargs="?")
     ap.add_argument("--classifier", choices=["rules", "llm", "jev"])
     ap.add_argument("--spots", type=int, default=12)
     ap.add_argument("--example", action="store_true", help="mark the report as synthetic example data")
     ap.add_argument("--account", default="default")
+    ap.add_argument("--sample", type=int, default=12)
+    ap.add_argument("--engine", choices=["anthropic", "claude", "openrouter", "codex"])
     ap.add_argument("--yes", action="store_true")
     a = ap.parse_args(argv)
-    if a.action in ("plan", "run", "report", "apply") and not a.run:
+    if a.action in ("plan", "run", "report", "apply", "deep-plan", "deep") and not a.run:
         ap.error(f"{a.action} needs a run folder")
     if a.action == "plan":
         print(json.dumps(plan(Path(a.run)), indent=1))
@@ -277,6 +369,14 @@ def main(argv=None) -> int:
             print("apply writes every person in this run as a card in this install. Re-run with --yes.")
             return 2
         print(json.dumps(apply(Path(a.run), Store(config.resolve(), render=True)), indent=1))
+    elif a.action == "deep-plan":
+        print(json.dumps(deep_plan(Path(a.run), a.sample), indent=1))
+    elif a.action == "deep":
+        from . import deep, models
+        example = a.example or bool(_client(Path(a.run)).get("example"))
+        r = deep.run(Path(a.run), engine=models.pick(a.engine), n=a.sample, example=example)
+        print(json.dumps({"engine": r["engine"], "qc": r["qc"], "top": len(r["top"]), "hubs": len(r["hubs"]),
+                          "report": str(Path(a.run) / "deep.json")}, indent=1))
     elif a.action == "li-status":
         print(json.dumps(Ledger(config.resolve().home, a.account).status(), indent=1))
     elif a.action == "li-clear":

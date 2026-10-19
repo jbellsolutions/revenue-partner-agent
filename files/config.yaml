@@ -357,7 +357,9 @@ mcp_servers:
   # Living contact cards in SQLite, rendered to the Obsidian vault, plus the network map: read a
   # client's sources (CRM export, LinkedIn reader output, email list, contacts, social follower
   # lists), merge people, classify them (TypeSafe Jev, then GLM, then rules), and find the
-  # revenue spots with warm paths. `tools.include` pins the read, record and map tools. Left out
+  # revenue spots with warm paths. The deep pass researches who a sample of people know from their
+  # public pages with five agents on Claude Opus 5.5 (ANTHROPIC_API_KEY; OpenRouter otherwise), every
+  # claim checked against its page. `tools.include` pins the read, record and map tools. Left out
   # on purpose: drafting, waves and reply tools (this agent has no approval step for them), and
   # any bulk card import (`relcore network apply` is the owner's CLI, never an agent tool).
   relcore:
@@ -371,12 +373,14 @@ mcp_servers:
       RELCORE_STOP_FILE: /root/.hermes/revenue-partner/EXTERNAL_WRITES_STOPPED
       TYPESAFE_API_KEY: ${TYPESAFE_API_KEY}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     enabled: true
     timeout: 120
     tools:
       include: [rel_context, rel_card_get, rel_search, rel_graph_query, rel_paths, rel_status,
                 rel_entity_upsert, rel_link, rel_facts_record, rel_research_record, rel_loop_update,
                 rel_suppress, rel_network_plan, rel_network_map, rel_network_job, rel_network_report,
+                rel_network_deep_plan, rel_network_page_add, rel_network_deep,
                 rel_network_li_allow, rel_network_li_record, rel_network_li_block]
 image_gen:
   provider: openai-codex

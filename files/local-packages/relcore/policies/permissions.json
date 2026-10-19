@@ -264,6 +264,9 @@
     "rel_network_report": "partner.read_or_research",
     "rel_network_li_allow": "partner.read_or_research",
     "rel_network_li_record": "partner_record.create_or_update_internal",
-    "rel_network_li_block": "partner_record.create_or_update_internal"
+    "rel_network_li_block": "partner_record.create_or_update_internal",
+    "rel_network_deep_plan": "partner.read_or_research",
+    "rel_network_page_add": "partner_record.create_or_update_internal",
+    "rel_network_deep": "partner_map.build"
   }
 }

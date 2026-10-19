@@ -391,7 +391,7 @@ Both tokens go into `setup-env.sh`. The token *name* in step 5 doesn't matter.
 |---|---|
 | Slack | **Enabled** — socket mode, operator-connected. Workspace scopes govern visibility; `platform_toolsets` governs what the agent can do |
 | Scrape Creators | **Enabled** — hosted MCP, public-data routes only; no login, cookies, or authenticated profile |
-| relcore network map | **Enabled** — local MCP, no credential and no send tool; cards and revenue spots from the client's own sources. Bulk card import is the owner's CLI |
+| relcore network map | **Enabled** — local MCP, no send tool; cards and revenue spots from the client's own sources, and a deep pass on Claude Opus 5.5 (`ANTHROPIC_API_KEY`) that researches who people know from public pages. Bulk card import is the owner's CLI |
 | 1Password secret transport | Optional operator setup; resolving a secret never activates a disabled connector |
 | Composio | Runtime registration and client absent; a separately reviewed integration/rebuild/release is required |
 | AgentMail | Runtime registration and client absent; a separately reviewed integration/rebuild/release is required |
